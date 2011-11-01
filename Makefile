@@ -11,7 +11,7 @@ LFLAGS_CLI=-L${PATH_ROOT} -I${PATH_ROOT} -o client -lcanl
 CFLAGS_SER=-Wall -c
 LFLAGS_SER=-L${PATH_ROOT} -I${PATH_ROOT} -o server -lcanl
 
-SRC_CANL=${PATH_SRC}/canl.c
+SRC_CANL=${PATH_SRC}/canl.c ${PATH_SRC}/canl_dns.c
 HEAD_CANL=${PATH_SRC}/canl.h ${PATH_SRC}/canl_locl.h
 OBJ_CANL=canl.o
 
