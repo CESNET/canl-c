@@ -27,8 +27,10 @@ canl_ctx canl_create_ctx()
     new_ctx->io_ctx = NULL;
     new_ctx->err_msg = NULL;
 end:
-    return new_ctx;
-
+    if (err)
+        return NULL;
+    else
+        return new_ctx;
 }
 
 void canl_free_ctx(canl_ctx cc)
