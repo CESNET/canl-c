@@ -7,16 +7,21 @@ struct glb_ctx
     char * err_msg;
 };
 /*
-struct ossl_ctx
-{
-    SSL_METHOD ssl_meth;
-    SSL_CTX ssl_ctx;
-    SSL ssl_conn_ctx;
-}
-*/
+   struct ossl_ctx
+   {
+   SSL_METHOD ssl_meth;
+   SSL_CTX ssl_ctx;
+   SSL ssl_conn_ctx;
+   }
+ */
 struct io_handler
 {
     int something;
+};
+
+struct asyn_result {
+    struct hostent *ent;
+    int err;
 };
 
 #endif
