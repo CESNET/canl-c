@@ -48,6 +48,11 @@ void canl_free_ctx(canl_ctx cc)
 	ctx->io_ctx = NULL;
     }
 
+    if (ctx->err_msg) {
+        free(ctx->err_msg);
+        ctx->err_msg = NULL;
+    }
+
     free(ctx);
     cc = ctx = NULL;
 
