@@ -24,4 +24,6 @@ struct asyn_result {
     int err;
 };
 
+void make_err_msg (char **err_msg, const char *err_format, ...);
+
 #endif

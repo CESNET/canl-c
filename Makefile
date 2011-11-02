@@ -3,7 +3,7 @@ PATH_ROOT=/home/marvel/canl/emi.canl.canl-c
 PATH_SRC=${PATH_ROOT}/src
 CC=gcc
 CFLAGS_LIB=-Wall -fPIC -c
-LFLAGS_LIB=-shared -o libcanl.so
+LFLAGS_LIB=-shared -o libcanl.so -lcares
 
 CFLAGS_CLI=-Wall -c
 LFLAGS_CLI=-L${PATH_ROOT} -I${PATH_ROOT} -o client -lcanl
@@ -11,9 +11,7 @@ LFLAGS_CLI=-L${PATH_ROOT} -I${PATH_ROOT} -o client -lcanl
 CFLAGS_SER=-Wall -c
 LFLAGS_SER=-L${PATH_ROOT} -I${PATH_ROOT} -o server -lcanl
 
-SRC_CANL=${PATH_SRC}/canl.c ${PATH_SRC}/canl_dns.c
 HEAD_CANL=${PATH_SRC}/canl.h ${PATH_SRC}/canl_locl.h
-OBJ_CANL=canl.o
 
 SRC_CLI=${PATH_SRC}/canl_sample_client.c
 HEAD_CLI=${PATH_SRC}/canl.h
@@ -23,11 +21,17 @@ SRC_SER=${PATH_SRC}/canl_sample_server.c
 HEAD_SER=${PATH_SRC}/canl.h
 OBJ_SER=canl_sample_server.o
 
-libcanl.so: ${OBJ_CANL}
-	${CC} ${OBJ_CANL} ${LFLAGS_LIB}
+libcanl.so: canl.o canl_err.o canl_dns.o
+	${CC} canl.o canl_err.o canl_dns.o ${LFLAGS_LIB}
 
-${OBJ_CANL}: ${SRC_CANL} ${HEAD_CANL}
-	${CC} ${SRC_CANL} ${CFLAGS_LIB}
+canl.o: ${PATH_SRC}/canl.c ${HEAD_CANL}
+	${CC} ${PATH_SRC}/canl.c ${CFLAGS_LIB}
+
+canl_dns.o: ${PATH_SRC}/canl_dns.c ${HEAD_CANL}
+	${CC} ${PATH_SRC}/canl_dns.c ${CFLAGS_LIB}
+
+canl_err.o: ${PATH_SRC}/canl_err.c ${HEAD_CANL}
+	${CC} ${PATH_SRC}/canl_err.c ${CFLAGS_LIB}
 
 client: ${OBJ_CLI}
 	${CC} ${OBJ_CLI} ${LFLAGS_CLI}
