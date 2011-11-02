@@ -7,13 +7,13 @@ canl_ctx canl_create_ctx()
 {
     struct glb_ctx *new_ctx = NULL;
     int err = 0;
-    
+
     /*create context*/
     new_ctx = (struct glb_ctx *) malloc(sizeof(*new_ctx));
     if (!new_ctx) {
-	err=1; //use errno instead
+        err=1; //use errno instead
         //set_error(ctx->err_msg);
-	goto end;
+        goto end;
     }
 
     /*openssl init. -check return value
@@ -44,8 +44,8 @@ void canl_free_ctx(canl_ctx cc)
 
     /*delete content*/
     if (ctx->io_ctx) {
-	canl_io_destroy(ctx, ctx->io_ctx);
-	ctx->io_ctx = NULL;
+        canl_io_destroy(ctx, ctx->io_ctx);
+        ctx->io_ctx = NULL;
     }
 
     if (ctx->err_msg) {
@@ -66,14 +66,14 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
     struct io_handler *new_io_h = NULL;
 
     if (!cc) {
-	goto end;
+        goto end;
     }
 
     /*create io handler*/
     new_io_h = (struct io_handler *) malloc(sizeof(*new_io_h));
     if (!new_io_h)
         //set_error(ctx->err_msg);
-	goto end;
+        goto end;
 
     /*read cc and set io_handler accordingly ...*/
 
@@ -82,7 +82,7 @@ end:
 }
 
 int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port, 
-                    int flags, cred_handler ch, struct timeval *timeout)
+        int flags, cred_handler ch, struct timeval *timeout)
 {
     int err;
     struct io_handler *io_cc = (struct io_handler*) io;
@@ -91,13 +91,13 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     /*check cc and io*/
     if (!cc) {
         err = 1;
-	goto end;
+        goto end;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-	err = 1;
-	goto end;
+        err = 1;
+        goto end;
     }
 
     /*dns*/
@@ -109,16 +109,16 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 
     /*write succes or failure to cc, io*/
     //if (err)
-	/*cc or io set error*/
+    /*cc or io set error*/
     //else
-	/*cc or io set succes*/
+    /*cc or io set succes*/
 end:
     return err;
 }
 
 int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
-                   int flags, cred_handler ch, struct timeval *timeout, 
-                   canl_io_handler *new_io)
+        int flags, cred_handler ch, struct timeval *timeout, 
+        canl_io_handler *new_io)
 {
     int err;
     struct io_handler *io_cc = (struct io_handler*) io;
@@ -127,13 +127,13 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     /*check cc and io*/
     if (!cc) {
         err = 1;
-	goto end;
+        goto end;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-	err = 1;
-	goto end;
+        err = 1;
+        goto end;
     }
     /*check cc and io*/
 
@@ -143,9 +143,9 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
 
     /*write succes or failure to cc, io*/
     //if (err)
-	/*cc or io set error*/
+    /*cc or io set error*/
     //else
-	/*cc or io set succes*/
+    /*cc or io set succes*/
 
 end:
     return err;
@@ -158,15 +158,15 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
     /*check cc and io*/
     if (!cc) {
         err = 1;
-	goto end;
+        goto end;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-	err = 1;
-	goto end;
+        err = 1;
+        goto end;
     }
-    
+
     /*ssl close*/
 
     /*set cc and io accordingly*/
@@ -181,20 +181,20 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
     /*check cc and io*/
     if (!cc) {
         err = 1;
-	goto end;
+        goto end;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-	err = 1;
+        err = 1;
     }
 
     // delete io_handle content
-    
+
     // delete io itself
     if (io) {
-	free (io);
-	io = NULL;
+        free (io);
+        io = NULL;
     }
 end:
     return err;
@@ -205,13 +205,13 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     int err = 0;
     if (!cc) {
         err = 1;
-	goto end;
+        goto end;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-	err = 1;
-	goto end;
+        err = 1;
+        goto end;
     }
 
     //read something using openssl
@@ -225,13 +225,13 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     int err;
     if (!cc) {
         err = 1;
-	goto end;
+        goto end;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-	err = 1;
-	goto end;
+        err = 1;
+        goto end;
     }
 
     //write sometring using openssl

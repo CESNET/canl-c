@@ -10,9 +10,9 @@ void canl_free_ctx(canl_ctx cc);
 canl_io_handler canl_create_io_handler(canl_ctx cc);
 
 int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, 
-	int port, int flags, cred_handler ch, struct timeval *timeout);
+        int port, int flags, cred_handler ch, struct timeval *timeout);
 int canl_io_accept(canl_ctx cc, canl_io_handler io, int port, int flags, cred_handler ch, 
-			struct timeval *timeout, canl_io_handler * new_io);
+        struct timeval *timeout, canl_io_handler * new_io);
 size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout);
 size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout);
 
