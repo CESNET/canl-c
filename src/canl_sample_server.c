@@ -54,7 +54,7 @@ int main()
     }
 
 end:
-    canl_io_get_error(my_ctx, &err_msg);
+    canl_get_error(my_ctx, &err_msg);
     if (err_msg != NULL)
         printf("%s\n", err_msg);
 

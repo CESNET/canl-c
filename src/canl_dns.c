@@ -10,13 +10,13 @@
 static void free_hostent(struct hostent *h);
 static int decrement_timeout(struct timeval *timeout, struct timeval before, struct timeval after);
 
-#if ARES_VERSION >= 0x010500
+//#if ARES_VERSION >= 0x010500
 static void callback_ares_gethostbyname(void *arg, int status, int timeouts, struct hostent *h)
-#else
-static void callback_ares_gethostbyname(void *arg, int status, struct hostent *h)
-#endif
+//#else
+//static void callback_ares_gethostbyname(void *arg, int status, struct hostent *h)
+//#endif
 {
-    struct asyn_result *arp = (struct asyn_result *) arg;
+    asyn_result *arp = (asyn_result *) arg;
     int n_addr = 0;
     int i = 0;
 
@@ -98,7 +98,7 @@ static void free_hostent(struct hostent *h)
     }
 }
 
-int asyn_getservbyname(int a_family, struct asyn_result *ares_result,char const *name, 
+int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout)
 {
     int err;

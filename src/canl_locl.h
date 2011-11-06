@@ -1,11 +1,14 @@
-#ifndef CANL_CBIND_H
-#define CANL_CBIND_H
-struct glb_ctx
+#ifndef CANL_LOCL_H
+#define CANL_LOCL_H
+#include "canl_err.h"
+
+typedef struct _glb_ctx
 {
     int opened_ios;
     struct io_handler * io_ctx;
     char * err_msg;
-};
+    CANL_ERROR err_code;
+} glb_ctx;
 /*
    struct ossl_ctx
    {
@@ -14,16 +17,17 @@ struct glb_ctx
    SSL ssl_conn_ctx;
    }
  */
-struct io_handler
+typedef struct _io_handler
 {
     int something;
-};
+} io_handler;
 
-struct asyn_result {
+typedef struct _asyn_result {
     struct hostent *ent;
     int err;
-};
-
-void make_err_msg (char **err_msg, const char *err_format, ...);
-
+} asyn_result;
 #endif
+
+void reset_error (glb_ctx *cc, CANL_ERROR err_code);
+void set_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...);
+void update_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...);

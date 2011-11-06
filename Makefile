@@ -24,7 +24,7 @@ OBJ_SER=canl_sample_server.o
 libcanl.so: canl.o canl_err.o canl_dns.o
 	${CC} canl.o canl_err.o canl_dns.o ${LFLAGS_LIB}
 
-canl.o: ${PATH_SRC}/canl.c ${HEAD_CANL}
+canl.o: ${PATH_SRC}/canl.c ${HEAD_CANL} ${PATH_SRC}/canl_err.h
 	${CC} ${PATH_SRC}/canl.c ${CFLAGS_LIB}
 
 canl_dns.o: ${PATH_SRC}/canl_dns.c ${HEAD_CANL}
@@ -36,13 +36,13 @@ canl_err.o: ${PATH_SRC}/canl_err.c ${HEAD_CANL}
 client: ${OBJ_CLI}
 	${CC} ${OBJ_CLI} ${LFLAGS_CLI}
 
-${OBJ_CLI}: ${SRC_CLI} ${HEAD_CLI}
+${OBJ_CLI}: ${SRC_CLI} ${HEAD_CLI} ./libcanl.so
 	${CC} ${SRC_CLI} ${CFLAGS_CLI} 
 
 server: ${OBJ_SER}
 	${CC} ${OBJ_SER} ${LFLAGS_SER}
 
-${OBJ_SER}: ${SRC_SER} ${HEAD_SER}
+${OBJ_SER}: ${SRC_SER} ${HEAD_SER} ./libcanl.so
 	${CC} ${SRC_SER} ${CFLAGS_SER} 
 
 clean:
