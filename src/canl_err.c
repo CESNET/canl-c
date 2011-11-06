@@ -4,27 +4,6 @@
 #include <string.h>
 #include "canl.h"
 #include "canl_locl.h"
-static int make_err_msg(char **strp, const char *fmt, va_list ap);
-
-static int make_err_msg(char **strp, const char *fmt, va_list ap)
-{
-    int err_format_len = 0;
-    int ret_val = 0;
-
-    err_format_len = vsnprintf(NULL, 0, fmt, ap );
-    if (err_format_len < 1)
-        return 0;
-    *strp = (char*) malloc ( (err_format_len +1) * sizeof(char));
-    if (!(*strp))
-        return 0;
-    ret_val = vsprintf(*strp, fmt, ap);
-    if (ret_val != err_format_len) {
-        free (*strp);
-        *strp = NULL;
-        return 0;
-    }
-    return ret_val;
-}
 
 /* Save error message into err_msg
  * use NULL for empty err_format */
@@ -42,11 +21,11 @@ void update_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...
     va_start(ap, err_format);
 
     if (!(*cc->err_msg)) {
-        make_err_msg(&cc->err_msg,err_format, ap);
+        vasprintf(&cc->err_msg,err_format, ap);
         va_end(ap);
         return;
     }
-    err_format_len = make_err_msg(&new_msg, err_format, ap);
+    err_format_len = vasprintf(&new_msg, err_format, ap);
 
     err_msg_len = strlen(cc->err_msg);
 
@@ -78,7 +57,7 @@ void set_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...)
 
     /* make new message */
     va_start(ap, err_format);
-    make_err_msg(&cc->err_msg, err_format, ap);
+    vasprintf(&cc->err_msg, err_format, ap);
     va_end(ap);
 
     cc->err_code = err_code;
