@@ -2,13 +2,13 @@
 PATH_ROOT=/home/marvel/canl/emi.canl.canl-c
 PATH_SRC=${PATH_ROOT}/src
 CC=gcc
-CFLAGS_LIB=-Wall -fPIC -c
+CFLAGS_LIB=-Wall -fPIC -c -g
 LFLAGS_LIB=-shared -o libcanl.so -lcares
 
-CFLAGS_CLI=-Wall -c
+CFLAGS_CLI=-Wall -c -g
 LFLAGS_CLI=-L${PATH_ROOT} -I${PATH_ROOT} -o client -lcanl
 
-CFLAGS_SER=-Wall -c
+CFLAGS_SER=-Wall -c -g
 LFLAGS_SER=-L${PATH_ROOT} -I${PATH_ROOT} -o server -lcanl
 
 HEAD_CANL=${PATH_SRC}/canl.h ${PATH_SRC}/canl_locl.h
