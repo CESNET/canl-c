@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include "canl.h"
 
+#define BUF_LEN 1000
+
 int main()
 {
     canl_ctx my_ctx;
     canl_io_handler my_io_h;
     int err = 0;
     char *err_msg = NULL;
+    char buf[BUF_LEN];
 
     my_ctx = canl_create_ctx();
     if (!my_ctx){
@@ -20,9 +23,9 @@ int main()
         goto end;
     }
 
-    err = canl_io_connect(my_ctx, my_io_h, NULL, 1234, 0, NULL, NULL);
+    err = canl_io_connect(my_ctx, my_io_h, "www.seznam.cz", 80, 0, NULL, NULL);
     if (err) {
-        //set_error("cannot make a connection");
+        printf("connection cannot be established\n");
         goto end;
     }
 
@@ -31,9 +34,10 @@ int main()
         //set_error ("cannot write");
     }
 
-    err = canl_io_read (my_ctx, my_io_h, NULL, 0, NULL);
-    if (err) {
-        //set_error ("cannot read");
+    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
+    if (err > 0) {
+        buf[err] = '\0';
+        printf ("received: %s\n", buf);
     }
 
     err = canl_io_close(my_ctx, my_io_h);
@@ -45,6 +49,7 @@ int main()
     if (err){
         //set_error ("cannot destroy io");
     }
+    my_io_h = NULL;
 
 end:
     canl_get_error(my_ctx, &err_msg);

@@ -26,7 +26,7 @@ int main()
         goto end;
     }
 
-    err = canl_io_connect(my_ctx, my_io_h, NULL, 1234, 0, NULL, NULL);
+    err = canl_io_connect(my_ctx, my_io_h, "", 1234, 0, NULL, NULL);
     if (err) {
         //set_error("cannot make a connection");
         canl_io_destroy(my_ctx, my_io_h);
