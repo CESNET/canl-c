@@ -10,9 +10,8 @@
 
 #define BACKLOG 10 //TODO just for testing - max incoming connections
 
-static void io_clean(canl_ctx cc, canl_io_handler io);
-static int init_io_content(io_handler *io);
-
+static int  io_clear(glb_ctx *cc, io_handler *io);
+static int init_io_content(glb_ctx *cc, io_handler *io);
 canl_ctx canl_create_ctx()
 {
     glb_ctx *ctx = NULL;
@@ -21,8 +20,7 @@ canl_ctx canl_create_ctx()
     /*create context*/
     ctx = (glb_ctx *) malloc(sizeof(*ctx));
     if (!ctx) {
-        err=1; //use errno instead
-        //set_error(ctx);
+        err = ENOMEM;
         goto end;
     }
 
@@ -72,17 +70,20 @@ end:
 canl_io_handler canl_create_io_handler(canl_ctx cc)
 {
     io_handler *new_io_h = NULL;
+    glb_ctx *g_cc = cc;
     int err = 0;
 
-    if (!cc) {
-        goto end;
+    if (!g_cc) {
+        err = EINVAL;
+        return NULL;
     }
 
     /*create io handler*/
     new_io_h = (io_handler *) malloc(sizeof(*new_io_h));
-    if (!new_io_h)
-        //set_error(ctx->err_msg);
+    if (!new_io_h){
+        err = ENOMEM;
         return NULL;
+    }
 
     /*read cc and set io_handler accordingly ...*/
     new_io_h->ar = NULL;
@@ -90,46 +91,55 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
     new_io_h->sock = -1;
 
     /* allocate memory and initialize io content*/
-    if (init_io_content(new_io_h)){
-        err = 1;
+    if ((err = init_io_content(g_cc ,new_io_h))){
         goto end;
     }
 
 end:
     if (err) {
-        canl_io_destroy(cc, (canl_io_handler)new_io_h);
+        update_error(g_cc, err,"cannot create canl_io_handler"
+                "canl_create_io_handler");
+        if ((err = canl_io_destroy(cc, (canl_io_handler)new_io_h)))
+            update_error(g_cc, err, "cannot destroy canl_ctx"
+                    "canl_create_io_handler");
         new_io_h = NULL;
     }
     return new_io_h;
 }
 
-static int init_io_content(io_handler *io)
+static int init_io_content(glb_ctx *cc, io_handler *io)
 {
     int err = 0;
+    if (!cc) {
+        return EINVAL;
+    }
     if (!io) {
-        err = 1;
+        err = EINVAL;
         goto end;
     }
 
     io->ar = (asyn_result *) calloc(1, sizeof(*(io->ar)));
     if (!io->ar) {
-        err = 1;
+        err = ENOMEM;
         goto end;
     }
 
     io->ar->ent = (struct hostent *) calloc(1, sizeof(struct hostent));
     if (!io->ar->ent) {
-        err=1;
+        err = ENOMEM;
         goto end;
     }
 
     io->s_addr = (struct sockaddr *) calloc(1, sizeof(struct sockaddr));
     if (!io->s_addr) {
-        err = 1;
+        err = ENOMEM;
         goto end;
     }
 
 end:
+    if (err)
+        update_error(cc, err, "failed to initialize io_handler"
+                "(init_io_content)");
     return err;
 }
 
@@ -143,13 +153,12 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     struct sockaddr_in *sa_in = NULL;
 
     /*check cc and io*/
-    if (!cc) {
-        err = 1;
-        goto end;
+    if (!glb_cc) {
+        return EINVAL;
     }
 
     if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr) {
-        err = 1;
+        err = EINVAL;
         goto end;
     }
 
@@ -164,13 +173,20 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock != -1)
         io_cc->sock = sock;
+    else {
+        err = errno;
+        goto end;
+    }
     
     sa_in->sin_family = AF_INET;
     sa_in->sin_port = htons(port);
     //TODO loop through h_addr_list
     memcpy(&sa_in->sin_addr.s_addr, io_cc->ar->ent->h_addr, sizeof(struct in_addr));
     err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
-
+    if (err) {
+        err = errno;
+        goto end;
+    }
     /*TODO Maybe continue with select()*/
 
     /*call openssl */
@@ -182,7 +198,10 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     /*cc or io set succes*/
 end:
     if (err) {
-        io_clean(cc, io);
+        update_error(cc, err, "failed to connect (canl_io_connect)");
+        if ((err = io_clear(glb_cc, io_cc)))
+            update_error(cc, err, "failed to clean io_handler"
+                   " (canl_io_connect)");
     }
     return err;
 }
@@ -199,20 +218,19 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     struct addrinfo hints, *servinfo, *p;
     socklen_t sin_size;
     int yes=1;
-    int rv;
     char * PORT = "4321"; //TODO for testing purposes only
 
     /*check cc and io*/
-    if (!cc) 
+    if (!glb_cc) 
         return -1;
 
     if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr) {
-        err = -1;
+        err = EINVAL;
         goto end;
     }
     if (!*io_new_cc || !(*io_new_cc)->ar || !(*io_new_cc)->ar->ent 
             || !(*io_new_cc)->s_addr) {
-        err = -1;
+        err = EINVAL;
         goto end;
     }
 
@@ -221,23 +239,29 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
-    if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        // set err - fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return -1;
+    if ((err = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+        update_error(glb_cc, 0, "getaddrinfo: %s\n", gai_strerror(err));
+        /*TODO what kind of error return?, getaddrinfo returns its own 
+          error codes*/
+        goto end;
     }
+
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype,
                         p->ai_protocol)) == -1) {
-            // set err - perror("server: socket");
+            // set err? no
+            err = errno;
             continue;
         }
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
                     sizeof(int)) == -1) {
-            // set err - perror("setsockopt");
+            err = errno;
+            freeaddrinfo(servinfo); // all done with this structure
             return -1;
         }
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+        if ((err = bind(sockfd, p->ai_addr, p->ai_addrlen))) {
             close(sockfd);
+            err = errno;
             // set err - perror("server: bind");
             continue;
         }
@@ -246,27 +270,28 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
 
     if (p == NULL) {
         // set err - fprintf(stderr, "server: failed to bind\n");
-        return -2;
+        update_error(glb_cc, err, "failed to bind"); //TODO is it there?????
+        freeaddrinfo(servinfo); // all done with this structure
+        goto end;
     }
 
     freeaddrinfo(servinfo); // all done with this structure
 
-    if (listen(sockfd, BACKLOG) == -1) {
-        // set err - perror("listen");
-        return -1;
+    if ((err = listen(sockfd, BACKLOG))) {
+        err = errno;
+        goto end;
     }
 
     /*wait for client*/
     printf("server: waiting for connections...\n");
     sin_size = sizeof((*io_new_cc)->s_addr);
     new_fd = accept(sockfd, (*io_new_cc)->s_addr, &sin_size);
-    if (new_fd == -1) 
-        // set err - perror("accept");
-        return -1;
-
+    if (new_fd == -1){
+        err = errno;
+        goto end;
+    }
     /* TODO everything fine - set new_io_cc according to their_addr*/
 
-    return new_fd; //TODO compare return value with API
 
     /*call openssl to make a secured connection, optional?*/
 
@@ -277,6 +302,8 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     /*cc or io set succes*/
 
 end:
+    if (err)
+        update_error(glb_cc, err, "cannot accept connection (canl_io_accept)");
     return err;
 }
 
@@ -284,16 +311,17 @@ end:
 /* close connection, preserve some info for the future reuse */
 int canl_io_close(canl_ctx cc, canl_io_handler io)
 {
+    io_handler *io_cc = (io_handler*) io;
+    glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
     /*check cc and io*/
     if (!cc) {
-        err = 1;
-        goto end;
+        return EINVAL;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-        err = 1;
+        err = EINVAL;
         goto end;
     }
 
@@ -302,19 +330,23 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
     /*set cc and io accordingly*/
 
 end:
+    if (err)
+        update_error(glb_cc, err, "cannot close connection (canl_io_close)");
     return err;
 }
-static void io_clean(canl_ctx cc, canl_io_handler io)
+static int io_clear(glb_ctx *cc, io_handler *io)
 {
     io_handler *io_cc = (io_handler*) io;
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    int err = 0;
     /*check cc and io*/
     if (!cc) {
-        return;
+        return EINVAL;
     }
 
     if (!io) {
-        //set_error(ctx->err_msg);
-        return;
+        err = EINVAL;
+        goto end;
     }
 
     // delete io_handler content
@@ -329,73 +361,98 @@ static void io_clean(canl_ctx cc, canl_io_handler io)
         free (io_cc->s_addr);
         io_cc->s_addr = NULL;
     }
+
+end:
+    if (err)
+        update_error(glb_cc, err, "cannot clear io_handle (io_clear)");
+    return err;
+
 }
 
 int canl_io_destroy(canl_ctx cc, canl_io_handler io)
 {
     int err = 0;
+    glb_ctx *glb_cc = (glb_ctx*) cc;
     io_handler *io_cc = (io_handler*) io;
     /*check cc and io*/
     if (!cc) {
-        err = 1;
-        goto end;
+        return EINVAL;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-        err = 1;
+        err = EINVAL;
         goto end;
     }
 
-    io_clean(cc, io);
+    err = io_clear(glb_cc, io_cc);
+    if (err)
+        goto end;
     // delete io itself
     if (io_cc) {
         free (io_cc);
         io = NULL;
     }
 end:
+    if (err)
+        update_error(glb_cc, err, "can't destroy io_handle (canl_io_destroy)");
     return err;
 }
 
 size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout)
 {
     io_handler *io_cc = (io_handler*) io;
+    glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
+    int b_recvd = 0;
+    
     if (!cc) {
-        err = 1;
-        goto end;
+        return -1;
     }
 
     if (!io) {
         //set_error(ctx->err_msg);
-        err = 1;
+        err = EINVAL;
         goto end;
     }
 
     //TODO testing: read something without using openssl
-    err = recv(io_cc->sock, buffer, size, 0);
+    b_recvd = recv(io_cc->sock, buffer, size, 0);
+    if (b_recvd == -1)
+        err = errno; //TODO check again
 end:
-    return err;
+    if (err)
+        update_error(glb_cc, err, "can't read from connection"
+                " (canl_io_read)");
+    return b_recvd;
 }
 
 size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout)
 {
     io_handler *io_cc = (io_handler*) io;
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    int b_written = 0;
     int err = 0;
+    
     if (!cc) {
-        err = 1;
-        goto end;
+        return -1;
     }
 
     if (!io) {
-        //set_error(ctx->err_msg);
-        err = 1;
+        err = EINVAL;
         goto end;
     }
 
     //TODO testing: read something without using openssl
-    err = send(io_cc->sock, "Hello, world!", 13, 0);
+    b_written = send(io_cc->sock, "Hello, world!", 13, 0);
+    if (b_written == -1) {
+        err = errno; //TODO check again
+        goto end;
+    }
 
 end:
-    return err;
+    if (err)
+        update_error(glb_cc, err, "can't write to connection"
+                " (canl_io_write)");
+    return b_written;
 }
