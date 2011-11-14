@@ -5,6 +5,7 @@ int main()
 {
     canl_ctx my_ctx;
     canl_io_handler my_io_h;
+    canl_io_handler my_new_io_h;
     int err = 0;
     char *err_msg = NULL;
 
@@ -19,17 +20,17 @@ int main()
         //set_error("io handler cannot be created\n");
         goto end;
     }
-
-    err = canl_io_accept(my_ctx, my_io_h, 1234, 0, NULL, NULL, NULL);
-    if (err) {
-        //set_error("cannot make a connection");
+    
+    my_new_io_h = canl_create_io_handler(my_ctx);
+    if (!my_new_io_h) {
+        //set_error("io handler cannot be created\n");
         goto end;
     }
 
-    err = canl_io_connect(my_ctx, my_io_h, "", 1234, 0, NULL, NULL);
+    /* canl_create_io_handler has to be called for my_new_io_h and my_io_h*/
+    err = canl_io_accept(my_ctx, my_io_h, 4321, 0, NULL, NULL, &my_new_io_h);
     if (err) {
         //set_error("cannot make a connection");
-        canl_io_destroy(my_ctx, my_io_h);
         goto end;
     }
 
@@ -49,6 +50,16 @@ int main()
     }
 
     err = canl_io_destroy(my_ctx, my_io_h);
+    if (err){
+        //set_error ("cannot destroy io");
+    }
+    
+    err = canl_io_close(my_ctx, my_new_io_h);
+    if (err){
+        //set_error ("cannot close io");
+    }
+
+    err = canl_io_destroy(my_ctx, my_new_io_h);
     if (err){
         //set_error ("cannot destroy io");
     }
