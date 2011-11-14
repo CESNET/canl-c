@@ -16,13 +16,22 @@ void update_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...
     va_list ap;
     char *new_msg;
 
-    if (err_format == NULL)
+    if (!cc)
         return;
+
+    if (err_format == NULL) {
+        if (!err_code)
+            return;
+        else {
+            cc->err_code = err_code;
+            return;
+        }
+    }
 
     va_start(ap, err_format);
 
-    if (!(*cc->err_msg)) {
-        vasprintf(&cc->err_msg,err_format, ap);
+    if (!(cc->err_msg)) {
+        vasprintf(&cc->err_msg, err_format, ap);
         va_end(ap);
         return;
     }
@@ -77,7 +86,7 @@ void reset_error (glb_ctx *cc, CANL_ERROR err_code)
 }
 
 /* Provide human readable information about errors */
-size_t canl_get_error(canl_ctx cc, char  **reason)
+int canl_get_error(canl_ctx cc, char  **reason)
 {
     int err = 0;
     int error_length = 0;
@@ -86,19 +95,16 @@ size_t canl_get_error(canl_ctx cc, char  **reason)
 
     /*check cc*/
     if (!ctx) {
-        err = 1;
-        goto end;
+        return EINVAL;
     }
 
-    if (!ctx->err_msg) {
-        err = 1;
+    if (!ctx->err_msg)
         goto end;
-    }
 
     error_length = strlen(ctx->err_msg);
     new_error = (char *) malloc ((error_length + 1) * sizeof (char));
     if (!new_error) {
-        err = 1; //TODO errno
+        err = ENOMEM;
         goto end;
     }
 
@@ -106,5 +112,7 @@ size_t canl_get_error(canl_ctx cc, char  **reason)
     *reason = new_error;
 
 end:
+    if (err)
+        update_error(ctx, err, "cannot get error message (canl_get_error)");
     return err;
 }

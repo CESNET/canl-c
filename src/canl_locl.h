@@ -1,5 +1,6 @@
 #ifndef CANL_LOCL_H
 #define CANL_LOCL_H
+#include <errno.h>
 #include "canl_err.h"
 #include <ares.h>
 #include <ares_version.h>

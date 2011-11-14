@@ -18,7 +18,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port, int flags, cred_ha
 size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout);
 size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout);
 
-size_t canl_get_error(canl_ctx cc, char ** reason);
+int canl_get_error(canl_ctx cc, char ** reason);
 int canl_io_close(canl_ctx cc, canl_io_handler io);
 int canl_io_destroy(canl_ctx cc, canl_io_handler io);
 
