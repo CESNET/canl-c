@@ -165,9 +165,6 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 
     /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
 
-    if (err)
-        goto end;
-
     switch (err = asyn_getservbyname(AF_INET, io_cc->ar, host, NULL)) {
         case NETDB_SUCCESS:
             err = 0;
