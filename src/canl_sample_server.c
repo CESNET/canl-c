@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include "canl.h"
 
+#define BUF_LEN 1000
+
 int main(int argc, char *argv[])
 {
     canl_ctx my_ctx;
@@ -11,6 +13,7 @@ int main(int argc, char *argv[])
     int err = 0;
     char *err_msg = NULL;
     int opt, port = 4321;
+    char buf[BUF_LEN];
 
     while ((opt = getopt(argc, argv, "hp:")) != -1) {
         switch (opt) {
@@ -51,12 +54,12 @@ int main(int argc, char *argv[])
         goto end;
     }
 
-    err = canl_io_write (my_ctx, my_io_h, NULL, 0, NULL);
+    err = canl_io_write (my_ctx, my_new_io_h, NULL, 0, NULL);
     if (err) {
         //set_error ("cannot write");
     }
 
-    err = canl_io_read (my_ctx, my_io_h, NULL, 0, NULL);
+    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
     if (err) {
         //set_error ("cannot read");
     }

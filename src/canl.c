@@ -151,6 +151,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int sock;
     struct sockaddr_in *sa_in = NULL;
+    int i = 0;
 
     /*check cc and io*/
     if (!glb_cc) {
@@ -163,13 +164,26 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     }
 
     /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
-    err = asyn_getservbyname(AF_INET, io_cc->ar, host, NULL);
+
     if (err)
         goto end;
-    
+
+    switch (err = asyn_getservbyname(AF_INET, io_cc->ar, host, NULL)) {
+        case NETDB_SUCCESS:
+            err = 0;
+            break;
+        case TRY_AGAIN:
+            err = ETIMEDOUT;
+            goto end;
+        case NETDB_INTERNAL:
+            err = EHOSTUNREACH; //TODO check
+            goto end;
+        default:
+            err = EHOSTUNREACH; //TODO check
+    }
+
     sa_in = (struct sockaddr_in *) io_cc->s_addr;
 
-    /*open socket TODO just for testing purpose*/
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock != -1)
         io_cc->sock = sock;
@@ -177,15 +191,21 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
         err = errno;
         goto end;
     }
-    
+
     sa_in->sin_family = AF_INET;
     sa_in->sin_port = htons(port);
     //TODO loop through h_addr_list
-    memcpy(&sa_in->sin_addr.s_addr, io_cc->ar->ent->h_addr, sizeof(struct in_addr));
-    err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
-    if (err) {
-        err = errno;
-        goto end;
+    i = 0;
+    while (io_cc->ar->ent->h_addr_list[i])
+    {
+        memcpy(&sa_in->sin_addr.s_addr, io_cc->ar->ent->h_addr_list[i], 
+                sizeof(struct in_addr));
+        err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
+        if (err) 
+            err = errno;
+        else
+            goto end; //success
+        i++;
     }
     /*TODO Maybe continue with select()*/
 
