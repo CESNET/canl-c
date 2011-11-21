@@ -74,6 +74,8 @@ server: ${OBJ_SER}
 ${OBJ_SER}: ${SRC_SER} ${HEAD_SER} libcanl.la
 	${COMPILE} -c ${top_srcdir}/src/${SRC_SER} ${CFLAGS_SER} -o $@
 
+check:
+
 install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/bin
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/${libdir}
