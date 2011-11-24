@@ -183,6 +183,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
             goto end;
         default:
             err = EHOSTUNREACH; //TODO check
+            goto end;
     }
 
     sa_in = (struct sockaddr_in *) io_cc->s_addr;
