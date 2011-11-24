@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
     char *p_server = NULL;
     char *def_server = "www.linuxfoundation.org";
     int opt, port = 80;
+    struct timeval timeout;
 
     while ((opt = getopt(argc, argv, "hp:s:")) != -1) {
         switch (opt) {
@@ -50,7 +51,10 @@ int main(int argc, char *argv[])
         goto end;
     }
 
-    err = canl_io_connect(my_ctx, my_io_h, p_server, port, 0, NULL, NULL);
+   timeout.tv_sec = 15;
+   timeout.tv_usec = 0;
+
+    err = canl_io_connect(my_ctx, my_io_h, p_server, port, 0, NULL, &timeout);
     if (err) {
         printf("connection cannot be established\n");
         goto end;

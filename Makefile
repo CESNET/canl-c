@@ -9,14 +9,15 @@ libdir=lib
 
 VPATH=${top_srcdir}/src
 LIBCARES_LIBS?=-lcares  
+LIBSSL_LIBS?=-lssl
 
 CC=gcc
 COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
 INSTALL=libtool --mode=install install
 
-CFLAGS_LIB=-Wall -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS}
-LFLAGS_LIB=-shared ${LIBCARES_LIBS}
+CFLAGS_LIB=-Wall -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS}
+LFLAGS_LIB=-shared ${LIBCARES_LIBS} ${LIBSSL_LIBS}
 
 CFLAGS_CLI=-Wall -g -I${top_srcdir}/src
 LFLAGS_CLI=-L. -lcanl
@@ -50,7 +51,7 @@ major:=${shell \
 
 all: libcanl.la server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo
+libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 canl.lo: canl.c ${HEAD_CANL} canl_err.h
@@ -61,6 +62,9 @@ canl_dns.lo: canl_dns.c ${HEAD_CANL}
 
 canl_err.lo: canl_err.c ${HEAD_CANL}
 	${COMPILE} -c ${top_srcdir}/src/canl_err.c ${CFLAGS_LIB} -o $@
+
+canl_ssl.lo: canl_err.c ${HEAD_CANL}
+	${COMPILE} -c ${top_srcdir}/src/canl_ssl.c ${CFLAGS_LIB} -o $@
 
 client: ${OBJ_CLI}
 	${LINK} $< ${LFLAGS_CLI} -o $@

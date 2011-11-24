@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
-#include <unistd.h>
 #include "canl.h"
 #include "canl_locl.h"
 #include "sys/socket.h"
@@ -136,6 +135,12 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
         goto end;
     }
 
+    io->s_ctx = (ossl_ctx *) calloc(1, sizeof(*(io->s_ctx)));
+    if (!io->s_ctx) {
+        err = ENOMEM;
+        goto end;
+    }
+
 end:
     if (err)
         update_error(cc, err, "failed to initialize io_handler"
@@ -152,6 +157,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     int sock;
     struct sockaddr_in *sa_in = NULL;
     int i = 0;
+    int err_clear = 0;
 
     /*check cc and io*/
     if (!glb_cc) {
@@ -191,7 +197,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 
     sa_in->sin_family = AF_INET;
     sa_in->sin_port = htons(port);
-    //TODO loop through h_addr_list
+
     i = 0;
     while (io_cc->ar->ent->h_addr_list[i])
     {
@@ -201,13 +207,16 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
         if (err) 
             err = errno;
         else
-            goto end; //success
+            break; //success
         i++;
     }
-    /*TODO Maybe continue with select()*/
 
     /*call openssl */
-
+    err = ssl_init(glb_cc, io_cc);
+    if (err)
+        goto end;
+    err = ssl_connect(glb_cc, io_cc, timeout); //TODO timeout
+    
     /*write succes or failure to cc, io*/
     //if (err)
     /*cc or io set error*/
@@ -216,7 +225,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 end:
     if (err) {
         update_error(cc, err, "failed to connect (canl_io_connect)");
-        if ((err = io_clear(glb_cc, io_cc)))
+        if ((err_clear = io_clear(glb_cc, io_cc)))
             update_error(cc, err, "failed to clean io_handler"
                    " (canl_io_connect)");
     }
