@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include "canl.h"
 
 #define BUF_LEN 1000
@@ -12,6 +13,7 @@ int main(int argc, char *argv[])
     int err = 0;
     char *err_msg = NULL;
     char buf[BUF_LEN];
+    int buf_len = 0;
     char *p_server = NULL;
     char *def_server = "www.linuxfoundation.org";
     int opt, port = 80;
@@ -59,10 +61,22 @@ int main(int argc, char *argv[])
         printf("connection cannot be established\n");
         goto end;
     }
+    else {
+        printf("connection established\n");
+    }
 
-    err = canl_io_write (my_ctx, my_io_h, NULL, 0, NULL);
-    if (err) {
-        //set_error ("cannot write");
+    strcpy(buf, "This is the testing message to send");
+    buf_len = strlen(buf) + 1;
+
+    printf("Trying to send sth to the server\n");
+    err = canl_io_write (my_ctx, my_io_h, buf, buf_len, NULL);
+    if (err <= 0) {
+        printf("can't write using ssl\n");
+        goto end;
+    }
+    else {
+        buf[err] = '\0';
+        printf("message \"%s\" sent successfully\n", buf);
     }
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);

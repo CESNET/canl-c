@@ -460,6 +460,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int b_written = 0;
     int err = 0;
+    errno = 0;
     
     if (!cc) {
         return -1;
@@ -470,8 +471,8 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
         goto end;
     }
 
-    //TODO testing: read something without using openssl
-    b_written = send(io_cc->sock, "Hello, world!", 13, 0);
+    //read something using openssl
+    b_written = ssl_write(glb_cc, io_cc, buffer, size, timeout);
     if (b_written == -1) {
         err = errno; //TODO check again
         goto end;

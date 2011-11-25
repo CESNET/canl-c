@@ -63,7 +63,7 @@ canl_dns.lo: canl_dns.c ${HEAD_CANL}
 canl_err.lo: canl_err.c ${HEAD_CANL}
 	${COMPILE} -c ${top_srcdir}/src/canl_err.c ${CFLAGS_LIB} -o $@
 
-canl_ssl.lo: canl_err.c ${HEAD_CANL}
+canl_ssl.lo: canl_ssl.c ${HEAD_CANL}
 	${COMPILE} -c ${top_srcdir}/src/canl_ssl.c ${CFLAGS_LIB} -o $@
 
 client: ${OBJ_CLI}
