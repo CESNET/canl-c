@@ -432,6 +432,7 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
     int b_recvd = 0;
+    errno = 0;
     
     if (!cc) {
         return -1;
@@ -442,11 +443,19 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
         err = EINVAL;
         goto end;
     }
+    
+    if (!buffer || !size) {
+        err = EINVAL;
+        update_error(glb_cc, err, "no memory to write into (canl_io_read)");
+        return -1;
+    }
 
-    //TODO testing: read something without using openssl
-    b_recvd = recv(io_cc->sock, buffer, size, 0);
-    if (b_recvd == -1)
+    //read something using openssl
+    b_recvd = ssl_read(glb_cc, io_cc, buffer, size, timeout);
+    if (b_recvd == -1) {
         err = errno; //TODO check again
+        goto end;
+    }
 end:
     if (err)
         update_error(glb_cc, err, "can't read from connection"
@@ -461,7 +470,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     int b_written = 0;
     int err = 0;
     errno = 0;
-    
+
     if (!cc) {
         return -1;
     }
@@ -471,7 +480,13 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
         goto end;
     }
 
-    //read something using openssl
+    if (!buffer || !size) {
+        err = EINVAL;
+        update_error(glb_cc, err, "nothing to write (canl_io_write)");
+        return -1;
+    }
+
+    //write something using openssl
     b_written = ssl_write(glb_cc, io_cc, buffer, size, timeout);
     if (b_written == -1) {
         err = errno; //TODO check again

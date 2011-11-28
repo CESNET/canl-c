@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     buf_len = strlen(buf) + 1;
 
     printf("Trying to send sth to the server\n");
-    err = canl_io_write (my_ctx, my_io_h, buf, buf_len, NULL);
+    err = canl_io_write (my_ctx, my_io_h, buf, buf_len, &timeout);
     if (err <= 0) {
         printf("can't write using ssl\n");
         goto end;
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
         printf("message \"%s\" sent successfully\n", buf);
     }
 
-    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
+    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
     if (err > 0) {
         buf[err] = '\0';
         printf ("received: %s\n", buf);

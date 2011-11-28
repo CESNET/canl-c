@@ -57,21 +57,20 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     io->s_ctx->bio_conn = NULL; //TODO ???? 
 
     if ((err = do_ssl_connect(cc, io, timeout))) {
-        update_error(cc, err, ""); //TODO update error
         goto end;
     }
 
     /*
        if (post_connection_check(io->s_ctx->ssl_io)) {
-       opened = true;
+       opened = 1;
        (void)Send("0");
-       return true;
+       return 1;
        }
      */
 
 end:
     if (err)
-        update_error(cc, err, ""); //TODO update error
+        update_error(cc, err, "(ssl_connect)"); //TODO update error
     return err;
 }
 
@@ -183,12 +182,13 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
     int err = 0;
     int ret = 0, nwritten=0;
     const char *str;
-    int fd; 
+    int fd = -1; 
     time_t starttime, curtime;
     int do_continue = 0;
     int expected = 0;
     int locl_timeout;
-    int tout = 0;
+    int touted = 0;
+    int to = 0; // bool
 
     if (!io->s_ctx->ssl_io) {
         err = EINVAL;
@@ -216,9 +216,12 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
     curtime = starttime = time(NULL);
     if (timeout) {
         locl_timeout = timeout->tv_sec;
+        to = 1;
     }
-    else
+    else {
+        to = 0;
         locl_timeout = -1;
+    }
 
     do {
         ret = do_select(fd, starttime, locl_timeout, expected);
@@ -251,9 +254,10 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
             }
         }
         curtime = time(NULL);
-        locl_timeout = locl_timeout - (curtime - starttime);
-        if (locl_timeout != -1 && locl_timeout <= 0){
-            tout = 1;
+        if (to)
+            locl_timeout = locl_timeout - (curtime - starttime);
+        if (to && locl_timeout <= 0){
+            touted = 1;
             goto end;
         }
     } while (ret <= 0 && do_continue);
@@ -264,7 +268,7 @@ end:
         update_error (cc, err, "Error during SSL write (ssl_write)");
         return -1;
     }
-    if (tout){
+    if (touted){
        errno = err = ETIMEDOUT;
        update_error(cc, err, "Connection stuck during write: timeout reached (ssl_write)");
        return -1;
@@ -274,4 +278,70 @@ end:
         update_error (cc, err, "Error during SSL write (ssl_write)");
     }
     return ret;
+}
+
+int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct timeval *tout)
+{
+    int err = 0;
+    int ret = 0, nwritten=0, ret2 = 0;
+    char *str;
+    int fd = -1;
+    time_t starttime, curtime;
+    int expected = 0, error = 0;
+    int timeout;
+
+    if (!io->s_ctx->ssl_io) {
+        err = EINVAL;
+        goto end;
+    }
+
+    if (!cc) {
+        return -1;
+    }
+    if (!io) {
+        err = EINVAL;
+        goto end;
+    }
+
+    if (!buffer) {
+        err = EINVAL; //TODO really?
+        update_error(cc, err, "Not enough memory to read to (ssl_read)");
+        errno = err;
+        return -1;
+    }
+
+    fd = BIO_get_fd(SSL_get_rbio(io->s_ctx->ssl_io), NULL);
+    str = buffer;//TODO !!!!!! text.c_str();
+
+    curtime = starttime = time(NULL);
+    if (tout) {
+        timeout = tout->tv_sec;
+    }
+    else
+        timeout = -1;
+    do {
+        ret = do_select(fd, starttime, timeout, expected);
+        curtime = time(NULL);
+
+        if (ret > 0) {
+            ret2 = SSL_read(io->s_ctx->ssl_io, str + nwritten, strlen(str) - nwritten);
+
+            if (ret2 <= 0) {
+                expected = error = SSL_get_error(io->s_ctx->ssl_io, ret2);
+            }
+        }
+    } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
+
+end:
+    if (ret <= 0 || ret2 <= 0) { //TODO ret2 < 0 originally
+        err = -1; //TODO what to assign
+        if (timeout != -1 && (curtime - starttime >= timeout)){
+            update_error(cc, ETIMEDOUT, "Connection stuck during read: timeout reached. (ssl_read)");
+        }
+        else
+            update_error(cc, err, "Error during SSL read: (ssl_read)");
+    }
+    else
+        err = ret2;
+    return err;
 }
