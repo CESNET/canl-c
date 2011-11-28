@@ -1,6 +1,7 @@
 #include "canl_locl.h"
 
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
+static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 
 int ssl_init(glb_ctx *cc, io_handler *io)
 {
@@ -17,7 +18,7 @@ int ssl_init(glb_ctx *cc, io_handler *io)
     SSL_load_error_strings();
     SSL_library_init();
 
-    io->s_ctx->ssl_meth = SSLv23_method();
+    io->s_ctx->ssl_meth = SSLv23_method();  //TODO dynamically
     io->s_ctx->ssl_ctx = SSL_CTX_new(io->s_ctx->ssl_meth);
     if (!io->s_ctx->ssl_ctx){
         err = 1; //TODO set appropriate
@@ -54,7 +55,7 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     //setup_SSL_proxy_handler(io->s_ctx->ssl_ctx, cacertdir);
     SSL_set_bio(io->s_ctx->ssl_io, io->s_ctx->bio_conn, io->s_ctx->bio_conn);
 
-    io->s_ctx->bio_conn = NULL; //TODO ???? 
+    io->s_ctx->bio_conn = NULL; //TODO WHAT THE HELL IS THIS???? 
 
     if ((err = do_ssl_connect(cc, io, timeout))) {
         goto end;
@@ -71,6 +72,48 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
 end:
     if (err)
         update_error(cc, err, "(ssl_connect)"); //TODO update error
+    return err;
+}
+
+int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io, 
+        struct timeval *timeout)
+{
+    int err = 0, flags;
+
+    if (!cc) {
+        return EINVAL;
+    }
+    if (!io) {
+        err = EINVAL;
+        goto end;
+    }
+
+    flags = fcntl(new_io->sock, F_GETFL, 0);
+    (void)fcntl(new_io->sock, F_SETFL, flags | O_NONBLOCK);
+
+    new_io->s_ctx->bio_conn = BIO_new_socket(new_io->sock, BIO_NOCLOSE);
+    (void)BIO_set_nbio(new_io->s_ctx->bio_conn,1);
+
+    new_io->s_ctx->ssl_io = SSL_new(new_io->s_ctx->ssl_ctx);
+    //setup_SSL_proxy_handler(io->s_ctx->ssl_ctx, cacertdir);
+    SSL_set_bio(new_io->s_ctx->ssl_io, new_io->s_ctx->bio_conn, 
+            new_io->s_ctx->bio_conn);
+
+    if ((err = do_ssl_accept(cc, new_io, timeout))) {
+        goto end;
+    }
+
+    /*
+       if (post_connection_check(io->s_ctx->ssl_io)) {
+       opened = 1;
+       (void)Send("0");
+       return 1;
+       }
+     */
+
+end:
+    if (err)
+        update_error(cc, err, "(ssl_accept)"); //TODO update error
     return err;
 }
 
@@ -169,6 +212,48 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         else{
             err = -1; //TODO set approp. error message
             update_error (cc, err, "Error during SSL handshake (do_ssl_connect)");
+        }
+        return err;
+    }
+
+    return 0;
+}
+
+static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
+{
+    time_t starttime, curtime;
+    int ret = -1, ret2 = -1, err = 0;
+    long errorcode = 0;
+    int expected = 0;
+    int locl_timeout = -1;
+
+    /* do not take tv_usec into account in this function*/
+    if (timeout)
+        locl_timeout = timeout->tv_sec;
+    else
+        locl_timeout = -1;
+    curtime = starttime = time(NULL);
+
+    do {
+        ret = do_select(io->sock, starttime, locl_timeout, expected);
+        if (ret > 0) {
+            ret2 = SSL_accept(io->s_ctx->ssl_io);
+            expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
+        }
+        curtime = time(NULL);
+    } while (TEST_SELECT(ret, ret2, locl_timeout, curtime, starttime, errorcode));
+
+    //TODO split ret2 and ret into 2 ifs to set approp. error message
+    if (ret2 <= 0 || ret <= 0) {
+        if (timeout && (curtime - starttime >= locl_timeout)){
+            timeout->tv_sec=0;
+            timeout->tv_usec=0;
+            err = ETIMEDOUT; 
+            update_error (cc, err, "Connection stuck during handshake: timeout reached (do_ssl_accept)");
+        }
+        else{
+            err = -1; //TODO set approp. error message
+            update_error (cc, err, "Error during SSL handshake (do_ssl_accept)");
         }
         return err;
     }

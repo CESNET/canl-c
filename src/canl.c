@@ -289,15 +289,13 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
         if ((err = bind(sockfd, p->ai_addr, p->ai_addrlen))) {
             close(sockfd);
             err = errno;
-            // set err - perror("server: bind");
             continue;
         }
         break;
     }
 
     if (p == NULL) {
-        // set err - fprintf(stderr, "server: failed to bind\n");
-        update_error(glb_cc, err, "failed to bind"); //TODO is it there?????
+        update_error(glb_cc, err, "failed to bind (canl_io_accept)"); //TODO is it there?????
         freeaddrinfo(servinfo); // all done with this structure
         goto end;
     }
@@ -317,10 +315,16 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
         err = errno;
         goto end;
     }
+    else
+        (*io_new_cc)->sock = new_fd;
     /* TODO everything fine - set new_io_cc according to their_addr*/
 
 
-    /*call openssl to make a secured connection, optional?*/
+    /*call openssl */
+    err = ssl_init(glb_cc, *io_new_cc);
+    if (err)
+        goto end;
+    err = ssl_accept(glb_cc, io_cc, (*io_new_cc), timeout); 
 
     /*write succes or failure to cc, io*/
     //if (err)

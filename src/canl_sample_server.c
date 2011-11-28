@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <string.h>
 #include "canl.h"
 
 #define BUF_LEN 1000
@@ -14,6 +15,8 @@ int main(int argc, char *argv[])
     char *err_msg = NULL;
     int opt, port = 4321;
     char buf[BUF_LEN];
+    int buf_len = 0;
+    struct timeval timeout;
 
     while ((opt = getopt(argc, argv, "hp:")) != -1) {
         switch (opt) {
@@ -47,16 +50,32 @@ int main(int argc, char *argv[])
         goto end;
     }
 
+    timeout.tv_sec = 15;
+    timeout.tv_usec = 0;
+
     /* canl_create_io_handler has to be called for my_new_io_h and my_io_h*/
-    err = canl_io_accept(my_ctx, my_io_h, port, 0, NULL, NULL, &my_new_io_h);
+    /* TODO timeout in this function?*/
+    err = canl_io_accept(my_ctx, my_io_h, port, 0, NULL, &timeout, &my_new_io_h);
     if (err) {
-        //set_error("cannot make a connection");
+        printf("connection cannot be established\n");
         goto end;
     }
+    else {
+        printf("connection established\n");
+    }
 
-    err = canl_io_write (my_ctx, my_new_io_h, NULL, 0, NULL);
+    strcpy(buf, "This is the testing message to send");
+    buf_len = strlen(buf) + 1;
+
+    printf("Trying to send sth to the client\n");
+    err = canl_io_write (my_ctx, my_new_io_h, buf, buf_len, &timeout);
     if (err) {
-        //set_error ("cannot write");
+        printf("cannot send message to the client\n");
+        goto end;
+    }
+    else {
+        buf[err] = '\0';
+        printf("message \"%s\" sent successfully\n", buf);
     }
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);

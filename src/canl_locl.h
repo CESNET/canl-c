@@ -48,6 +48,8 @@ int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name,
         struct timeval *timeout);
 int ssl_init(glb_ctx *cc, io_handler *io);
 int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout);
+int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io,
+        struct timeval *timeout);
 int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
         struct timeval *tout);
 int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
