@@ -41,8 +41,7 @@ typedef struct _io_handler
 
 void reset_error (glb_ctx *cc, CANL_ERROR err_code);
 void set_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...);
-void update_error (glb_ctx *cc, CANL_ERROR err_code, 
-        const char *err_format, ...);
+void update_error (glb_ctx *cc, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);

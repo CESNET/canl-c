@@ -96,10 +96,10 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
 
 end:
     if (err) {
-        update_error(g_cc, err,"cannot create canl_io_handler"
+        update_error(g_cc,"cannot create canl_io_handler"
                 "canl_create_io_handler");
         if ((err = canl_io_destroy(cc, (canl_io_handler)new_io_h)))
-            update_error(g_cc, err, "cannot destroy canl_ctx"
+            update_error(g_cc, "cannot destroy canl_ctx"
                     "canl_create_io_handler");
         new_io_h = NULL;
     }
@@ -143,7 +143,7 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
 
 end:
     if (err)
-        update_error(cc, err, "failed to initialize io_handler"
+        update_error(cc, "failed to initialize io_handler"
                 "(init_io_content)");
     return err;
 }
@@ -225,9 +225,9 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     /*cc or io set succes*/
 end:
     if (err) {
-        update_error(cc, err, "failed to connect (canl_io_connect)");
+        update_error(cc, "failed to connect (canl_io_connect)");
         if ((err_clear = io_clear(glb_cc, io_cc)))
-            update_error(cc, err, "failed to clean io_handler"
+            update_error(cc, "failed to clean io_handler"
                    " (canl_io_connect)");
     }
     return err;
@@ -267,7 +267,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     hints.ai_flags = AI_PASSIVE; // use my IP
 
     if ((err = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
-        update_error(glb_cc, 0, "getaddrinfo: %s\n", gai_strerror(err));
+        update_error(glb_cc, "getaddrinfo: %s\n", gai_strerror(err));
         /*TODO what kind of error return?, getaddrinfo returns its own 
           error codes*/
         goto end;
@@ -295,7 +295,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     }
 
     if (p == NULL) {
-        update_error(glb_cc, err, "failed to bind (canl_io_accept)"); //TODO is it there?????
+        update_error(glb_cc, "failed to bind (canl_io_accept)"); //TODO is it there?????
         freeaddrinfo(servinfo); // all done with this structure
         goto end;
     }
@@ -334,7 +334,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
 
 end:
     if (err)
-        update_error(glb_cc, err, "cannot accept connection (canl_io_accept)");
+        update_error(glb_cc, "cannot accept connection (canl_io_accept)");
     return err;
 }
 
@@ -362,7 +362,7 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
 
 end:
     if (err)
-        update_error(glb_cc, err, "cannot close connection (canl_io_close)");
+        update_error(glb_cc, "cannot close connection (canl_io_close)");
     return err;
 }
 static int io_clear(glb_ctx *cc, io_handler *io)
@@ -395,7 +395,7 @@ static int io_clear(glb_ctx *cc, io_handler *io)
 
 end:
     if (err)
-        update_error(glb_cc, err, "cannot clear io_handle (io_clear)");
+        update_error(glb_cc, "cannot clear io_handle (io_clear)");
     return err;
 
 }
@@ -426,7 +426,7 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
     }
 end:
     if (err)
-        update_error(glb_cc, err, "can't destroy io_handle (canl_io_destroy)");
+        update_error(glb_cc, "can't destroy io_handle (canl_io_destroy)");
     return err;
 }
 
@@ -450,7 +450,7 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     
     if (!buffer || !size) {
         err = EINVAL;
-        update_error(glb_cc, err, "no memory to write into (canl_io_read)");
+        update_error(glb_cc, "no memory to write into (canl_io_read)");
         return -1;
     }
 
@@ -462,7 +462,7 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     }
 end:
     if (err)
-        update_error(glb_cc, err, "can't read from connection"
+        update_error(glb_cc, "can't read from connection"
                 " (canl_io_read)");
     return b_recvd;
 }
@@ -486,7 +486,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 
     if (!buffer || !size) {
         err = EINVAL;
-        update_error(glb_cc, err, "nothing to write (canl_io_write)");
+        update_error(glb_cc, "nothing to write (canl_io_write)");
         return -1;
     }
 
@@ -499,7 +499,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 
 end:
     if (err)
-        update_error(glb_cc, err, "can't write to connection"
+        update_error(glb_cc, "can't write to connection"
                 " (canl_io_write)");
     return b_written;
 }

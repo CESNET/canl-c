@@ -8,7 +8,7 @@
 
 /* Save error message into err_msg
  * use NULL for empty err_format */
-void update_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...)
+void update_error (glb_ctx *cc,  const char *err_format, ...)
 {
     unsigned int err_msg_len = 0;
     unsigned int err_msg_sum = 0; // sum of msg and format lengths
@@ -20,12 +20,7 @@ void update_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...
         return;
 
     if (err_format == NULL) {
-        if (!err_code)
-            return;
-        else {
-            cc->err_code = err_code;
-            return;
-        }
+        return;
     }
 
     va_start(ap, err_format);
@@ -48,8 +43,6 @@ void update_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...
 
     strcat (cc->err_msg, ";");
     strcat (cc->err_msg, new_msg);
-
-    cc->err_code = err_code;
 
     free(new_msg);
 }
@@ -98,6 +91,7 @@ int canl_get_error(canl_ctx cc, char  **reason)
         return EINVAL;
     }
 
+    //TODO what to return
     if (!ctx->err_msg)
         goto end;
 
@@ -113,6 +107,6 @@ int canl_get_error(canl_ctx cc, char  **reason)
 
 end:
     if (err)
-        update_error(ctx, err, "cannot get error message (canl_get_error)");
+        update_error(ctx, "cannot get error message (canl_get_error)");
     return err;
 }
