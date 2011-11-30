@@ -6,6 +6,10 @@
 #include "canl.h"
 #include "canl_locl.h"
 
+static int resolve_error(glb_ctx *cc, CANL_ERROR err_code, 
+        CANL_ERROR_ORIGIN err_orig);
+static int ger_error_string(glb_ctx *cc, char *code_str, int *code_len);
+
 /* Save error message into err_msg
  * use NULL for empty err_format */
 void update_error (glb_ctx *cc,  const char *err_format, ...)
@@ -48,7 +52,8 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
 }
 
 /* If there was some error message in ctx, delete it and make new */
-void set_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...)
+void set_error (glb_ctx *cc, CANL_ERROR err_code, CANL_ERROR_ORIGIN err_orig,
+        const char *err_format, ...)
 {
     va_list ap;
     /*check cc*/
@@ -63,7 +68,7 @@ void set_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...)
     vasprintf(&cc->err_msg, err_format, ap);
     va_end(ap);
 
-    cc->err_code = err_code;
+    resolve_error(cc, err_code, err_orig);
 }
 
 /* Delete error message in ctx, suppose msg is not empty.Set pointer to NULL*/
@@ -76,14 +81,19 @@ void reset_error (glb_ctx *cc, CANL_ERROR err_code)
         free(cc->err_msg);
     cc->err_msg = NULL;
     cc->err_code = no_error;
+    cc->err_orig = unknown_error;
 }
 
 /* Provide human readable information about errors */
 int canl_get_error(canl_ctx cc, char  **reason)
 {
     int err = 0;
+    int e_orig = unknown_error;
     int error_length = 0;
     char *new_error = NULL;
+    char *code_str = NULL;
+    int code_len = 0;
+
     glb_ctx *ctx = (glb_ctx*) cc;
 
     /*check cc*/
@@ -95,18 +105,63 @@ int canl_get_error(canl_ctx cc, char  **reason)
     if (!ctx->err_msg)
         goto end;
 
-    error_length = strlen(ctx->err_msg);
-    new_error = (char *) malloc ((error_length + 1) * sizeof (char));
-    if (!new_error) {
-        err = ENOMEM;
+    /* get human readable error code*/
+    err = ger_error_string(cc, code_str, &code_len);
+    if (err) {
+        e_orig = unknown_error;
         goto end;
     }
 
-    strncpy(new_error, ctx->err_msg, error_length + 1);
+    /* 1 for new line*/
+    error_length = strlen(ctx->err_msg) + code_len + 1;
+    new_error = (char *) malloc ((error_length + 1) * sizeof (char));
+    if (!new_error) {
+        err = ENOMEM;
+        e_orig = posix_error;
+        goto end;
+    }
+
+    strncpy(new_error, code_str, code_len);
+    new_error[code_len] = '\n';
+    new_error[code_len + 1] = '\0';
+    strncat(new_error, ctx->err_msg, error_length + 1);
     *reason = new_error;
 
 end:
     if (err)
-        update_error(ctx, "cannot get error message (canl_get_error)");
+        set_error(ctx, err, e_orig, "cannot get error message (canl_get_error)");
     return err;
+}
+
+/*TODO ! map error codes to their human readable strings */
+static int ger_error_string(glb_ctx *cc, char *code_str, int *code_len)
+{
+    return 0;
+}
+
+/*if the error code is known to colin, assign appropriate colin code
+  TODO go through ssl errors and assign appr. colin code
+  ?preserve original one? */
+static int resolve_error(glb_ctx *cc, CANL_ERROR err_code, 
+        CANL_ERROR_ORIGIN err_orig)
+{
+    if (err_orig == colin_error) {
+        cc->err_code = err_code;
+        cc->err_orig = colin_error;
+        return colin_error;
+    }
+    if (err_orig == posix_error) {
+        cc->err_code = err_code;
+        cc->err_orig = posix_error;
+        return posix_error;
+    }
+
+    switch (err_code) {
+        default:
+            cc->err_code = unknown;
+            cc->err_orig = unknown_error;
+            break;
+    }
+
+    return cc->err_code;
 }

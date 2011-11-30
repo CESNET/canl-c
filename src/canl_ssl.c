@@ -6,12 +6,14 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 int ssl_init(glb_ctx *cc, io_handler *io)
 {
     int err = 0;
+    CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     if (!cc) {
         return EINVAL;
     }
     if (!io) {
         err = EINVAL;
+        e_orig = posix_error;
         goto end;
     }
 
@@ -27,7 +29,7 @@ int ssl_init(glb_ctx *cc, io_handler *io)
 
 end:
     if (err)
-        set_error(cc, err, "cannot initialize SSL context (ssl_init)");
+        set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_init)");
     return err;
 
 }
@@ -202,11 +204,11 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
             timeout->tv_sec=0;
             timeout->tv_usec=0;
             err = ETIMEDOUT; 
-            set_error (cc, err, "Connection stuck during handshake: timeout reached (do_ssl_connect)");
+            set_error (cc, err, posix_error, "Connection stuck during handshake: timeout reached (do_ssl_connect)");
         }
         else{
             err = -1; //TODO set approp. error message
-            set_error (cc, err, "Error during SSL handshake (do_ssl_connect)");
+            set_error (cc, err, unknown_error,"Error during SSL handshake (do_ssl_connect)");
         }
         return err;
     }
@@ -248,11 +250,11 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
             timeout->tv_sec=0;
             timeout->tv_usec=0;
             err = ETIMEDOUT; 
-            set_error (cc, err, "Connection stuck during handshake: timeout reached (do_ssl_accept)");
+            set_error (cc, err, posix_error, "Connection stuck during handshake: timeout reached (do_ssl_accept)");
         }
         else{
             err = -1; //TODO set approp. error message
-            set_error (cc, err, "Error during SSL handshake (do_ssl_accept)");
+            set_error (cc, err, unknown_error, "Error during SSL handshake (do_ssl_accept)");
         }
         return err;
     }
@@ -289,7 +291,7 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
 
     if (!buffer) {
         err = EINVAL; //TODO really?
-        set_error(cc, err, "Nothing to write (ssl_write)");
+        set_error(cc, err, posix_error, "Nothing to write (ssl_write)");
         errno = err;
         return -1;
     }
@@ -349,17 +351,17 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
 end:
     if (err) {
         errno = err;
-        set_error (cc, err, "Error during SSL write (ssl_write)");
+        set_error (cc, err, posix_error, "Error during SSL write (ssl_write)");
         return -1;
     }
     if (touted){
        errno = err = ETIMEDOUT;
-       set_error(cc, err, "Connection stuck during write: timeout reached (ssl_write)");
+       set_error(cc, err, posix_error, "Connection stuck during write: timeout reached (ssl_write)");
        return -1;
     }
     if (ret <=0){
         err = -1;//TODO what to assign??????
-        set_error (cc, err, "Error during SSL write (ssl_write)");
+        set_error (cc, err, unknown_error, "Error during SSL write (ssl_write)");
     }
     return ret;
 }
@@ -389,7 +391,7 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
 
     if (!buffer) {
         err = EINVAL; //TODO really?
-        set_error(cc, err, "Not enough memory to read to (ssl_read)");
+        set_error(cc, err, posix_error, "Not enough memory to read to (ssl_read)");
         errno = err;
         return -1;
     }
@@ -420,10 +422,10 @@ end:
     if (ret <= 0 || ret2 <= 0) { //TODO ret2 < 0 originally
         err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
-            set_error(cc, ETIMEDOUT, "Connection stuck during read: timeout reached. (ssl_read)");
+            set_error(cc, ETIMEDOUT, posix_error, "Connection stuck during read: timeout reached. (ssl_read)");
         }
         else
-            set_error(cc, err, "Error during SSL read: (ssl_read)");
+            set_error(cc, err, unknown_error, "Error during SSL read: (ssl_read)");
     }
     else
         err = ret2;

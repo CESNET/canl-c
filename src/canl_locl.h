@@ -14,6 +14,7 @@ typedef struct _glb_ctx
     int opened_ios;
     char * err_msg;
     CANL_ERROR err_code;
+    CANL_ERROR_ORIGIN err_orig;
 } glb_ctx;
 
 typedef struct _ossl_ctx
@@ -37,10 +38,9 @@ typedef struct _io_handler
     ossl_ctx * s_ctx;
 } io_handler;
 
-#endif
-
 void reset_error (glb_ctx *cc, CANL_ERROR err_code);
-void set_error (glb_ctx *cc, CANL_ERROR err_code, const char *err_format, ...);
+void set_error (glb_ctx *cc, CANL_ERROR err_code, CANL_ERROR_ORIGIN err_orig,
+        const char *err_format, ...);
 void update_error (glb_ctx *cc, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
@@ -53,3 +53,5 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size,
         struct timeval *tout);
 int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
         struct timeval *tout);
+
+#endif

@@ -98,4 +98,13 @@ typedef enum _CANL_ERROR
     loadCrlDistPointError,
     trustAnchorIssuerError
 } CANL_ERROR;
+
+typedef enum _CANL_ERROR_ORIGIN
+{
+    unknown_error = 0,
+    posix_error = 1,
+    ssl_error,
+    colin_error
+} CANL_ERROR_ORIGIN;
+
 #endif
