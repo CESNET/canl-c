@@ -7,6 +7,10 @@ typedef void *canl_io_handler;
 typedef void *canl_ctx;
 typedef void *cred_handler;
 
+typedef void *canl_x509;
+typedef void *canl_stack_of_x509;
+typedef void *canl_pkey;
+
 canl_ctx canl_create_ctx();
 void canl_free_ctx(canl_ctx cc);
 canl_io_handler canl_create_io_handler(canl_ctx cc);
@@ -21,5 +25,8 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 int canl_get_error(canl_ctx cc, char ** reason);
 int canl_io_close(canl_ctx cc, canl_io_handler io);
 int canl_io_destroy(canl_ctx cc, canl_io_handler io);
+
+int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert,
+        canl_stack_of_x509 chain, canl_pkey key);
 
 #endif

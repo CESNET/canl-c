@@ -25,7 +25,7 @@ LFLAGS_CLI=-L. -lcanl
 CFLAGS_SER=-Wall -g -I${top_srcdir}/src
 LFLAGS_SER=-L. -lcanl
 
-HEAD_CANL=canl.h canl_locl.h
+HEAD_CANL=canl.h canl_locl.h canl_err.h
 
 SRC_CLI=canl_sample_client.c
 HEAD_CLI=canl.h
@@ -51,20 +51,23 @@ major:=${shell \
 
 all: libcanl.la server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo
+libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
-canl.lo: canl.c ${HEAD_CANL} canl_err.h
+canl.lo: canl.c ${HEAD_CANL} 
 	${COMPILE} -c ${top_srcdir}/src/canl.c ${CFLAGS_LIB} -o $@
 
-canl_dns.lo: canl_dns.c ${HEAD_CANL}
+canl_dns.lo: canl_dns.c ${HEAD_CANL} 
 	${COMPILE} -c ${top_srcdir}/src/canl_dns.c ${CFLAGS_LIB} -o $@
 
-canl_err.lo: canl_err.c ${HEAD_CANL}
+canl_err.lo: canl_err.c ${HEAD_CANL} 
 	${COMPILE} -c ${top_srcdir}/src/canl_err.c ${CFLAGS_LIB} -o $@
 
 canl_ssl.lo: canl_ssl.c ${HEAD_CANL}
 	${COMPILE} -c ${top_srcdir}/src/canl_ssl.c ${CFLAGS_LIB} -o $@
+
+canl_cert.lo: canl_cert.c ${HEAD_CANL}
+	${COMPILE} -c ${top_srcdir}/src/canl_cert.c ${CFLAGS_LIB} -o $@
 
 client: ${OBJ_CLI}
 	${LINK} $< ${LFLAGS_CLI} -o $@

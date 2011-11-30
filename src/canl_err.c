@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include "canl.h"
 #include "canl_locl.h"
 
 static int resolve_error(glb_ctx *cc, CANL_ERROR err_code, 

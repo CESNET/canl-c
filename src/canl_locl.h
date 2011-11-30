@@ -1,13 +1,25 @@
-#ifndef CANL_LOCL_H
-#define CANL_LOCL_H
+#ifndef _CANL_LOCL_H
+#define _CANL_LOCL_H
+
 #include <errno.h>
 #include "canl_err.h"
+#include "canl.h"
 #include <ares.h>
 #include <ares_version.h>
 #include <netdb.h>
 #include <openssl/ssl.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/safestack.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+typedef struct _cert_key_store {
+    X509 *cert;
+    EVP_PKEY *key;
+} cert_key_store;
 
 typedef struct _glb_ctx
 {
@@ -15,6 +27,7 @@ typedef struct _glb_ctx
     char * err_msg;
     CANL_ERROR err_code;
     CANL_ERROR_ORIGIN err_orig;
+    cert_key_store *cert_key;
 } glb_ctx;
 
 typedef struct _ossl_ctx
@@ -54,4 +67,6 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size,
 int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
         struct timeval *tout);
 
+int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain, 
+        canl_pkey key);
 #endif

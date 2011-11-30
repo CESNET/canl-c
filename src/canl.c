@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
-#include "canl.h"
 #include "canl_locl.h"
 #include "sys/socket.h"
 #include "string.h"
@@ -498,8 +497,34 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     }
 
 end:
-    if (err)
+    if (err) {
         update_error(glb_cc, "can't write to connection"
                 " (canl_io_write)");
+        return -1;
+    }
     return b_written;
+}
+
+int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert, 
+        canl_stack_of_x509 chain, canl_pkey key)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    int err = 0;
+
+    if (!cc)
+        return EINVAL;
+    if(!cert || !key) {
+        err = EINVAL;
+        set_error(glb_cc, err, posix_error, "invalid parameter value"
+               " (canl_set_ctx_own_cert)");
+        return err;
+    }
+
+    do_set_ctx_own_cert(glb_cc, cert, chain, key);
+
+    if(err) {
+        update_error(glb_cc, "can't set cert or key to context"
+                " (canl_set_ctx_own_cert)");
+    }
+        return err;
 }
