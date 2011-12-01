@@ -513,18 +513,39 @@ int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert,
 
     if (!cc)
         return EINVAL;
-    if(!cert || !key) {
-        err = EINVAL;
-        set_error(glb_cc, err, posix_error, "invalid parameter value"
+    if(!cert) {
+        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value"
                " (canl_set_ctx_own_cert)");
         return err;
     }
 
-    do_set_ctx_own_cert(glb_cc, cert, chain, key);
-
+    err = do_set_ctx_own_cert(glb_cc, cert, chain, key);
     if(err) {
         update_error(glb_cc, "can't set cert or key to context"
                 " (canl_set_ctx_own_cert)");
+    }
+        return err;
+}
+
+//TODO callback and userdata process
+int canl_set_ctx_own_cert_file(canl_ctx cc, char *cert, char *key,
+        canl_password_callback cb, void *userdata)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    int err = 0;
+
+    if (!cc)
+        return EINVAL;
+    if(!cert ) {
+        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value"
+               " (canl_set_ctx_own_cert_file)");
+        return EINVAL;
+    }
+
+    err = do_set_ctx_own_cert_file(glb_cc, cert, key);
+    if(err) {
+        update_error(glb_cc, "can't set cert or key to context"
+                " (canl_set_ctx_own_cert_file)");
     }
         return err;
 }

@@ -11,6 +11,8 @@ typedef void *canl_x509;
 typedef void *canl_stack_of_x509;
 typedef void *canl_pkey;
 
+typedef char (*canl_password_callback)(canl_ctx cc, void *userdata);
+
 canl_ctx canl_create_ctx();
 void canl_free_ctx(canl_ctx cc);
 canl_io_handler canl_create_io_handler(canl_ctx cc);
