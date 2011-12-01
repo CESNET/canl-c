@@ -28,12 +28,11 @@ typedef struct _glb_ctx
     CANL_ERROR err_code;
     CANL_ERROR_ORIGIN err_orig;
     cert_key_store *cert_key;
+    SSL_CTX *ssl_ctx;
 } glb_ctx;
 
 typedef struct _ossl_ctx
 {
-    SSL_CTX *ssl_ctx;
-    SSL_METHOD *ssl_meth;
     SSL *ssl_io;
     BIO *bio_conn;
 } ossl_ctx;

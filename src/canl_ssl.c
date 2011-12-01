@@ -7,6 +7,7 @@ int ssl_init(glb_ctx *cc, io_handler *io)
 {
     int err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
+    SSL_METHOD *ssl_meth;
 
     if (!cc) {
         return EINVAL;
@@ -20,9 +21,9 @@ int ssl_init(glb_ctx *cc, io_handler *io)
     SSL_load_error_strings();
     SSL_library_init();
 
-    io->s_ctx->ssl_meth = SSLv23_method();  //TODO dynamically
-    io->s_ctx->ssl_ctx = SSL_CTX_new(io->s_ctx->ssl_meth);
-    if (!io->s_ctx->ssl_ctx){
+    ssl_meth = SSLv23_method();  //TODO dynamically
+    cc->ssl_ctx = SSL_CTX_new(ssl_meth);
+    if (!cc->ssl_ctx){
         err = 1; //TODO set appropriate
             goto end;
     }
@@ -52,8 +53,8 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     io->s_ctx->bio_conn = BIO_new_socket(io->sock, BIO_NOCLOSE);
     (void)BIO_set_nbio(io->s_ctx->bio_conn,1);
 
-    io->s_ctx->ssl_io = SSL_new(io->s_ctx->ssl_ctx);
-    //setup_SSL_proxy_handler(io->s_ctx->ssl_ctx, cacertdir);
+    io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
+    //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
     SSL_set_bio(io->s_ctx->ssl_io, io->s_ctx->bio_conn, io->s_ctx->bio_conn);
 
     io->s_ctx->bio_conn = NULL; //TODO WHAT THE HELL IS THIS???? 
@@ -93,8 +94,8 @@ int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io,
     new_io->s_ctx->bio_conn = BIO_new_socket(new_io->sock, BIO_NOCLOSE);
     (void)BIO_set_nbio(new_io->s_ctx->bio_conn,1);
 
-    new_io->s_ctx->ssl_io = SSL_new(new_io->s_ctx->ssl_ctx);
-    //setup_SSL_proxy_handler(io->s_ctx->ssl_ctx, cacertdir);
+    new_io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
+    //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
     SSL_set_bio(new_io->s_ctx->ssl_io, new_io->s_ctx->bio_conn, 
             new_io->s_ctx->bio_conn);
 
