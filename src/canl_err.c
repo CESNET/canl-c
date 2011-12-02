@@ -5,9 +5,11 @@
 #include <string.h>
 #include "canl_locl.h"
 
+#define ERR_CODE_LEN 512
+
 static int resolve_error(glb_ctx *cc, CANL_ERROR err_code, 
         CANL_ERROR_ORIGIN err_orig);
-static int ger_error_string(glb_ctx *cc, char *code_str, int *code_len);
+static void get_error_string(glb_ctx *cc, char *code_str, int *code_len);
 
 /* Save error message into err_msg
  * use NULL for empty err_format */
@@ -90,8 +92,10 @@ int canl_get_error(canl_ctx cc, char  **reason)
     int e_orig = unknown_error;
     int error_length = 0;
     char *new_error = NULL;
-    char *code_str = NULL;
+    char code_str[ERR_CODE_LEN];
     int code_len = 0;
+
+    code_str[0] = '\0';
 
     glb_ctx *ctx = (glb_ctx*) cc;
 
@@ -105,11 +109,7 @@ int canl_get_error(canl_ctx cc, char  **reason)
         goto end;
 
     /* get human readable error code*/
-    err = ger_error_string(cc, code_str, &code_len);
-    if (err) {
-        e_orig = unknown_error;
-        goto end;
-    }
+    get_error_string(cc, code_str, &code_len);
 
     /* 1 for new line*/
     error_length = strlen(ctx->err_msg) + code_len + 1;
@@ -124,18 +124,21 @@ int canl_get_error(canl_ctx cc, char  **reason)
     new_error[code_len] = '\n';
     new_error[code_len + 1] = '\0';
     strncat(new_error, ctx->err_msg, error_length + 1);
-    *reason = new_error;
 
 end:
+    *reason = new_error;
     if (err)
         set_error(ctx, err, e_orig, "cannot get error message (canl_get_error)");
     return err;
 }
 
 /*TODO ! map error codes to their human readable strings */
-static int ger_error_string(glb_ctx *cc, char *code_str, int *code_len)
+static void get_error_string(glb_ctx *cc, char *code_str, int *code_len)
 {
-    return 0;
+    *code_len = 0;
+    if (cc->err_orig == ssl_error)
+        ERR_error_string_n(cc->err_code, code_str, ERR_CODE_LEN);
+    *code_len = strlen(code_str);
 }
 
 /*if the error code is known to colin, assign appropriate colin code
@@ -157,8 +160,8 @@ static int resolve_error(glb_ctx *cc, CANL_ERROR err_code,
 
     switch (err_code) {
         default:
-            cc->err_code = unknown;
-            cc->err_orig = unknown_error;
+            cc->err_code = err_code;
+            cc->err_orig = err_orig;
             break;
     }
 

@@ -14,20 +14,30 @@ int main(int argc, char *argv[])
     int err = 0;
     char *err_msg = NULL;
     int opt, port = 4321;
+    char *serv_cert = NULL;
+    char *serv_key = NULL;
     char buf[BUF_LEN];
     int buf_len = 0;
     struct timeval timeout;
 
-    while ((opt = getopt(argc, argv, "hp:")) != -1) {
+    while ((opt = getopt(argc, argv, "hp:c:k:")) != -1) {
         switch (opt) {
             case 'h':
-                fprintf(stderr, "Usage: %s [-p port] [-h] \n", argv[0]);
+                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                       " [-k private key] [-h] \n", argv[0]);
                 break;
             case 'p':
                 port = atoi(optarg);
                 break;
+            case 'c':
+                serv_cert = optarg;
+                break;
+            case 'k':
+                serv_key = optarg;
+                break;
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-p port] [-h] \n", argv[0]);
+                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                       " [-k private key] [-h] \n", argv[0]);
                 exit(-1);
         }
     }

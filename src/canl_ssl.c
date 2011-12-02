@@ -24,15 +24,34 @@ int ssl_init(glb_ctx *cc, io_handler *io)
     ssl_meth = SSLv23_method();  //TODO dynamically
     cc->ssl_ctx = SSL_CTX_new(ssl_meth);
     if (!cc->ssl_ctx){
-        err = 1; //TODO set appropriate
-            goto end;
+        err = ERR_get_error();
+        e_orig = ssl_error;
+        goto end;
+    }
+
+    if (cc->cert_key) {
+        if (cc->cert_key->key) {
+            err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
+            if (err) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+                goto end;
+            }
+        }
+        else if (cc->cert_key->cert) {
+            err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
+            if (err) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+                goto end;
+            }
+        }
     }
 
 end:
     if (err)
         set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_init)");
     return err;
-
 }
 
 int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
@@ -221,6 +240,7 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 {
     time_t starttime, curtime;
     int ret = -1, ret2 = -1, err = 0;
+    CANL_ERROR_ORIGIN e_orig = unknown_error;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -236,6 +256,10 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         ret = do_select(io->sock, starttime, locl_timeout, expected);
         if (ret > 0) {
             ret2 = SSL_accept(io->s_ctx->ssl_io);
+            if (ret2 < 0) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+            }
             expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
         }
         curtime = time(NULL);
@@ -250,16 +274,18 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         if (timeout && (curtime - starttime >= locl_timeout)){
             timeout->tv_sec=0;
             timeout->tv_usec=0;
-            err = ETIMEDOUT; 
-            set_error (cc, err, posix_error, "Connection stuck during handshake: timeout reached (do_ssl_accept)");
+            err = ETIMEDOUT;
+            set_error (cc, err, posix_error, "Connection stuck"
+                    " during handshake: timeout reached (do_ssl_accept)");
         }
-        else{
-            err = -1; //TODO set approp. error message
-            set_error (cc, err, unknown_error, "Error during SSL handshake (do_ssl_accept)");
-        }
+        else if (ret2 < 0)
+            set_error (cc, err, e_orig, "Error during SSL handshake"
+                    " (do_ssl_accept)");
+        else
+            set_error (cc, err, unknown_error, "Error during SSL handshake"
+                    " (do_ssl_accept)");
         return err;
     }
-
     return 0;
 }
 

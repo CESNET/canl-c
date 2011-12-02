@@ -318,18 +318,11 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
         (*io_new_cc)->sock = new_fd;
     /* TODO everything fine - set new_io_cc according to their_addr*/
 
-
     /*call openssl */
     err = ssl_init(glb_cc, *io_new_cc);
     if (err)
         goto end;
     err = ssl_accept(glb_cc, io_cc, (*io_new_cc), timeout); 
-
-    /*write succes or failure to cc, io*/
-    //if (err)
-    /*cc or io set error*/
-    //else
-    /*cc or io set succes*/
 
 end:
     if (err)

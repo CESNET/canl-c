@@ -68,4 +68,5 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size,
 
 int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain, 
         canl_pkey key);
+int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key);
 #endif

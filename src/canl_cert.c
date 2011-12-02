@@ -61,6 +61,9 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
     if (key)
         set_key_file(cc, key);
 
+    if (cert)
+        set_cert_file(cc, cert);
+
     return 0;
 }
 
