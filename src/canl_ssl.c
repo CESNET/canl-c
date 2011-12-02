@@ -142,12 +142,16 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
     SSL_set_bio(io->s_ctx->ssl_io, io->s_ctx->bio_conn, io->s_ctx->bio_conn);
 
-    io->s_ctx->bio_conn = NULL; //TODO WHAT THE HELL IS THIS???? 
+    io->s_ctx->bio_conn = NULL;
 
-    if ((err = do_ssl_connect(cc, io, timeout))) {
+    err = do_ssl_connect(cc, io, timeout); 
+    if (err < 0) {
         goto end;
     }
-
+    if (err == 0) {
+        err = -1; //TODO check
+        goto end;
+    }
     /*
        if (post_connection_check(io->s_ctx->ssl_io)) {
        opened = 1;
@@ -184,7 +188,12 @@ int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io,
     SSL_set_bio(new_io->s_ctx->ssl_io, new_io->s_ctx->bio_conn, 
             new_io->s_ctx->bio_conn);
 
-    if ((err = do_ssl_accept(cc, new_io, timeout))) {
+    err = do_ssl_accept(cc, new_io, timeout);
+        if (err < 0) {
+        goto end;
+    }
+    if (err == 0) {
+        err = -1; //TODO check
         goto end;
     }
 
@@ -289,7 +298,7 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         curtime = time(NULL);
     } while (TEST_SELECT(ret, ret2, locl_timeout, curtime, starttime, errorcode));
 
-    //TODO split ret2 and ret into 2 ifs to set approp. error message
+    //TODO split ret2 and ret into 2 ifs to set approp. err. msg and check ag.
     if (ret2 <= 0 || ret <= 0) {
         if (timeout && (curtime - starttime >= locl_timeout)){
             timeout->tv_sec=0;
@@ -300,13 +309,15 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         else if (ret2 < 0)
             set_error (cc, err, e_orig, "Error during SSL handshake"
                     " (do_ssl_connect)");
+        else if (ret2 == 0)
+            set_error (cc, err, unknown_error, "Connection closed"
+                    " by the other side (do_ssl_connect)");
         else
             set_error (cc, err, unknown_error, "Error during SSL handshake"
                     " (do_ssl_connect)");
         return err;
     }
-
-    return 0;
+    return ret;
 }
 
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
@@ -354,12 +365,15 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         else if (ret2 < 0)
             set_error (cc, err, e_orig, "Error during SSL handshake"
                     " (do_ssl_accept)");
-        else
-            set_error (cc, err, unknown_error, "Error during SSL handshake"
+        else if (ret2 == 0)
+            set_error (cc, err, unknown_error, "connection closed by"
+		    " the other side (do_ssl_accept)");
+	else
+	    set_error (cc, err, unknown_error, "Error during SSL handshake"
                     " (do_ssl_accept)");
         return err;
     }
-    return 0;
+    return ret;
 }
 
 /* this function has to return # bytes written or ret < 0 when sth went wrong*/

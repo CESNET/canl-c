@@ -69,6 +69,9 @@ void set_error (glb_ctx *cc, CANL_ERROR err_code, CANL_ERROR_ORIGIN err_orig,
     vasprintf(&cc->err_msg, err_format, ap);
     va_end(ap);
 
+    //0 is not error
+    if (!err_code)
+	return;
     resolve_error(cc, err_code, err_orig);
 }
 

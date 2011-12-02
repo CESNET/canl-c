@@ -2,8 +2,6 @@
 #define _CANL_LOCL_H
 
 #include <errno.h>
-#include "canl_err.h"
-#include "canl.h"
 #include <ares.h>
 #include <ares_version.h>
 #include <netdb.h>
@@ -15,6 +13,7 @@
 #include <openssl/safestack.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "canl.h"
 
 typedef struct _cert_key_store {
     X509 *cert;
