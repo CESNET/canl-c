@@ -1,13 +1,15 @@
 #include "canl_locl.h"
 
+#define SSL_SERVER_METH SSLv3_server_method()
+#define SSL_CLIENT_METH SSLv3_client_method()
+
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 
-int ssl_init(glb_ctx *cc, io_handler *io)
+int ssl_server_init(glb_ctx *cc, io_handler *io)
 {
     int err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
-    SSL_METHOD *ssl_meth;
 
     if (!cc) {
         return EINVAL;
@@ -21,13 +23,77 @@ int ssl_init(glb_ctx *cc, io_handler *io)
     SSL_load_error_strings();
     SSL_library_init();
 
-    ssl_meth = SSLv23_method();  //TODO dynamically
-    cc->ssl_ctx = SSL_CTX_new(ssl_meth);
+    cc->ssl_ctx = SSL_CTX_new(SSL_SERVER_METH);
     if (!cc->ssl_ctx){
         err = ERR_get_error();
         e_orig = ssl_error;
         goto end;
     }
+
+    SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
+    SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
+    // TODO proxy_verify_callback !!!!!!!
+    //SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_PEER, NULL);
+    //SSL_CTX_set_verify_depth(ctx, 100);
+    //SSL_CTX_set_cert_verify_callback(ctx, proxy_app_verify_callback, 0);
+    if (cc->cert_key) {
+        if (cc->cert_key->key) {
+            err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
+            if (err) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+                goto end;
+            }
+        }
+        else if (cc->cert_key->cert) {
+            err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
+            if (err) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+                goto end;
+            }
+        }
+    }
+
+end:
+    if (err)
+        set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_server_init)");
+    return err;
+}
+
+int ssl_client_init(glb_ctx *cc, io_handler *io)
+{
+    int err = 0;
+    CANL_ERROR_ORIGIN e_orig = unknown_error;
+
+    if (!cc) {
+        return EINVAL;
+    }
+    if (!io) {
+        err = EINVAL;
+        e_orig = posix_error;
+        goto end;
+    }
+
+    SSL_load_error_strings();
+    SSL_library_init();
+
+    cc->ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
+    if (!cc->ssl_ctx){
+        err = ERR_get_error();
+        e_orig = ssl_error;
+        goto end;
+    }
+  
+    SSL_CTX_set_options(cc->ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
+    //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, proxy_verify_callback);
+    //SSL_CTX_set_verify_depth(ctx, 100);
+    //SSL_CTX_load_verify_locations(ctx, NULL, cacertdir);
+    SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
+    SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
+
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
@@ -50,7 +116,7 @@ int ssl_init(glb_ctx *cc, io_handler *io)
 
 end:
     if (err)
-        set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_init)");
+        set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_client_init)");
     return err;
 }
 
@@ -198,6 +264,7 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 {
     time_t starttime, curtime;
     int ret = -1, ret2 = -1, err = 0;
+    CANL_ERROR_ORIGIN e_orig = unknown_error;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -213,6 +280,10 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         ret = do_select(io->sock, starttime, locl_timeout, expected);
         if (ret > 0) {
             ret2 = SSL_connect(io->s_ctx->ssl_io);
+            if (ret2 < 0) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+            }
             expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
         }
         curtime = time(NULL);
@@ -226,10 +297,12 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
             err = ETIMEDOUT; 
             set_error (cc, err, posix_error, "Connection stuck during handshake: timeout reached (do_ssl_connect)");
         }
-        else{
-            err = -1; //TODO set approp. error message
-            set_error (cc, err, unknown_error,"Error during SSL handshake (do_ssl_connect)");
-        }
+        else if (ret2 < 0)
+            set_error (cc, err, e_orig, "Error during SSL handshake"
+                    " (do_ssl_connect)");
+        else
+            set_error (cc, err, unknown_error, "Error during SSL handshake"
+                    " (do_ssl_connect)");
         return err;
     }
 

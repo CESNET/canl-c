@@ -212,7 +212,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     }
 
     /*call openssl */
-    err = ssl_init(glb_cc, io_cc);
+    err = ssl_client_init(glb_cc, io_cc);
     if (err)
         goto end;
     err = ssl_connect(glb_cc, io_cc, timeout); //TODO timeout
@@ -319,7 +319,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     /* TODO everything fine - set new_io_cc according to their_addr*/
 
     /*call openssl */
-    err = ssl_init(glb_cc, *io_new_cc);
+    err = ssl_server_init(glb_cc, *io_new_cc);
     if (err)
         goto end;
     err = ssl_accept(glb_cc, io_cc, (*io_new_cc), timeout); 

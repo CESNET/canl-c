@@ -60,6 +60,11 @@ int main(int argc, char *argv[])
         goto end;
     }
 
+    err = canl_set_ctx_own_cert_file(my_ctx, serv_cert, serv_key, NULL, NULL);
+    if (err) {
+        printf("[SERVER] cannot set certificate or file to context\n");
+    }
+
     timeout.tv_sec = 15;
     timeout.tv_usec = 0;
 
@@ -67,25 +72,25 @@ int main(int argc, char *argv[])
     /* TODO timeout in this function?*/
     err = canl_io_accept(my_ctx, my_io_h, port, 0, NULL, &timeout, &my_new_io_h);
     if (err) {
-        printf("connection cannot be established\n");
+        printf("[SERVER] connection cannot be established\n");
         goto end;
     }
     else {
-        printf("connection established\n");
+        printf("[SERVER] connection established\n");
     }
 
     strcpy(buf, "This is the testing message to send");
     buf_len = strlen(buf) + 1;
 
-    printf("Trying to send sth to the client\n");
+    printf("[SERVER] Trying to send sth to the client\n");
     err = canl_io_write (my_ctx, my_new_io_h, buf, buf_len, &timeout);
     if (err) {
-        printf("cannot send message to the client\n");
+        printf("[SERVER] cannot send message to the client\n");
         goto end;
     }
     else {
         buf[err] = '\0';
-        printf("message \"%s\" sent successfully\n", buf);
+        printf("[SERVER] message \"%s\" sent successfully\n", buf);
     }
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);

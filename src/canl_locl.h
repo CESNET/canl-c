@@ -57,7 +57,8 @@ void update_error (glb_ctx *cc, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);
-int ssl_init(glb_ctx *cc, io_handler *io);
+int ssl_client_init(glb_ctx *cc, io_handler *io);
+int ssl_server_init(glb_ctx *cc, io_handler *io);
 int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout);
 int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io,
         struct timeval *timeout);
