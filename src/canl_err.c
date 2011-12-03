@@ -7,7 +7,7 @@
 
 #define ERR_CODE_LEN 512
 
-static int resolve_error(glb_ctx *cc, CANL_ERROR err_code, 
+static unsigned long resolve_error(glb_ctx *cc, unsigned long err_code, 
         CANL_ERROR_ORIGIN err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str, int *code_len);
 
@@ -53,7 +53,7 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
 }
 
 /* If there was some error message in ctx, delete it and make new */
-void set_error (glb_ctx *cc, CANL_ERROR err_code, CANL_ERROR_ORIGIN err_orig,
+void set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
         const char *err_format, ...)
 {
     va_list ap;
@@ -76,7 +76,7 @@ void set_error (glb_ctx *cc, CANL_ERROR err_code, CANL_ERROR_ORIGIN err_orig,
 }
 
 /* Delete error message in ctx, suppose msg is not empty.Set pointer to NULL*/
-void reset_error (glb_ctx *cc, CANL_ERROR err_code)
+void reset_error (glb_ctx *cc, unsigned long err_code)
 {
     /*check cc*/
     if (!cc )
@@ -147,7 +147,7 @@ static void get_error_string(glb_ctx *cc, char *code_str, int *code_len)
 /*if the error code is known to colin, assign appropriate colin code
   TODO go through ssl errors and assign appr. colin code
   ?preserve original one? */
-static int resolve_error(glb_ctx *cc, CANL_ERROR err_code, 
+static unsigned long resolve_error(glb_ctx *cc, unsigned long err_code, 
         CANL_ERROR_ORIGIN err_orig)
 {
     if (err_orig == colin_error) {
