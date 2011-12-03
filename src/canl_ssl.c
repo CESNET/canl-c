@@ -6,9 +6,11 @@
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 
+static void dbg_print_ssl_error(int errorcode);
+
 int ssl_server_init(glb_ctx *cc, io_handler *io)
 {
-    int err = 0;
+    unsigned long err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     if (!cc) {
@@ -22,6 +24,9 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
 
     SSL_load_error_strings();
     SSL_library_init();
+    //OpenSSL_add_all_algorithms();
+    //OpenSSL_add_all_ciphers();
+    ERR_clear_error();
 
     cc->ssl_ctx = SSL_CTX_new(SSL_SERVER_METH);
     if (!cc->ssl_ctx){
@@ -30,41 +35,75 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
         goto end;
     }
 
-    SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
-    SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
-    // TODO proxy_verify_callback !!!!!!!
-    //SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_PEER, NULL);
+    //TODO test hardcoded
+    SSL_CTX_load_verify_locations(cc->ssl_ctx, "~/terena_ca_file.pem", NULL);
+
+    //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
+    if (!err) {
+        err = ERR_get_error();
+        set_error(cc, err, e_orig, "no cipher to use"
+                " (ssl_server_init)");
+        return err;
+    }
+    err = 0;
+
+    //SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
+    //SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
+    // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
+    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, NULL);
     //SSL_CTX_set_verify_depth(ctx, 100);
     //SSL_CTX_set_cert_verify_callback(ctx, proxy_app_verify_callback, 0);
     if (cc->cert_key) {
+        if (cc->cert_key->cert) {
+            err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
+            if (err != 1) {
+                err = ERR_get_error();
+                e_orig = ssl_error;
+                goto end;
+            }
+            else
+                err = 0;
+        }
         if (cc->cert_key->key) {
             err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
-            if (err) {
+            if (err != 1) {
                 err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
             }
-        }
-        else if (cc->cert_key->cert) {
-            err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
-            if (err) {
-                err = ERR_get_error();
-                e_orig = ssl_error;
-                goto end;
-            }
+            else
+                err = 0;
         }
     }
+    else {
+        set_error(cc, err, unknown_error, "server key or certificate missing"
+                " (ssl_server_init)");
+        return -1;
+    }
+    /*Make sure the key and certificate file match*/
+    if ( (err = SSL_CTX_check_private_key(cc->ssl_ctx)) != 1) {
+        err = ERR_get_error();
+        e_orig = ssl_error;
+        set_error(cc, err, e_orig, "Private key does not match"
+                " the certificate public key");
+        return -1;
+    }
+    else
+        err = 0;
 
 end:
-    if (err)
-        set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_server_init)");
-    return err;
+    if (err) {
+        set_error(cc, err, e_orig, "cannot initialize SSL context"
+                " (ssl_server_init)");
+        return -1;
+    }
+    return 0;
 }
 
 int ssl_client_init(glb_ctx *cc, io_handler *io)
 {
-    int err = 0;
+    unsigned long err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     if (!cc) {
@@ -78,6 +117,8 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
 
     SSL_load_error_strings();
     SSL_library_init();
+    //OpenSSL_add_all_algorithms();
+    //OpenSSL_add_all_ciphers();
 
     cc->ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
     if (!cc->ssl_ctx){
@@ -85,20 +126,33 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
         e_orig = ssl_error;
         goto end;
     }
-  
-    SSL_CTX_set_options(cc->ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
-    //SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, proxy_verify_callback);
+
+    //TODO test hardcoded
+    SSL_CTX_load_verify_locations(cc->ssl_ctx, "~/terena_ca_file.pem", NULL);
+
+    //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
+    if (!err) {
+        err = ERR_get_error();
+        set_error(cc, err, e_orig, "no cipher to use"
+                " (ssl_server_init)");
+        return err;
+    }
+    err = 0;
+
+    //SSL_CTX_set_options(cc->ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
+    //TODO testing 
+    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, NULL);
     //SSL_CTX_set_verify_depth(ctx, 100);
     //SSL_CTX_load_verify_locations(ctx, NULL, cacertdir);
-    SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
-    SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
+    //SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
+    //SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
 
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
             err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
-            if (err) {
+            if (err != 1) {
                 err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
@@ -106,7 +160,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
         }
         else if (cc->cert_key->cert) {
             err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
-            if (err) {
+            if (err != 1) {
                 err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
@@ -115,9 +169,12 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     }
 
 end:
-    if (err)
-        set_error(cc, err, e_orig, "cannot initialize SSL context (ssl_client_init)");
-    return err;
+    if (err) {
+        set_error(cc, err, e_orig, "cannot initialize SSL context"
+               " (ssl_client_init)");
+    return -1;
+    }
+    return 0;
 }
 
 int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
@@ -145,11 +202,7 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     io->s_ctx->bio_conn = NULL;
 
     err = do_ssl_connect(cc, io, timeout); 
-    if (err < 0) {
-        goto end;
-    }
-    if (err == 0) {
-        err = -1; //TODO check
+    if (err) {
         goto end;
     }
     /*
@@ -189,11 +242,7 @@ int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io,
             new_io->s_ctx->bio_conn);
 
     err = do_ssl_accept(cc, new_io, timeout);
-        if (err < 0) {
-        goto end;
-    }
-    if (err == 0) {
-        err = -1; //TODO check
+        if (err) {
         goto end;
     }
 
@@ -272,7 +321,8 @@ int do_select(int fd, time_t starttime, int timeout, int wanted)
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 {
     time_t starttime, curtime;
-    int ret = -1, ret2 = -1, err = 0;
+    int ret = -1, ret2 = -1;
+    unsigned long err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
     long errorcode = 0;
     int expected = 0;
@@ -315,15 +365,16 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         else
             set_error (cc, err, unknown_error, "Error during SSL handshake"
                     " (do_ssl_connect)");
-        return err;
+        return -1;
     }
-    return ret;
+    return 0;
 }
 
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 {
     time_t starttime, curtime;
-    int ret = -1, ret2 = -1, err = 0;
+    int ret = -1, ret2 = -1;
+    unsigned long err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
     long errorcode = 0;
     int expected = 0;
@@ -335,18 +386,20 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
     else
         locl_timeout = -1;
     curtime = starttime = time(NULL);
+    ERR_clear_error();
 
     do {
         ret = do_select(io->sock, starttime, locl_timeout, expected);
         if (ret > 0) {
             ret2 = SSL_accept(io->s_ctx->ssl_io);
             if (ret2 < 0) {
-                err = ERR_get_error();
+                err = ERR_peek_error();
                 e_orig = ssl_error;
             }
             expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
         }
         curtime = time(NULL);
+        dbg_print_ssl_error(errorcode);
     } while (ret > 0 && (ret2 <= 0 && ((locl_timeout == -1) ||
            ((locl_timeout != -1) &&
             (curtime - starttime) < locl_timeout)) &&
@@ -371,9 +424,9 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 	else
 	    set_error (cc, err, unknown_error, "Error during SSL handshake"
                     " (do_ssl_accept)");
-        return err;
+        return -1;
     }
-    return ret;
+    return 0;
 }
 
 /* this function has to return # bytes written or ret < 0 when sth went wrong*/
@@ -545,3 +598,42 @@ end:
         err = ret2;
     return err;
 }
+
+static void dbg_print_ssl_error(int errorcode)
+{
+    printf("[DBG CANL] ");
+    switch (errorcode) {
+        case SSL_ERROR_NONE:
+            printf ("SSL_ERROR_NONE\n");
+            break;
+        case SSL_ERROR_ZERO_RETURN:
+            printf("SSL_ERROR_ZERO_RETURN\n");
+            break;
+        case SSL_ERROR_WANT_READ:
+            printf ("SSL_ERROR_WANT_READ\n");
+            break;
+        case SSL_ERROR_WANT_WRITE:
+            printf ("SSL_ERROR_WANT_WRITE\n");
+            break;
+        case SSL_ERROR_WANT_CONNECT:
+            printf ("SSL_ERROR_WANT_CONNECT\n");
+            break;
+        case SSL_ERROR_WANT_ACCEPT:
+            printf ("SSL_ERROR_WANT_ACCEPT\n");
+            break;
+        case SSL_ERROR_WANT_X509_LOOKUP:
+            printf ("SSL_ERROR_WANT_X509_LOOKUP\n");
+            break;
+        case SSL_ERROR_SYSCALL:
+            printf ("SSL_ERROR_SYSCALL\n");
+            break;
+        case SSL_ERROR_SSL:
+            printf ("SSL_ERROR_SSL\n");
+            break;
+        default:
+            printf ("no known error\n");
+            break;
+    }
+}
+
+
