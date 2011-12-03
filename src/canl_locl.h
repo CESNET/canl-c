@@ -24,7 +24,7 @@ typedef struct _glb_ctx
 {
     int opened_ios;
     char * err_msg;
-    CANL_ERROR err_code;
+    unsigned long err_code;
     CANL_ERROR_ORIGIN err_orig;
     cert_key_store *cert_key;
     SSL_CTX *ssl_ctx;
@@ -49,8 +49,8 @@ typedef struct _io_handler
     ossl_ctx * s_ctx;
 } io_handler;
 
-void reset_error (glb_ctx *cc, CANL_ERROR err_code);
-void set_error (glb_ctx *cc, CANL_ERROR err_code, CANL_ERROR_ORIGIN err_orig,
+void reset_error (glb_ctx *cc, unsigned long err_code);
+void set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
         const char *err_format, ...);
 void update_error (glb_ctx *cc, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?

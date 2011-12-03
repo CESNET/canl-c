@@ -36,7 +36,7 @@ int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain,
 static int set_cert(glb_ctx *cc, X509 *cert)
 {
     int err = 0;
-    CANL_ERROR_ORIGIN err_orig;
+    CANL_ERROR_ORIGIN err_orig = 0;
     
     if (cc->cert_key->cert) {
         free(cc->cert_key->cert);
@@ -111,7 +111,7 @@ static int set_key_file(glb_ctx *cc, char *key)
     }
 
 end:
-    fclose(key_file);
+    err = fclose(key_file);
     return err;
 }
 
@@ -159,6 +159,6 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     }
 
 end:
-    fclose(cert_file);
+    err = fclose(cert_file);
     return err;
 }

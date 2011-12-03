@@ -16,23 +16,11 @@ canl_ctx canl_create_ctx()
     int err = 0;
 
     /*create context*/
-    ctx = (glb_ctx *) malloc(sizeof(*ctx));
+    ctx = (glb_ctx *) calloc(1, sizeof(*ctx));
     if (!ctx) {
         err = ENOMEM;
         goto end;
     }
-
-    /*openssl init. -check return value
-      ssl_library_init();
-      ssl_load_error_strings();
-      canl_ctx->ssl_ctx->ssl_meth = ;//choose ssl method SSLv3_method();
-      canl_ctx->ssl_ctx = SSL_CTX_new (canl_ctx->ssl_ct->ssl_meth)
-     */
-
-    /*initial values ...*/
-    ctx->err_msg = NULL;
-    ctx->err_code = no_error;
-    ctx->opened_ios = 0;
 
 end:
     if (err)
@@ -77,16 +65,11 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
     }
 
     /*create io handler*/
-    new_io_h = (io_handler *) malloc(sizeof(*new_io_h));
+    new_io_h = (io_handler *) calloc(1, sizeof(*new_io_h));
     if (!new_io_h){
         err = ENOMEM;
         return NULL;
     }
-
-    /*read cc and set io_handler accordingly ...*/
-    new_io_h->ar = NULL;
-    new_io_h->s_addr = NULL;
-    new_io_h->sock = -1;
 
     /* allocate memory and initialize io content*/
     if ((err = init_io_content(g_cc ,new_io_h))){
