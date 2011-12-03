@@ -59,13 +59,15 @@ int main(int argc, char *argv[])
         //set_error("io handler cannot be created\n");
         goto end;
     }
-
-    err = canl_set_ctx_own_cert_file(my_ctx, serv_cert, serv_key, NULL, NULL);
-    if (err) {
-        printf("[SERVER] cannot set certificate or file to context\n");
+    if (serv_cert || serv_key){
+        err = canl_set_ctx_own_cert_file(my_ctx, serv_cert, serv_key, 
+                NULL, NULL);
+        if (err) {
+            printf("[SERVER] cannot set certificate or file to context\n");
+        }
     }
 
-    timeout.tv_sec = 15;
+    timeout.tv_sec = 150;
     timeout.tv_usec = 0;
 
     /* canl_create_io_handler has to be called for my_new_io_h and my_io_h*/
@@ -84,7 +86,7 @@ int main(int argc, char *argv[])
 
     printf("[SERVER] Trying to send sth to the client\n");
     err = canl_io_write (my_ctx, my_new_io_h, buf, buf_len, &timeout);
-    if (err) {
+    if (err <= 0) {
         printf("[SERVER] cannot send message to the client\n");
         goto end;
     }
@@ -94,29 +96,35 @@ int main(int argc, char *argv[])
     }
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
-    if (err) {
-        //set_error ("cannot read");
+    if (err > 0) {
+        buf[err] = '\0';
+        printf ("[SERVER] received: %s\n", buf);
     }
+    else
+    printf("[SERVER] nothing received from client\n");
 
-    err = canl_io_close(my_ctx, my_io_h);
-    if (err){
-        //set_error ("cannot close io");
-    }
 
-    err = canl_io_destroy(my_ctx, my_io_h);
-    if (err){
-        //set_error ("cannot destroy io");
-    }
-    
     err = canl_io_close(my_ctx, my_new_io_h);
     if (err){
-        //set_error ("cannot close io");
+    printf("[SERVER] Cannot close connection with client\n");
     }
 
     err = canl_io_destroy(my_ctx, my_new_io_h);
     if (err){
-        //set_error ("cannot destroy io");
+    printf("[SERVER] Cannot destroy connection with client\n");
     }
+    my_new_io_h = NULL;
+    
+    err = canl_io_close(my_ctx, my_io_h);
+    if (err){
+    printf("[SERVER] Cannoc close listening socket\n");
+    }
+
+    err = canl_io_destroy(my_ctx, my_io_h);
+    if (err){
+    printf("[SERVER] Trying destroy listening socket\n");
+    }
+    my_io_h = NULL;
 
 end:
     canl_get_error(my_ctx, &err_msg);

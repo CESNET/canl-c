@@ -53,22 +53,22 @@ int main(int argc, char *argv[])
         goto end;
     }
 
-   timeout.tv_sec = 15;
+   timeout.tv_sec = 150;
    timeout.tv_usec = 0;
 
     err = canl_io_connect(my_ctx, my_io_h, p_server, port, 0, NULL, &timeout);
     if (err) {
-        printf("connection cannot be established\n");
+        printf("[CLIENT] connection cannot be established\n");
         goto end;
     }
     else {
-        printf("connection established\n");
+        printf("[CLIENT] connection established\n");
     }
 
     strcpy(buf, "This is the testing message to send");
     buf_len = strlen(buf) + 1;
 
-    printf("Trying to send sth to the server\n");
+    printf("[CLIENT] Trying to send sth to the server\n");
     err = canl_io_write (my_ctx, my_io_h, buf, buf_len, &timeout);
     if (err <= 0) {
         printf("can't write using ssl\n");
@@ -76,23 +76,23 @@ int main(int argc, char *argv[])
     }
     else {
         buf[err] = '\0';
-        printf("message \"%s\" sent successfully\n", buf);
+        printf("[CLIENT] message \"%s\" sent successfully\n", buf);
     }
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
     if (err > 0) {
         buf[err] = '\0';
-        printf ("received: %s\n", buf);
+        printf ("[CLIENT] received: %s\n", buf);
     }
 
     err = canl_io_close(my_ctx, my_io_h);
     if (err){
-        //set_error ("cannot close io");
+        printf("[CLIENT] Cannot close connection to server\n");
     }
 
     err = canl_io_destroy(my_ctx, my_io_h);
     if (err){
-        //set_error ("cannot destroy io");
+        printf("[CLIENT] Cannot destroy connection with server\n");
     }
     my_io_h = NULL;
 
