@@ -443,23 +443,9 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
     int touted = 0;
     int to = 0; // bool
 
-    if (!io->s_ctx->ssl_io) {
+    if (!io->s_ctx || !io->s_ctx->ssl_io) {
         err = EINVAL;
-        goto end;
-    }
-
-    if (!cc) {
-        return -1;
-    }
-    if (!io) {
-        err = EINVAL;
-        goto end;
-    }
-
-    if (!buffer) {
-        err = EINVAL; //TODO really?
-        set_error(cc, err, posix_error, "Nothing to write (ssl_write)");
-        errno = err;
+        set_error(cc, err, posix_error, "wrong ssl handler (ssl_read)");
         return -1;
     }
     
@@ -543,23 +529,9 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
     int expected = 0, error = 0;
     int timeout;
 
-    if (!io->s_ctx->ssl_io) {
+    if (!io->s_ctx || !io->s_ctx->ssl_io) {
         err = EINVAL;
-        goto end;
-    }
-
-    if (!cc) {
-        return -1;
-    }
-    if (!io) {
-        err = EINVAL;
-        goto end;
-    }
-
-    if (!buffer) {
-        err = EINVAL; //TODO really?
-        set_error(cc, err, posix_error, "Not enough memory to read to (ssl_read)");
-        errno = err;
+        set_error(cc, err, posix_error, "wrong ssl handler (ssl_read)");
         return -1;
     }
 
@@ -577,7 +549,8 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
         curtime = time(NULL);
 
         if (ret > 0) {
-            ret2 = SSL_read(io->s_ctx->ssl_io, str + nwritten, strlen(str) - nwritten);
+            ret2 = SSL_read(io->s_ctx->ssl_io, str + nwritten,
+                    strlen(str) - nwritten);
 
             if (ret2 <= 0) {
                 expected = error = SSL_get_error(io->s_ctx->ssl_io, ret2);
@@ -586,13 +559,15 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
 
 end:
-    if (ret <= 0 || ret2 <= 0) { //TODO ret2 < 0 originally
+    if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
         err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
-            set_error(cc, ETIMEDOUT, posix_error, "Connection stuck during read: timeout reached. (ssl_read)");
+            set_error(cc, ETIMEDOUT, posix_error, "Connection stuck"
+                   " during read: timeout reached. (ssl_read)");
         }
         else
-            set_error(cc, err, unknown_error, "Error during SSL read: (ssl_read)");
+            set_error(cc, err, unknown_error, "Error during SSL"
+                    " read: (ssl_read)");
     }
     else
         err = ret2;

@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
         err = canl_set_ctx_own_cert_file(my_ctx, serv_cert, serv_key, 
                 NULL, NULL);
         if (err) {
-            printf("[SERVER] cannot set certificate or file to context\n");
+            printf("[SERVER] cannot set certificate or key to context\n");
         }
     }
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
         printf("[SERVER] message \"%s\" sent successfully\n", buf);
     }
 
-    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
+    err = canl_io_read (my_ctx, my_new_io_h, buf, sizeof(buf)-1, NULL);
     if (err > 0) {
         buf[err] = '\0';
         printf ("[SERVER] received: %s\n", buf);

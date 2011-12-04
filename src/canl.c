@@ -418,27 +418,25 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     }
 
     if (!io) {
-        //set_error(ctx->err_msg);
         err = EINVAL;
-        goto end;
+        set_error(glb_cc, err, posix_error, "io handler not set"
+               " (canl_io_read)");
+        return -1;
     }
     
     if (!buffer || !size) {
         err = EINVAL;
-        update_error(glb_cc, "no memory to write into (canl_io_read)");
+        set_error(glb_cc, err, posix_error, "no memory to write into"
+               " (canl_io_read)");
         return -1;
     }
 
     //read something using openssl
     b_recvd = ssl_read(glb_cc, io_cc, buffer, size, timeout);
-    if (b_recvd == -1) {
-        err = errno; //TODO check again
-        goto end;
+    if (b_recvd <= 0) {
+    update_error(glb_cc, "can't read from connection"
+            " (canl_io_read)");
     }
-end:
-    if (err)
-        update_error(glb_cc, "can't read from connection"
-                " (canl_io_read)");
     return b_recvd;
 }
 
@@ -456,7 +454,9 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 
     if (!io) {
         err = EINVAL;
-        goto end;
+        set_error(glb_cc, err, posix_error, "io handler not set"
+               " (canl_io_write)");
+        return -1;
     }
 
     if (!buffer || !size) {
@@ -467,16 +467,9 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 
     //write something using openssl
     b_written = ssl_write(glb_cc, io_cc, buffer, size, timeout);
-    if (b_written == -1) {
-        err = errno; //TODO check again
-        goto end;
-    }
-
-end:
-    if (err) {
+    if (b_written <= 0) {
         update_error(glb_cc, "can't write to connection"
                 " (canl_io_write)");
-        return -1;
     }
     return b_written;
 }

@@ -86,14 +86,6 @@ static int set_key_file(glb_ctx *cc, char *key)
         EVP_PKEY_free(cc->cert_key->key);
         cc->cert_key->key = NULL;
     }
-/*    cc->cert_key->key = EVP_PKEY_new(void);
-    if (!cc->cert_key->key) {
-        err = ERR_get_error();
-        set_error(cc, err, ssl_error, "not enough memory for"
-                " key storage (set_key_file)");
-        return err;
-    }
-*/
     key_file = fopen(key, "rb");
     if (!key_file) {
        err = errno;
@@ -109,9 +101,20 @@ static int set_key_file(glb_ctx *cc, char *key)
                 " (set_key_file)");
         goto end;
     }
+    if (fclose(key_file)){
+        err = errno;
+        set_error(cc, err, posix_error, "cannot close file with key"
+                " (set_key_file)");
+        return errno;
+    }
+    return 0;
 
 end:
-    err = fclose(key_file);
+    if (fclose(key_file)){
+        err = errno;
+        update_error(cc, "cannot close file with key"
+                " (set_key_file)");
+    }
     return err;
 }
 
@@ -134,19 +137,11 @@ static int set_cert_file(glb_ctx *cc, char *cert)
         X509_free(cc->cert_key->cert);
         cc->cert_key->cert = NULL;
     }
-/*    cc->cert_key->cert = EVP_PKEY_new(void);
-    if (!cc->cert_key->cert) {
-        err = ERR_get_error();
-        set_error(cc, err, ssl_error, "not enough memory for"
-                " key storage (set_key_file)");
-        return err;
-    }
-*/
     cert_file = fopen(cert, "rb");
     if (!cert_file) {
        err = errno;
         set_error(cc, err, posix_error, "cannot open file with cert"
-                " (set_key_file)");
+                " (set_cert_file)");
         return err;
     }
     /*TODO NULL NULL, callback and user data*/
@@ -154,11 +149,23 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     if (!cc->cert_key->cert) {
         err = ERR_get_error();
         set_error(cc, err, ssl_error, "error while writing certificate"
-                " to context (set_key_file)");
+                " to context (set_cert_file)");
         goto end;
     }
 
+    if (fclose(cert_file)){
+        err = errno;
+        set_error(cc, err, posix_error, "cannot close file with certificate"
+                " (set_cert_file)");
+        return errno;
+    }
+    return 0;
+
 end:
-    err = fclose(cert_file);
+    if (fclose(cert_file)){
+        err = errno;
+        update_error(cc, "cannot close file with certificate"
+                " (set_cert_file)");
+    }
     return err;
 }
