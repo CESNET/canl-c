@@ -57,19 +57,25 @@ end:
 //TODO cert
 int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
 {
+    int err = 0;
     /* otherwise the private key is in cert file*/
-    if (key)
-        set_key_file(cc, key);
+    if (key) {
+        err = set_key_file(cc, key);
+        if (err)
+            return err;
+    }
 
-    if (cert)
-        set_cert_file(cc, cert);
-
+    if (cert) {
+        err = set_cert_file(cc, cert);
+        if (err)
+            return err;
+    }
     return 0;
 }
 
 static int set_key_file(glb_ctx *cc, char *key)
 {
-    int err = 0;
+    unsigned long err = 0;
     FILE * key_file = NULL;
 
     if (!cc->cert_key){
@@ -93,6 +99,9 @@ static int set_key_file(glb_ctx *cc, char *key)
                 " (set_key_file)");
         return err;
     }
+
+    ERR_clear_error();
+
     /*TODO NULL NULL, callback and user data*/
     cc->cert_key->key = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
     if (!cc->cert_key->key) {
@@ -120,7 +129,7 @@ end:
 
 static int set_cert_file(glb_ctx *cc, char *cert)
 {
-    int err = 0;
+    unsigned long err = 0;
     FILE * cert_file = NULL;
 
     if (!cc->cert_key){
@@ -144,6 +153,8 @@ static int set_cert_file(glb_ctx *cc, char *cert)
                 " (set_cert_file)");
         return err;
     }
+    
+    ERR_clear_error();
     /*TODO NULL NULL, callback and user data*/
     cc->cert_key->cert = PEM_read_X509(cert_file, NULL, NULL, NULL);
     if (!cc->cert_key->cert) {

@@ -86,7 +86,7 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
         err = ERR_get_error();
         e_orig = ssl_error;
         set_error(cc, err, e_orig, "Private key does not match"
-                " the certificate public key");
+                " the certificate public key (ssl_server_init)");
         return -1;
     }
     else
@@ -119,6 +119,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     SSL_library_init();
     //OpenSSL_add_all_algorithms();
     //OpenSSL_add_all_ciphers();
+    ERR_clear_error();
 
     cc->ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
     if (!cc->ssl_ctx){
@@ -334,6 +335,7 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
     else
         locl_timeout = -1;
     curtime = starttime = time(NULL);
+    ERR_clear_error();
 
     do {
         ret = do_select(io->sock, starttime, locl_timeout, expected);
@@ -461,6 +463,7 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
         to = 0;
         locl_timeout = -1;
     }
+    ERR_clear_error();
 
     do {
         ret = do_select(fd, starttime, locl_timeout, expected);
@@ -469,7 +472,8 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
         if (ret > 0) {
             int v;
             errno = 0;
-            ret = SSL_write(io->s_ctx->ssl_io, str + nwritten, strlen(str) - nwritten);
+            ret = SSL_write(io->s_ctx->ssl_io, str + nwritten,
+                    strlen(str) - nwritten);
             v = SSL_get_error(io->s_ctx->ssl_io, ret);
 
             switch (v) {
@@ -508,13 +512,15 @@ end:
         return -1;
     }
     if (touted){
-       errno = err = ETIMEDOUT;
-       set_error(cc, err, posix_error, "Connection stuck during write: timeout reached (ssl_write)");
+       err = ETIMEDOUT;
+       set_error(cc, err, posix_error, "Connection stuck during"
+               " write: timeout reached (ssl_write)");
        return -1;
     }
     if (ret <=0){
         err = -1;//TODO what to assign??????
-        set_error (cc, err, unknown_error, "Error during SSL write (ssl_write)");
+        set_error (cc, err, unknown_error, "Error during SSL write"
+               " (ssl_write)");
     }
     return ret;
 }
@@ -544,6 +550,8 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
     }
     else
         timeout = -1;
+    ERR_clear_error();
+
     do {
         ret = do_select(fd, starttime, timeout, expected);
         curtime = time(NULL);
@@ -558,7 +566,6 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
         }
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
 
-end:
     if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
         err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
