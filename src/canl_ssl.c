@@ -10,7 +10,8 @@ static void dbg_print_ssl_error(int errorcode);
 
 int ssl_server_init(glb_ctx *cc, io_handler *io)
 {
-    unsigned long err = 0;
+    int err = 0;
+    unsigned long ssl_err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     if (!cc) {
@@ -41,8 +42,8 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
     //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
     err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
     if (!err) {
-        err = ERR_get_error();
-        set_error(cc, err, e_orig, "no cipher to use"
+        ssl_err = ERR_get_error();
+        set_error(cc, ssl_err, e_orig, "no cipher to use"
                 " (ssl_server_init)");
         return err;
     }
@@ -58,7 +59,7 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
         if (cc->cert_key->cert) {
             err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
             if (err != 1) {
-                err = ERR_get_error();
+                ssl_err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
             }
@@ -68,7 +69,7 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
         if (cc->cert_key->key) {
             err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
             if (err != 1) {
-                err = ERR_get_error();
+                ssl_err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
             }
@@ -79,31 +80,37 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
     else {
         set_error(cc, err, unknown_error, "server key or certificate missing"
                 " (ssl_server_init)");
-        return -1;
+        return 1;
     }
     /*Make sure the key and certificate file match*/
     if ( (err = SSL_CTX_check_private_key(cc->ssl_ctx)) != 1) {
-        err = ERR_get_error();
+        ssl_err = ERR_get_error();
         e_orig = ssl_error;
-        set_error(cc, err, e_orig, "Private key does not match"
+        set_error(cc, ssl_err, e_orig, "Private key does not match"
                 " the certificate public key (ssl_server_init)");
-        return -1;
+        return 1;
     }
     else
         err = 0;
 
 end:
-    if (err) {
-        set_error(cc, err, e_orig, "cannot initialize SSL context"
+    if (ssl_err) {
+        set_error(cc, ssl_err, e_orig, "cannot initialize SSL context"
                 " (ssl_server_init)");
-        return -1;
+        return 1;
+    }
+    else if (err) {
+        set_error(cc, ssl_err, e_orig, "cannot initialize SSL context"
+                " (ssl_server_init)");
+        return 1;
     }
     return 0;
 }
 
 int ssl_client_init(glb_ctx *cc, io_handler *io)
 {
-    unsigned long err = 0;
+    unsigned long ssl_err = 0;
+    int err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     if (!cc) {
@@ -123,7 +130,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
 
     cc->ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
     if (!cc->ssl_ctx){
-        err = ERR_get_error();
+        ssl_err = ERR_get_error();
         e_orig = ssl_error;
         goto end;
     }
@@ -134,8 +141,8 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
     err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
     if (!err) {
-        err = ERR_get_error();
-        set_error(cc, err, e_orig, "no cipher to use"
+        ssl_err = ERR_get_error();
+        set_error(cc, ssl_err, e_orig, "no cipher to use"
                 " (ssl_server_init)");
         return err;
     }
@@ -154,7 +161,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
         if (cc->cert_key->key) {
             err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
             if (err != 1) {
-                err = ERR_get_error();
+                ssl_err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
             }
@@ -162,7 +169,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
         else if (cc->cert_key->cert) {
             err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
             if (err != 1) {
-                err = ERR_get_error();
+                ssl_err = ERR_get_error();
                 e_orig = ssl_error;
                 goto end;
             }
@@ -170,10 +177,15 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     }
 
 end:
-    if (err) {
+    if (ssl_err) {
+        set_error(cc, ssl_err, e_orig, "cannot initialize SSL context"
+               " (ssl_client_init)");
+    return 1;
+    }
+    else if (err) {
         set_error(cc, err, e_orig, "cannot initialize SSL context"
                " (ssl_client_init)");
-    return -1;
+    return 1;
     }
     return 0;
 }
@@ -323,7 +335,8 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 {
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
-    unsigned long err = 0;
+    unsigned long ssl_err = 0;
+    int err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
     long errorcode = 0;
     int expected = 0;
@@ -342,7 +355,7 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         if (ret > 0) {
             ret2 = SSL_connect(io->s_ctx->ssl_io);
             if (ret2 < 0) {
-                err = ERR_get_error();
+                ssl_err = ERR_get_error();
                 e_orig = ssl_error;
             }
             expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
@@ -359,15 +372,15 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
             set_error (cc, err, posix_error, "Connection stuck during handshake: timeout reached (do_ssl_connect)");
         }
         else if (ret2 < 0)
-            set_error (cc, err, e_orig, "Error during SSL handshake"
+            set_error (cc, ssl_err, e_orig, "Error during SSL handshake"
                     " (do_ssl_connect)");
         else if (ret2 == 0)
-            set_error (cc, err, unknown_error, "Connection closed"
+            set_error (cc, 0, unknown_error, "Connection closed"
                     " by the other side (do_ssl_connect)");
         else
             set_error (cc, err, unknown_error, "Error during SSL handshake"
                     " (do_ssl_connect)");
-        return -1;
+        return 1;
     }
     return 0;
 }
@@ -376,7 +389,8 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 {
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
-    unsigned long err = 0;
+    unsigned long ssl_err = 0;
+    int err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
     long errorcode = 0;
     int expected = 0;
@@ -395,7 +409,7 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
         if (ret > 0) {
             ret2 = SSL_accept(io->s_ctx->ssl_io);
             if (ret2 < 0) {
-                err = ERR_peek_error();
+                ssl_err = ERR_peek_error();
                 e_orig = ssl_error;
             }
             expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
@@ -418,15 +432,15 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
                     " during handshake: timeout reached (do_ssl_accept)");
         }
         else if (ret2 < 0)
-            set_error (cc, err, e_orig, "Error during SSL handshake"
+            set_error (cc, ssl_err, e_orig, "Error during SSL handshake"
                     " (do_ssl_accept)");
         else if (ret2 == 0)
-            set_error (cc, err, unknown_error, "connection closed by"
+            set_error (cc, 0, unknown_error, "connection closed by"
 		    " the other side (do_ssl_accept)");
 	else
-	    set_error (cc, err, unknown_error, "Error during SSL handshake"
+	    set_error (cc, 0, unknown_error, "Error during SSL handshake"
                     " (do_ssl_accept)");
-        return -1;
+        return 1;
     }
     return 0;
 }

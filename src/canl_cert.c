@@ -75,7 +75,8 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
 
 static int set_key_file(glb_ctx *cc, char *key)
 {
-    unsigned long err = 0;
+    unsigned long ssl_err = 0;
+    int err = 0;
     FILE * key_file = NULL;
 
     if (!cc->cert_key){
@@ -105,8 +106,8 @@ static int set_key_file(glb_ctx *cc, char *key)
     /*TODO NULL NULL, callback and user data*/
     cc->cert_key->key = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
     if (!cc->cert_key->key) {
-        err = ERR_get_error();
-        set_error(cc, err, ssl_error, "error while writing key to context"
+        ssl_err = ERR_get_error();
+        set_error(cc, ssl_err, ssl_error, "error while writing key to context"
                 " (set_key_file)");
         goto end;
     }
@@ -124,12 +125,13 @@ end:
         update_error(cc, "cannot close file with key"
                 " (set_key_file)");
     }
-    return err;
+    return 1;
 }
 
 static int set_cert_file(glb_ctx *cc, char *cert)
 {
-    unsigned long err = 0;
+    unsigned long ssl_err = 0;
+    int err = 0;
     FILE * cert_file = NULL;
 
     if (!cc->cert_key){
@@ -158,8 +160,8 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     /*TODO NULL NULL, callback and user data*/
     cc->cert_key->cert = PEM_read_X509(cert_file, NULL, NULL, NULL);
     if (!cc->cert_key->cert) {
-        err = ERR_get_error();
-        set_error(cc, err, ssl_error, "error while writing certificate"
+        ssl_err = ERR_get_error();
+        set_error(cc, ssl_err, ssl_error, "error while writing certificate"
                 " to context (set_cert_file)");
         goto end;
     }
@@ -178,5 +180,5 @@ end:
         update_error(cc, "cannot close file with certificate"
                 " (set_cert_file)");
     }
-    return err;
+    return 1;
 }
