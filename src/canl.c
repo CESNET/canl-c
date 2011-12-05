@@ -8,7 +8,7 @@
 
 #define BACKLOG 10 //TODO just for testing - max incoming connections
 
-static int  io_clear(glb_ctx *cc, io_handler *io);
+static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
 canl_ctx canl_create_ctx()
 {
@@ -139,7 +139,6 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     int sock;
     struct sockaddr_in *sa_in = NULL;
     int i = 0;
-    int err_clear = 0;
 
     /*check cc and io*/
     if (!glb_cc) {
@@ -208,9 +207,6 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 end:
     if (err) {
         update_error(cc, "failed to connect (canl_io_connect)");
-        if ((err_clear = io_clear(glb_cc, io_cc)))
-            update_error(cc, "failed to clean io_handler"
-                   " (canl_io_connect)");
     }
     return err;
 }
@@ -326,34 +322,25 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
     }
 
     if (!io) {
-        //set_error(ctx->err_msg);
         err = EINVAL;
-        goto end;
+        set_error(glb_cc, err, posix_error,  "invalid io handler"
+                " canl_io_close)");
+        return err;
     }
+
+    return err;
 
     /*ssl close*/
 
     /*set cc and io accordingly*/
-
-end:
-    if (err)
-        update_error(glb_cc, "cannot close connection (canl_io_close)");
-    return err;
 }
-static int io_clear(glb_ctx *cc, io_handler *io)
+static void io_destroy(glb_ctx *cc, io_handler *io)
 {
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
-    /*check cc and io*/
-    if (!cc) {
-        return EINVAL;
-    }
-
-    if (!io) {
-        err = EINVAL;
-        goto end;
-    }
+    unsigned long ssl_err;
+    CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     // delete io_handler content
     if (io_cc->ar) {
@@ -367,12 +354,26 @@ static int io_clear(glb_ctx *cc, io_handler *io)
         free (io_cc->s_addr);
         io_cc->s_addr = NULL;
     }
-
-end:
-    if (err)
-        update_error(glb_cc, "cannot clear io_handle (io_clear)");
-    return err;
-
+    if (io_cc->s_ctx) {
+        /*TODO maybe new function because of BIO_free and SSL_free*/
+        if (io_cc->s_ctx->ssl_io) {
+            SSL_free(io_cc->s_ctx->ssl_io);
+            io_cc->s_ctx->ssl_io = NULL;
+        }
+        if (io_cc->s_ctx->bio_conn) {
+            err = BIO_free(io_cc->s_ctx->bio_conn);
+            /* TODO check it?
+            if (!err) {
+                ssl_err = ERR_peek_error();
+                set_error(io_cc, err, ssl_error, "cannot free BIO"
+                       " (io_destroy)");
+                err = 1;
+            } */
+            io_cc->s_ctx->bio_conn = NULL;
+        }
+    }
+    free (io_cc->s_ctx);
+    io_cc->s_ctx = NULL;
 }
 
 int canl_io_destroy(canl_ctx cc, canl_io_handler io)
@@ -381,27 +382,28 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
     glb_ctx *glb_cc = (glb_ctx*) cc;
     io_handler *io_cc = (io_handler*) io;
     /*check cc and io*/
-    if (!cc) {
+    if (!glb_cc) {
         return EINVAL;
     }
 
-    if (!io) {
-        //set_error(ctx->err_msg);
+    if (!io_cc) {
         err = EINVAL;
-        goto end;
+        set_error(glb_cc, err, posix_error,  "invalid io handler"
+                " canl_io_destroy)");
+        return err;
     }
 
-    err = io_clear(glb_cc, io_cc);
-    if (err)
-        goto end;
+    err = ssl_close(glb_cc, io_cc);
+    if (err <= 0)
+        return err;
+
+    io_destroy(glb_cc, io_cc);
     // delete io itself
     if (io_cc) {
         free (io_cc);
-        io = NULL;
+        io_cc = NULL;
     }
-end:
-    if (err)
-        update_error(glb_cc, "can't destroy io_handle (canl_io_destroy)");
+
     return err;
 }
 

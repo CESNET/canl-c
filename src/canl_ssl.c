@@ -1,7 +1,8 @@
 #include "canl_locl.h"
 
-#define SSL_SERVER_METH SSLv3_server_method()
+#define SSL_SERVER_METH SSLv23_server_method()
 #define SSL_CLIENT_METH SSLv3_client_method()
+#define DESTROY_TIMEOUT 10
 
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
@@ -23,8 +24,8 @@ int ssl_server_init(glb_ctx *cc, io_handler *io)
         goto end;
     }
 
-    SSL_load_error_strings();
     SSL_library_init();
+    SSL_load_error_strings();
     //OpenSSL_add_all_algorithms();
     //OpenSSL_add_all_ciphers();
     ERR_clear_error();
@@ -281,6 +282,7 @@ end:
  */
 int do_select(int fd, time_t starttime, int timeout, int wanted)
 {
+    int ret = 0;
     fd_set rset;
     fd_set wset;
 
@@ -291,8 +293,6 @@ int do_select(int fd, time_t starttime, int timeout, int wanted)
         FD_SET(fd, &rset);
     if (wanted == 0 || wanted == SSL_ERROR_WANT_WRITE)
         FD_SET(fd, &wset);
-
-    int ret = 0;
 
     if (timeout != -1) {
         struct timeval endtime;
@@ -593,6 +593,71 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
     else
         err = ret2;
     return err;
+}
+
+/* ret > 1 if connection does not exist or has been closed before
+ * ret = 0 connection closed successfully (one direction)
+ * ret = 1 connection closed successfully (both directions)
+ * ret < 0 error occured (e.g. timeout reached) */
+int ssl_close(glb_ctx *cc, io_handler *io)
+{
+    int timeout = DESTROY_TIMEOUT;
+    time_t starttime, curtime;
+    int expected = 0, error = 0, ret = 0, ret2 = 0;
+    int fd;
+    unsigned long ssl_err = 0;
+
+    if (!io->s_ctx->ssl_io) {
+        return 2;
+    }
+
+    fd = BIO_get_fd(SSL_get_rbio(io->s_ctx->ssl_io), NULL);
+    curtime = starttime = time(NULL);
+    
+    /* check the shutdown state*/
+    ret = SSL_get_shutdown(io->s_ctx->ssl_io);
+    if (ret & SSL_SENT_SHUTDOWN)
+        if (ret & SSL_RECEIVED_SHUTDOWN)
+            return 1;
+        else
+            return 0;
+    /* TODO check the proper states, maybe also call SSL_shutdown
+    if (ret & SSL_RECEIVED_SHUTDOWN) {
+        return 0;
+    } */
+
+    do {
+        ret = do_select(fd, starttime, timeout, expected);
+	curtime = time(NULL);
+
+	if (ret > 0) {
+	    ret2 = SSL_shutdown(io->s_ctx->ssl_io);
+	    if (ret2 < 0) {
+                ssl_err = ERR_peek_error();
+		expected = error = SSL_get_error(io->s_ctx->ssl_io, ret2);
+            }
+        }
+    } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
+
+    if (timeout != -1 && (curtime - starttime >= timeout)){
+        set_error(cc, ETIMEDOUT, posix_error, "Connection stuck"
+                " during ssl shutdown : timeout reached. (ssl_close)");
+        return -1;
+    }
+    /* TODO set_error*/
+    if (ret < 0) {
+        set_error(cc, 0, unknown_error, "Error during SSL"
+                " shutdown: (ssl_close)");
+        return -1;
+    }
+    /* successful shutdown (uni/bi directional)*/
+    if (ret2 == 0 || ret2 == 1)
+        return ret2;
+    else {
+        set_error(cc, ssl_err, ssl_error, "Error during SSL"
+                " shutdown: (ssl_close)");
+        return -1;
+    }
 }
 
 static void dbg_print_ssl_error(int errorcode)

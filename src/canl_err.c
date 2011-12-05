@@ -103,10 +103,9 @@ int canl_get_error(canl_ctx cc, char  **reason)
     int separ_len = 0;
     const char *msg_pref = "[CANL:MSG] ";
     int msg_pref_len = 0;
+    glb_ctx *ctx = (glb_ctx*) cc;
 
     code_str[0] = '\0';
-
-    glb_ctx *ctx = (glb_ctx*) cc;
 
     /*check cc*/
     if (!ctx) {

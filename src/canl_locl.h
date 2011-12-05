@@ -13,6 +13,7 @@
 #include <openssl/safestack.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include "canl_err.h"
 #include "canl.h"
 
 typedef struct _cert_key_store {
@@ -65,6 +66,7 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size,
         struct timeval *tout);
 int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
         struct timeval *tout);
+int ssl_close(glb_ctx *cc, io_handler *io);
 
 int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain, 
         canl_pkey key);

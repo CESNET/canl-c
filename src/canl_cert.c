@@ -106,7 +106,7 @@ static int set_key_file(glb_ctx *cc, char *key)
     /*TODO NULL NULL, callback and user data*/
     cc->cert_key->key = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
     if (!cc->cert_key->key) {
-        ssl_err = ERR_get_error();
+        ssl_err = ERR_peek_error();
         set_error(cc, ssl_err, ssl_error, "error while writing key to context"
                 " (set_key_file)");
         goto end;
