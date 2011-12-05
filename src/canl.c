@@ -211,6 +211,7 @@ end:
     return err;
 }
 
+/*TODO select + timeout, EINTR!!!, remember peer IP and other info */
 int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
         int flags, cred_handler ch, struct timeval *timeout, 
         canl_io_handler *new_io)
@@ -219,11 +220,11 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     io_handler **io_new_cc = (io_handler**) new_io;
+    char str_port[8];
 
     struct addrinfo hints, *servinfo, *p;
     socklen_t sin_size;
     int yes=1;
-    char * PORT = "4321"; //TODO for testing purposes only
 
     /*check cc and io*/
     if (!glb_cc) 
@@ -244,7 +245,10 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
-    if ((err = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+    if (snprintf(str_port, 8, "%d", port) < 0)
+        return -1;
+
+    if ((err = getaddrinfo(NULL, str_port, &hints, &servinfo)) != 0) {
         update_error(glb_cc, "getaddrinfo: %s\n", gai_strerror(err));
         /*TODO what kind of error return?, getaddrinfo returns its own 
           error codes*/
