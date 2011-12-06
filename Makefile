@@ -16,7 +16,7 @@ COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
 INSTALL=libtool --mode=install install
 
-CFLAGS_LIB=-Wall -pedantic -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS}
+CFLAGS_LIB=-Wall -pedantic -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -DDEBUG
 LFLAGS_LIB=-shared ${LIBCARES_LIBS} ${LIBSSL_LIBS}
 
 CFLAGS_CLI=-Wall -g -I${top_srcdir}/src

@@ -316,8 +316,11 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     err = ssl_accept(glb_cc, io_cc, (*io_new_cc), timeout); 
 
 end:
-    if (err)
+    if (err){
+        /* ssl_accept closed new_sock*/
+        (*io_new_cc)->sock = 0;
         update_error(glb_cc, "cannot accept connection (canl_io_accept)");
+    }
     return err;
 }
 
@@ -363,6 +366,10 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     if (io_cc->s_addr) {
         free (io_cc->s_addr);
         io_cc->s_addr = NULL;
+    }
+    if (io_cc->sock) {
+        fclose (io_cc->sock);
+        io_cc->sock = NULL;
     }
     if (io_cc->s_ctx) {
         /*TODO maybe new function because of BIO_free and SSL_free*/
