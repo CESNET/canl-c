@@ -366,8 +366,8 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
         io_cc->s_addr = NULL;
     }
     if (io_cc->sock) {
-        fclose (io_cc->sock);
-        io_cc->sock = NULL;
+        close (io_cc->sock);
+        io_cc->sock = 0;
     }
     if (io_cc->s_ctx) {
         /*TODO maybe new function because of BIO_free and SSL_free*/
