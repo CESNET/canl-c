@@ -136,19 +136,15 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     int err = 0;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
-    int sock;
     struct sockaddr_in *sa_in = NULL;
     int i = 0;
 
-    /*check cc and io*/
     if (!glb_cc) {
         return EINVAL;
     }
 
-    if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr) {
-        err = EINVAL;
-        goto end;
-    }
+    if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr)
+	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
     /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
 
@@ -167,24 +163,29 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
             goto end;
     }
 
+    if (err)
+	/* XXX add error msg from ares */
+	return set_error(cc, err, posix_error,
+	                 "Cannot resolve the server hostname (%s)", host);
+
     sa_in = (struct sockaddr_in *) io_cc->s_addr;
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock != -1)
-        io_cc->sock = sock;
-    else {
-        err = errno;
-        goto end;
-    }
+    io_cc->sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (io_cc->sock == -1)
+	return set_error(cc, err, posix_error, "Failed to create socket: %s",
+			 strerror(err));
+
 
     sa_in->sin_family = AF_INET;
     sa_in->sin_port = htons(port);
 
     i = 0;
+    /* XXX can the list be empty? */
     while (io_cc->ar->ent->h_addr_list[i])
     {
         memcpy(&sa_in->sin_addr.s_addr, io_cc->ar->ent->h_addr_list[i], 
                 sizeof(struct in_addr));
+	/* XXX timeouts missing */
         err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
         if (err) 
             err = errno;
@@ -192,11 +193,15 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
             break; //success
         i++;
     }
+    
+    if (err)
+	return set_error(cc, ENOTCONN, posix_error,
+			 "Failed to make network connection to server %s", host);
 
-    /*call openssl */
     err = ssl_client_init(glb_cc, io_cc);
     if (err)
-        goto end;
+	return err;
+
     err = ssl_connect(glb_cc, io_cc, timeout); //TODO timeout
     
     /*write succes or failure to cc, io*/
