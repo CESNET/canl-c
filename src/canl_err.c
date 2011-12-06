@@ -173,6 +173,28 @@ static void get_error_string(glb_ctx *cc, char *code_str)
     }
 }
 
+unsigned long
+canl_get_error_code(canl_ctx cc)
+{
+    glb_ctx *ctx = (glb_ctx*) cc;
+
+    if (ctx == NULL)
+	return -1;
+
+    return ctx->err_code;
+}
+
+char * 
+canl_get_error_message(canl_ctx)
+{
+    glb_ctx *ctx = (glb_ctx*) cc;
+
+    if (ctx == NULL || ctx->err_msg == NULL)
+	return "No error available";
+
+    return ctx->err_msg;
+}
+
 /*if the error code is known to colin, assign appropriate colin code
   TODO go through ssl errors and assign appr. colin code
   ?preserve original one? */
