@@ -55,7 +55,7 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
 }
 
 /* If there was some error message in ctx, delete it and make new */
-void set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
+int set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
         const char *err_format, ...)
 {
     va_list ap;
@@ -74,7 +74,7 @@ void set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
     //0 is not error
     if (!err_code)
 	return;
-    resolve_error(cc, err_code, err_orig);
+    return resolve_error(cc, err_code, err_orig);
 }
 
 /* Delete error message in ctx, suppose msg is not empty.Set pointer to NULL*/

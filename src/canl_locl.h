@@ -51,7 +51,7 @@ typedef struct _io_handler
 } io_handler;
 
 void reset_error (glb_ctx *cc, unsigned long err_code);
-void set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
+int set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
         const char *err_format, ...);
 void update_error (glb_ctx *cc, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
