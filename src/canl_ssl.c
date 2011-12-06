@@ -6,9 +6,9 @@
 
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
-
+#ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
-
+#endif
 int ssl_server_init(glb_ctx *cc, io_handler *io)
 {
     int err = 0;
@@ -415,7 +415,9 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
             expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
         }
         curtime = time(NULL);
+#ifdef DEBUG
         dbg_print_ssl_error(errorcode);
+#endif
     } while (ret > 0 && (ret2 <= 0 && ((locl_timeout == -1) ||
            ((locl_timeout != -1) &&
             (curtime - starttime) < locl_timeout)) &&
@@ -659,7 +661,7 @@ int ssl_close(glb_ctx *cc, io_handler *io)
         return -1;
     }
 }
-
+#ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode)
 {
     printf("[DBG CANL] ");
@@ -696,5 +698,4 @@ static void dbg_print_ssl_error(int errorcode)
             break;
     }
 }
-
-
+#endif

@@ -211,7 +211,7 @@ end:
     return err;
 }
 
-/*TODO select + timeout, EINTR!!!, remember peer IP and other info */
+/*TODO select + timeout, EINTR!!! */ 
 int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
         int flags, cred_handler ch, struct timeval *timeout, 
         canl_io_handler *new_io)
@@ -277,29 +277,32 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     }
 
     if (p == NULL) {
-        update_error(glb_cc, "failed to bind (canl_io_accept)"); //TODO is it there?????
+        set_error(glb_cc, 0, unknown_error, "failed to bind (canl_io_accept)"); //TODO error_type
         freeaddrinfo(servinfo); // all done with this structure
-        goto end;
+        return -1;
     }
 
     freeaddrinfo(servinfo); // all done with this structure
 
     if ((err = listen(sockfd, BACKLOG))) {
         err = errno;
-        goto end;
+        set_error(glb_cc, err, posix_error, "listen() failed (canl_io_accept)");
+        return err;
     }
 
     /*wait for client*/
+#ifdef DEBUG
     printf("server: waiting for connections...\n");
+#endif
     sin_size = sizeof((*io_new_cc)->s_addr);
     new_fd = accept(sockfd, (*io_new_cc)->s_addr, &sin_size);
     if (new_fd == -1){
         err = errno;
-        goto end;
+        set_error(glb_cc, err, posix_error, "accept() failed (canl_io_accept)");
+        return err;
     }
     else
         (*io_new_cc)->sock = new_fd;
-    /* TODO everything fine - set new_io_cc according to their_addr*/
 
     /*call openssl */
     err = ssl_server_init(glb_cc, *io_new_cc);
@@ -343,8 +346,6 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
-    unsigned long ssl_err;
-    CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     // delete io_handler content
     if (io_cc->ar) {
