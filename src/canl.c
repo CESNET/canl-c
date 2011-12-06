@@ -429,19 +429,21 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     int b_recvd = 0;
     
     if (!cc)
-        return EINVAL; /* XXX Should rather be a CANL error */
+        return -1;
 
-    if (!io)
-	 return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+    if (!io) {
+	 set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+	 return -1;
+    }
     
-    if (!buffer || !size)
-	return set_error(cc, EINVAL, posix_error, "No memory to write into");
+    if (!buffer || !size) {
+	set_error(cc, EINVAL, posix_error, "No memory to write into");
+	return -1;
+    }
 
-    //read something using openssl
     b_recvd = ssl_read(glb_cc, io_cc, buffer, size, timeout);
     if (b_recvd <= 0) {
-    update_error(glb_cc, "can't read from connection"
-            " (canl_io_read)");
+	update_error(glb_cc, "Can't read from connection");
     }
     return b_recvd;
 }
@@ -453,19 +455,21 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     int b_written = 0;
 
     if (!cc)
-        return EINVAL; /* XXX Should rather be a CANL error */
+        return -1;
 
-    if (!io)
-	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+    if (!io) {
+	set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+	return -1;
+    }
 
-    if (!buffer || !size)
-	return set_error(cc, EINVAL, posix_error, "No memory to write into");
+    if (!buffer || !size) {
+	set_error(cc, EINVAL, posix_error, "No memory to write into");
+	return -1;
+    }
 
-    //write something using openssl
     b_written = ssl_write(glb_cc, io_cc, buffer, size, timeout);
     if (b_written <= 0) {
-        update_error(glb_cc, "can't write to connection"
-                " (canl_io_write)");
+        update_error(glb_cc, "Can't write to connection");
     }
     return b_written;
 }
