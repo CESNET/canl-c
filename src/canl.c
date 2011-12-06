@@ -175,7 +175,6 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 	return set_error(cc, err, posix_error, "Failed to create socket: %s",
 			 strerror(err));
 
-
     sa_in->sin_family = AF_INET;
     sa_in->sin_port = htons(port);
 
@@ -195,24 +194,25 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     }
     
     if (err)
-	return set_error(cc, ENOTCONN, posix_error,
+	return set_error(cc, ECONNREFUSED, posix_error,
 			 "Failed to make network connection to server %s", host);
 
     err = ssl_client_init(glb_cc, io_cc);
     if (err)
-	return err;
+	goto end;
 
     err = ssl_connect(glb_cc, io_cc, timeout); //TODO timeout
+    if (err)
+	goto end;
     
     /*write succes or failure to cc, io*/
     //if (err)
     /*cc or io set error*/
     //else
     /*cc or io set succes*/
+    err = 0;
+
 end:
-    if (err) {
-        update_error(cc, "failed to connect (canl_io_connect)");
-    }
     return err;
 }
 
@@ -226,19 +226,17 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     glb_ctx *glb_cc = (glb_ctx*) cc;
     io_handler **io_new_cc = (io_handler**) new_io;
     char str_port[8];
-
     struct addrinfo hints, *servinfo, *p;
     socklen_t sin_size;
     int yes=1;
 
-    /*check cc and io*/
     if (!glb_cc) 
-        return -1;
+        return EINVAL; /* XXX Should rather be a CANL error */
 
-    if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr) {
-        err = EINVAL;
-        goto end;
-    }
+    if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr)
+	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+
+    /* XXX perhaps remove entirely from the API ? */
     if (!*io_new_cc || !(*io_new_cc)->ar || !(*io_new_cc)->ar->ent 
             || !(*io_new_cc)->s_addr) {
         err = EINVAL;
@@ -251,8 +249,9 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
     hints.ai_flags = AI_PASSIVE; // use my IP
 
     if (snprintf(str_port, 8, "%d", port) < 0)
-        return -1;
+	return set_error(cc, EINVAL, posix_error, "Wrong port requested (%d)", port);
 
+    /* XXX timeouts - use c-ares, too */
     if ((err = getaddrinfo(NULL, str_port, &hints, &servinfo)) != 0) {
         update_error(glb_cc, "getaddrinfo: %s\n", gai_strerror(err));
         /*TODO what kind of error return?, getaddrinfo returns its own 
@@ -278,49 +277,48 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
             err = errno;
             continue;
         }
+	if ((err = listen(sockfd, BACKLOG))) {
+	    close(sockfd);
+	    err = errno;
+	    continue;
+    }
+
+
         break;
     }
 
-    if (p == NULL) {
-        set_error(glb_cc, 0, unknown_error, "failed to bind (canl_io_accept)"); //TODO error_type
-        freeaddrinfo(servinfo); // all done with this structure
-        return -1;
-    }
-
     freeaddrinfo(servinfo); // all done with this structure
-
-    if ((err = listen(sockfd, BACKLOG))) {
-        err = errno;
-        set_error(glb_cc, err, posix_error, "listen() failed (canl_io_accept)");
-        return err;
+    if (p == NULL) {
+	return set_error(glb_cc, -1 unknown_error,
+			 "Failed to acquire a server socket");
     }
 
-    /*wait for client*/
 #ifdef DEBUG
     printf("server: waiting for connections...\n");
 #endif
     sin_size = sizeof((*io_new_cc)->s_addr);
     new_fd = accept(sockfd, (*io_new_cc)->s_addr, &sin_size);
     if (new_fd == -1){
-        err = errno;
-        set_error(glb_cc, err, posix_error, "accept() failed (canl_io_accept)");
-        return err;
+	return set_error(glb_cc, errno, posix_error,
+			 "Failed to accept network connection: %s",
+			 strerror(errno));
     }
-    else
-        (*io_new_cc)->sock = new_fd;
+    (*io_new_cc)->sock = new_fd;
 
-    /*call openssl */
     err = ssl_server_init(glb_cc, *io_new_cc);
     if (err)
         goto end;
+
     err = ssl_accept(glb_cc, io_cc, (*io_new_cc), timeout); 
+    if (err)
+	goto end;
+
+    err = 0;
 
 end:
-    if (err){
-        /* ssl_accept closed new_sock*/
+    if (err)
         (*io_new_cc)->sock = 0;
-        update_error(glb_cc, "cannot accept connection (canl_io_accept)");
-    }
+
     return err;
 }
 
