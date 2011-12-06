@@ -173,7 +173,7 @@ static void get_error_string(glb_ctx *cc, char *code_str)
     }
 }
 
-unsigned long
+long
 canl_get_error_code(canl_ctx cc)
 {
     glb_ctx *ctx = (glb_ctx*) cc;
@@ -185,7 +185,7 @@ canl_get_error_code(canl_ctx cc)
 }
 
 char * 
-canl_get_error_message(canl_ctx)
+canl_get_error_message(canl_ctx cc)
 {
     glb_ctx *ctx = (glb_ctx*) cc;
 

@@ -462,8 +462,7 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
     int to = 0; // bool
 
     if (!io->s_ctx || !io->s_ctx->ssl_io) {
-        err = EINVAL;
-        set_error(cc, err, posix_error, "wrong ssl handler (ssl_read)");
+        set_error(cc, EINVAL, posix_error, "SSL not initialized");
         return -1;
     }
     

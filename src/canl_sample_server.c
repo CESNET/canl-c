@@ -50,13 +50,15 @@ int main(int argc, char *argv[])
 
     my_io_h = canl_create_io_handler(my_ctx);
     if (!my_io_h) {
-        printf("[SERVER] io handler cannot be created\n");
+        printf("[SERVER] io handler cannot be created: %s\n",
+	       canl_get_error_message(my_ctx));
         goto end;
     }
 
     my_new_io_h = canl_create_io_handler(my_ctx);
     if (!my_new_io_h) {
-        printf("[SERVER] io handler cannot be created\n");
+        printf("[SERVER] io handler cannot be created: %s\n",
+	       canl_get_error_message(my_ctx));
         goto end;
     }
 
@@ -64,7 +66,8 @@ int main(int argc, char *argv[])
         err = canl_set_ctx_own_cert_file(my_ctx, serv_cert, serv_key, 
                 NULL, NULL);
         if (err) {
-            printf("[SERVER] cannot set certificate or key to context\n");
+            printf("[SERVER] cannot set certificate or key to context: %s\n",
+		   canl_get_error_message(my_ctx));
             goto end;
         }
     }
@@ -76,20 +79,20 @@ int main(int argc, char *argv[])
     /* TODO timeout in this function?*/
     err = canl_io_accept(my_ctx, my_io_h, port, 0, NULL, &timeout, &my_new_io_h);
     if (err) {
-        printf("[SERVER] connection cannot be established\n");
+        printf("[SERVER] connection cannot be established: %s\n",
+	       canl_get_error_message(my_ctx));
         goto end;
     }
-    else {
-        printf("[SERVER] connection established\n");
-    }
+    printf("[SERVER] connection established\n");
 
-    strcpy(buf, "This is the testing message to send");
+    strncpy(buf, "This is a testing message to send", sizeof(buf));
     buf_len = strlen(buf) + 1;
 
     printf("[SERVER] Trying to send sth to the client\n");
     err = canl_io_write (my_ctx, my_new_io_h, buf, buf_len, &timeout);
     if (err <= 0) {
-        printf("[SERVER] cannot send message to the client\n");
+        printf("[SERVER] cannot send message to the client: %s\n",
+	       canl_get_error_message(my_ctx));
         goto end;
     }
     else {
@@ -103,11 +106,10 @@ int main(int argc, char *argv[])
         printf ("[SERVER] received: %s\n", buf);
     }
     else
-        printf("[SERVER] nothing received from client\n");
+        printf("[SERVER] Failed to receive reply from client: %s\n",
+	       canl_get_error_message(my_ctx));
 
 end:
-    print_error_from_canl(my_ctx);
-
     if (my_new_io_h) {
         err = canl_io_close(my_ctx, my_new_io_h);
         if (err){
