@@ -289,7 +289,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
 
     freeaddrinfo(servinfo); // all done with this structure
     if (p == NULL) {
-	return set_error(glb_cc, -1 unknown_error,
+	return set_error(glb_cc, -1, unknown_error,
 			 "Failed to acquire a server socket");
     }
 
