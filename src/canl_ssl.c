@@ -9,19 +9,14 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
-int ssl_server_init(glb_ctx *cc, io_handler *io)
+int ssl_server_init(glb_ctx *cc)
 {
     int err = 0;
     unsigned long ssl_err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
 
     if (!cc) {
-        return EINVAL;
-    }
-    if (!io) {
-        err = EINVAL;
-        e_orig = posix_error;
-        goto end;
+	return EINVAL;
     }
 
     SSL_library_init();
@@ -224,7 +219,7 @@ end:
     return err;
 }
 
-int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io, 
+int ssl_accept(glb_ctx *cc, io_handler *io,
         struct timeval *timeout)
 {
     int err = 0, flags;
@@ -237,18 +232,18 @@ int ssl_accept(glb_ctx *cc, io_handler *io, io_handler *new_io,
         goto end;
     }
 
-    flags = fcntl(new_io->sock, F_GETFL, 0);
-    (void)fcntl(new_io->sock, F_SETFL, flags | O_NONBLOCK);
+    flags = fcntl(io->sock, F_GETFL, 0);
+    (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    new_io->s_ctx->bio_conn = BIO_new_socket(new_io->sock, BIO_NOCLOSE);
-    (void)BIO_set_nbio(new_io->s_ctx->bio_conn,1);
+    io->s_ctx->bio_conn = BIO_new_socket(io->sock, BIO_NOCLOSE);
+    (void)BIO_set_nbio(io->s_ctx->bio_conn,1);
 
-    new_io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
+    io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
-    SSL_set_bio(new_io->s_ctx->ssl_io, new_io->s_ctx->bio_conn, 
-            new_io->s_ctx->bio_conn);
+    SSL_set_bio(io->s_ctx->ssl_io, io->s_ctx->bio_conn, 
+            io->s_ctx->bio_conn);
 
-    err = do_ssl_accept(cc, new_io, timeout);
+    err = do_ssl_accept(cc, io, timeout);
         if (err) {
         goto end;
     }

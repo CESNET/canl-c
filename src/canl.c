@@ -141,7 +141,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     }
 
     if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr)
-	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+        return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
     /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
 
@@ -161,16 +161,16 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     }
 
     if (err)
-	/* XXX add error msg from ares */
-	return set_error(cc, err, posix_error,
-	                 "Cannot resolve the server hostname (%s)", host);
+        /* XXX add error msg from ares */
+        return set_error(cc, err, posix_error,
+                "Cannot resolve the server hostname (%s)", host);
 
     sa_in = (struct sockaddr_in *) io_cc->s_addr;
 
     io_cc->sock = socket(AF_INET, SOCK_STREAM, 0);
     if (io_cc->sock == -1)
-	return set_error(cc, err, posix_error, "Failed to create socket: %s",
-			 strerror(err));
+        return set_error(cc, err, posix_error, "Failed to create socket: %s",
+                strerror(err));
 
     sa_in->sin_family = AF_INET;
     sa_in->sin_port = htons(port);
@@ -181,7 +181,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     {
         memcpy(&sa_in->sin_addr.s_addr, io_cc->ar->ent->h_addr_list[i], 
                 sizeof(struct in_addr));
-	/* XXX timeouts missing */
+        /* XXX timeouts missing */
         err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
         if (err) 
             err = errno;
@@ -189,19 +189,19 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
             break; //success
         i++;
     }
-    
+
     if (err)
-	return set_error(cc, ECONNREFUSED, posix_error,
-			 "Failed to make network connection to server %s", host);
+        return set_error(cc, ECONNREFUSED, posix_error,
+                "Failed to make network connection to server %s", host);
 
     err = ssl_client_init(glb_cc, io_cc);
     if (err)
-	goto end;
+        goto end;
 
     err = ssl_connect(glb_cc, io_cc, timeout); //TODO timeout
     if (err)
-	goto end;
-    
+        goto end;
+
     /*write succes or failure to cc, io*/
     //if (err)
     /*cc or io set error*/
@@ -214,99 +214,27 @@ end:
 }
 
 /*TODO select + timeout, EINTR!!! */ 
-int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
-        int flags, cred_handler ch, struct timeval *timeout, 
-        canl_io_handler *new_io)
+int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
+        struct sockaddr s_addr, int flags, cred_handler ch, 
+        struct timeval *timeout)
 {
-    int err = 0, sockfd = 0, new_fd = 0;
+    int err = 0;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
-    io_handler **io_new_cc = (io_handler**) new_io;
-    char str_port[8];
-    struct addrinfo hints, *servinfo, *p;
-    socklen_t sin_size;
-    int yes=1;
 
     if (!glb_cc) 
         return EINVAL; /* XXX Should rather be a CANL error */
 
     if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr)
-	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+        return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
-    /* XXX perhaps remove entirely from the API ? */
-    if (!*io_new_cc || !(*io_new_cc)->ar || !(*io_new_cc)->ar->ent 
-            || !(*io_new_cc)->s_addr) {
-        err = EINVAL;
-        goto end;
-    }
+    io_cc->sock = new_fd;
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    if (snprintf(str_port, 8, "%d", port) < 0)
-	return set_error(cc, EINVAL, posix_error, "Wrong port requested (%d)", port);
-
-    /* XXX timeouts - use c-ares, too */
-    if ((err = getaddrinfo(NULL, str_port, &hints, &servinfo)) != 0) {
-        update_error(glb_cc, "getaddrinfo: %s\n", gai_strerror(err));
-        /*TODO what kind of error return?, getaddrinfo returns its own 
-          error codes*/
-        goto end;
-    }
-
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                        p->ai_protocol)) == -1) {
-            // set err? no
-            err = errno;
-            continue;
-        }
-        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
-                    sizeof(int)) == -1) {
-            err = errno;
-            freeaddrinfo(servinfo); // all done with this structure
-            return -1;
-        }
-        if ((err = bind(sockfd, p->ai_addr, p->ai_addrlen))) {
-            close(sockfd);
-            err = errno;
-            continue;
-        }
-	if ((err = listen(sockfd, BACKLOG))) {
-	    close(sockfd);
-	    err = errno;
-	    continue;
-    }
-
-
-        break;
-    }
-
-    freeaddrinfo(servinfo); // all done with this structure
-    if (p == NULL) {
-	return set_error(glb_cc, -1, unknown_error,
-			 "Failed to acquire a server socket");
-    }
-
-#ifdef DEBUG
-    printf("server: waiting for connections...\n");
-#endif
-    sin_size = sizeof((*io_new_cc)->s_addr);
-    new_fd = accept(sockfd, (*io_new_cc)->s_addr, &sin_size);
-    if (new_fd == -1){
-	return set_error(glb_cc, errno, posix_error,
-			 "Failed to accept network connection: %s",
-			 strerror(errno));
-    }
-    (*io_new_cc)->sock = new_fd;
-
-    err = ssl_server_init(glb_cc, *io_new_cc);
+    err = ssl_server_init(glb_cc);
     if (err)
         goto end;
 
-    err = ssl_accept(glb_cc, io_cc, (*io_new_cc), timeout); 
+    err = ssl_accept(glb_cc, io_cc, timeout); 
     if (err)
 	goto end;
 
@@ -314,7 +242,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int port,
 
 end:
     if (err)
-        (*io_new_cc)->sock = 0;
+        (io_cc)->sock = 0;
 
     return err;
 }
