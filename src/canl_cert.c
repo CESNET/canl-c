@@ -50,7 +50,7 @@ static int set_cert(glb_ctx *cc, X509 *cert)
 
 end:
     if (err)
-        set_error(cc, err, err_orig, "cannot get certificate (set_cert)");
+        set_error(cc, err, err_orig, "cannot get certificate");
     return err;
 }
 
@@ -84,7 +84,7 @@ static int set_key_file(glb_ctx *cc, char *key)
         if (!cc->cert_key) {
             err = ENOMEM;
             set_error(cc, err, posix_error, "not enought memory for the"
-                    " certificate storage (set_key_file)");
+                    " certificate storage"); 
             return ENOMEM;
         }
     }
@@ -96,8 +96,7 @@ static int set_key_file(glb_ctx *cc, char *key)
     key_file = fopen(key, "rb");
     if (!key_file) {
        err = errno;
-        set_error(cc, err, posix_error, "cannot open file with key"
-                " (set_key_file)");
+        set_error(cc, err, posix_error, "cannot open file with key");
         return err;
     }
 
@@ -107,14 +106,12 @@ static int set_key_file(glb_ctx *cc, char *key)
     cc->cert_key->key = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
     if (!cc->cert_key->key) {
         ssl_err = ERR_peek_error();
-        set_error(cc, ssl_err, ssl_error, "error while writing key to context"
-                " (set_key_file)");
+        set_error(cc, ssl_err, ssl_error, "error while writing key to context");
         goto end;
     }
     if (fclose(key_file)){
         err = errno;
-        set_error(cc, err, posix_error, "cannot close file with key"
-                " (set_key_file)");
+        set_error(cc, err, posix_error, "cannot close file with key");
         return errno;
     }
     return 0;
@@ -122,8 +119,7 @@ static int set_key_file(glb_ctx *cc, char *key)
 end:
     if (fclose(key_file)){
         err = errno;
-        update_error(cc, "cannot close file with key"
-                " (set_key_file)");
+        update_error(cc, "cannot close file with key");
     }
     return 1;
 }
@@ -139,7 +135,7 @@ static int set_cert_file(glb_ctx *cc, char *cert)
         if (!cc->cert_key) {
             err = ENOMEM;
             set_error(cc, err, posix_error, "not enought memory for the"
-                    " certificate storage (set_cert_file)");
+                    " certificate storage"); 
             return ENOMEM;
         }
     }
@@ -151,8 +147,7 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     cert_file = fopen(cert, "rb");
     if (!cert_file) {
        err = errno;
-        set_error(cc, err, posix_error, "cannot open file with cert"
-                " (set_cert_file)");
+        set_error(cc, err, posix_error, "cannot open file with cert");
         return err;
     }
     
@@ -162,14 +157,13 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     if (!cc->cert_key->cert) {
         ssl_err = ERR_get_error();
         set_error(cc, ssl_err, ssl_error, "error while writing certificate"
-                " to context (set_cert_file)");
+                " to context"); 
         goto end;
     }
 
     if (fclose(cert_file)){
         err = errno;
-        set_error(cc, err, posix_error, "cannot close file with certificate"
-                " (set_cert_file)");
+        set_error(cc, err, posix_error, "cannot close file with certificate");
         return errno;
     }
     return 0;
@@ -177,8 +171,7 @@ static int set_cert_file(glb_ctx *cc, char *cert)
 end:
     if (fclose(cert_file)){
         err = errno;
-        update_error(cc, "cannot close file with certificate"
-                " (set_cert_file)");
+        update_error(cc, "cannot close file with certificate");
     }
     return 1;
 }

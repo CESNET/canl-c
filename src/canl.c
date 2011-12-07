@@ -78,11 +78,9 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
 
 end:
     if (err) {
-        update_error(g_cc,"cannot create canl_io_handler"
-                "canl_create_io_handler");
+        update_error(g_cc,"cannot create canl_io_handler");
         if ((err = canl_io_destroy(cc, (canl_io_handler)new_io_h)))
-            update_error(g_cc, "cannot destroy canl_ctx"
-                    "canl_create_io_handler");
+            update_error(g_cc, "cannot destroy canl_ctx");
         new_io_h = NULL;
     }
     return new_io_h;
@@ -125,8 +123,7 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
 
 end:
     if (err)
-        update_error(cc, "failed to initialize io_handler"
-                "(init_io_content)");
+        update_error(cc, "failed to initialize io_handler");
     return err;
 }
 
@@ -336,8 +333,7 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
 
     if (!io) {
         err = EINVAL;
-        set_error(glb_cc, err, posix_error,  "invalid io handler"
-                " canl_io_close)");
+        set_error(glb_cc, err, posix_error,  "invalid io handler");
         return err;
     }
 
@@ -352,7 +348,6 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
-
     // delete io_handler content
     if (io_cc->ar) {
         if (io_cc->ar->ent)
@@ -380,8 +375,7 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
             /* TODO check it?
             if (!err) {
                 ssl_err = ERR_peek_error();
-                set_error(io_cc, err, ssl_error, "cannot free BIO"
-                       " (io_destroy)");
+                set_error(io_cc, err, ssl_error, "cannot free BIO");
                 err = 1;
             } */
             io_cc->s_ctx->bio_conn = NULL;
@@ -403,8 +397,7 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
 
     if (!io_cc) {
         err = EINVAL;
-        set_error(glb_cc, err, posix_error,  "invalid io handler"
-                " canl_io_destroy)");
+        set_error(glb_cc, err, posix_error,  "invalid io handler");
         return err;
     }
 
@@ -463,7 +456,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     }
 
     if (!buffer || !size) {
-	set_error(cc, EINVAL, posix_error, "No memory to write into");
+	set_error(cc, EINVAL, posix_error, "No memory to read from");
 	return -1;
     }
 
@@ -483,15 +476,13 @@ int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert,
     if (!cc)
         return EINVAL;
     if(!cert) {
-        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value"
-               " (canl_set_ctx_own_cert)");
+        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value");
         return err;
     }
 
     err = do_set_ctx_own_cert(glb_cc, cert, chain, key);
     if(err) {
-        update_error(glb_cc, "can't set cert or key to context"
-                " (canl_set_ctx_own_cert)");
+        update_error(glb_cc, "can't set cert or key to context");
     }
         return err;
 }
@@ -506,15 +497,13 @@ int canl_set_ctx_own_cert_file(canl_ctx cc, char *cert, char *key,
     if (!cc)
         return EINVAL;
     if(!cert ) {
-        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value"
-               " (canl_set_ctx_own_cert_file)");
+        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value");
         return EINVAL;
     }
 
     err = do_set_ctx_own_cert_file(glb_cc, cert, key);
     if(err) {
-        update_error(glb_cc, "can't set cert or key to context"
-                " (canl_set_ctx_own_cert_file)");
+        update_error(glb_cc, "can't set cert or key to context");
     }
         return err;
 }

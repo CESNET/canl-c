@@ -61,7 +61,7 @@ int set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
     va_list ap;
     /*check cc*/
     if (!cc) 
-        return;
+        return 1;
     /* if message already exists, delete it */
     if (cc->err_msg)
         reset_error(cc, err_code);
@@ -73,7 +73,7 @@ int set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
 
     //0 is not error
     if (!err_code)
-	return;
+	return 0;
     return resolve_error(cc, err_code, err_orig);
 }
 
@@ -139,7 +139,7 @@ int canl_get_error(canl_ctx cc, char  **reason)
 end:
     *reason = new_error;
     if (err)
-        set_error(ctx, err, e_orig, "cannot get error message (canl_get_error)");
+        set_error(ctx, err, e_orig, "cannot get error message");
     return err;
 }
 
