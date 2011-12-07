@@ -76,6 +76,9 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
         goto end;
     }
 
+    SSL_library_init();
+    SSL_load_error_strings();
+
 end:
     if (err) {
         update_error(g_cc,"cannot create canl_io_handler");

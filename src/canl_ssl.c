@@ -19,8 +19,6 @@ int ssl_server_init(glb_ctx *cc)
 	return EINVAL;
     }
 
-    SSL_library_init();
-    SSL_load_error_strings();
     //OpenSSL_add_all_algorithms();
     //OpenSSL_add_all_ciphers();
     ERR_clear_error();
@@ -114,8 +112,6 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
         goto end;
     }
 
-    SSL_load_error_strings();
-    SSL_library_init();
     //OpenSSL_add_all_algorithms();
     //OpenSSL_add_all_ciphers();
     ERR_clear_error();
