@@ -136,6 +136,9 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
         return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
     /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
+    ar.ent = (struct hostent *) calloc (1, sizeof(struct hostent));
+    if (ar.ent == NULL)
+	return set_error(cc, ENOMEM, posix_error, "Not enough memory");
 
     switch (err = asyn_getservbyname(AF_INET, &ar, host, NULL)) {
         case NETDB_SUCCESS:
@@ -202,6 +205,9 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     err = 0;
 
 end:
+    if (ar.ent != NULL)
+	free_hostent(ar.ent);
+
     return err;
 }
 
