@@ -259,26 +259,32 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
     int err = 0;
     /*check cc and io*/
     if (!cc) {
-        return EINVAL;
+        return EINVAL; /* XXX Should rather be a CANL error */
     }
 
-    if (!io) {
-        err = EINVAL;
-        set_error(glb_cc, err, posix_error,  "invalid io handler");
+    if (!io)
+	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+
+    err = ssl_close(glb_cc, io_cc);
+    if (err <= 0)
         return err;
+
+    if (io_cc->sock) {
+        close (io_cc->sock);
+        io_cc->sock = -1;
     }
 
     return err;
 
-    /*ssl close*/
-
     /*set cc and io accordingly*/
 }
+
 static void io_destroy(glb_ctx *cc, io_handler *io)
 {
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
+
     // delete io_handler content
     if (io_cc->ar) {
         if (io_cc->ar->ent)
@@ -291,10 +297,6 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
         free (io_cc->s_addr);
         io_cc->s_addr = NULL;
     }
-    if (io_cc->sock) {
-        close (io_cc->sock);
-        io_cc->sock = 0;
-    }
     if (io_cc->s_ctx) {
         /*TODO maybe new function because of BIO_free and SSL_free*/
         if (io_cc->s_ctx->ssl_io) {
@@ -303,12 +305,6 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
         }
         if (io_cc->s_ctx->bio_conn) {
             err = BIO_free(io_cc->s_ctx->bio_conn);
-            /* TODO check it?
-            if (!err) {
-                ssl_err = ERR_peek_error();
-                set_error(io_cc, err, ssl_error, "cannot free BIO");
-                err = 1;
-            } */
             io_cc->s_ctx->bio_conn = NULL;
         }
     }
@@ -322,19 +318,13 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
     glb_ctx *glb_cc = (glb_ctx*) cc;
     io_handler *io_cc = (io_handler*) io;
     /*check cc and io*/
+
     if (!glb_cc) {
-        return EINVAL;
+        return EINVAL; /* XXX Should rather be a CANL error */
     }
 
-    if (!io_cc) {
-        err = EINVAL;
-        set_error(glb_cc, err, posix_error,  "invalid io handler");
-        return err;
-    }
-
-    err = ssl_close(glb_cc, io_cc);
-    if (err <= 0)
-        return err;
+    if (!io_cc)
+	return set_error(glb_cc, EINVAL, posix_error,  "Invalid io handler");
 
     io_destroy(glb_cc, io_cc);
     // delete io itself
