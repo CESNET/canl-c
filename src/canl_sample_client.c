@@ -9,7 +9,7 @@
 int main(int argc, char *argv[])
 {
     canl_ctx my_ctx;
-    canl_io_handler my_io_h;
+    canl_io_handler my_io_h = NULL;
     int err = 0;
     char *err_msg = NULL;
     char buf[BUF_LEN];
@@ -43,13 +43,14 @@ int main(int argc, char *argv[])
 
     my_ctx = canl_create_ctx();
     if (!my_ctx){
-        // set_error("context cannot be created\n");
+	printf("CANL context cannot be created, exiting.\n");
         goto end;
     }
 
     my_io_h = canl_create_io_handler(my_ctx);
     if (!my_io_h) {
-        //set_error("io handler cannot be created\n");
+	printf("io handler cannot be created: %s\n",
+	       canl_get_error_message(my_ctx));
         goto end;
     }
 
@@ -72,7 +73,8 @@ int main(int argc, char *argv[])
     printf("[CLIENT] Trying to send sth to the server\n");
     err = canl_io_write (my_ctx, my_io_h, buf, buf_len, &timeout);
     if (err <= 0) {
-        printf("can't write using ssl\n");
+        printf("can't write using ssl: %s\n",
+	       canl_get_error_message(my_ctx));
         goto end;
     }
     else {
@@ -86,18 +88,10 @@ int main(int argc, char *argv[])
         printf ("[CLIENT] received: %s\n", buf);
     }
 
-    err = canl_io_close(my_ctx, my_io_h);
-    if (err){
-        printf("[CLIENT] Cannot close connection to server\n");
-    }
-
-    err = canl_io_destroy(my_ctx, my_io_h);
-    if (err){
-        printf("[CLIENT] Cannot destroy connection with server\n");
-    }
-    my_io_h = NULL;
-
 end:
+    if (my_io_h)
+	err = canl_io_destroy(my_ctx, my_io_h);
+
     canl_free_ctx(my_ctx);
 
     return err;

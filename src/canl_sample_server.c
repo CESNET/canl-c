@@ -13,7 +13,7 @@ static void print_error_from_canl(canl_ctx cc);
 int main(int argc, char *argv[])
 {
     canl_ctx my_ctx;
-    canl_io_handler my_io_h;
+    canl_io_handler my_io_h = NULL;
     canl_io_handler my_new_io_h;
     int err = 0;
     int opt, port = 4321;
