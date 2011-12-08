@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-h] \n", argv[0]);
-                break;
+                exit(0);
             case 'p':
                 port = atoi(optarg);
                 break;
@@ -108,12 +108,11 @@ int main(int argc, char *argv[])
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
                     sizeof(int)) == -1) {
             err = errno;
-            freeaddrinfo(servinfo); // all done with this structure
-            return -1;
+	    continue;
         }
         if ((err = bind(sockfd, p->ai_addr, p->ai_addrlen))) {
-            close(sockfd);
             err = errno;
+            close(sockfd);
             continue;
         }
         if ((err = listen(sockfd, BACKLOG))) {
@@ -122,13 +121,14 @@ int main(int argc, char *argv[])
             continue;
         }
 
-
         break;
     }
 
     freeaddrinfo(servinfo); // all done with this structure
     if (p == NULL) {
-        printf("Failed to acquire a server socket");
+	/* Beware that only the last error is displayed here ... */
+        printf("Failed to acquire a server socket: %s\n",
+	       strerror(err));
         return 1;
     }
 
@@ -168,33 +168,19 @@ int main(int argc, char *argv[])
     }
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
-    if (err > 0) {
-        buf[err] = '\0';
-        printf ("[SERVER] received: %s\n", buf);
-    }
-    else
-        printf("[SERVER] Failed to receive reply from client: %s\n",
+    if (err <= 0) {
+	printf("[SERVER] Failed to receive reply from client: %s\n",
 	       canl_get_error_message(my_ctx));
+	goto end;
+    }
+
+    buf[err] = '\0';
+    printf ("[SERVER] received: %s\n", buf);
+    err = 0;
 
 end:
-    print_error_from_canl(my_ctx);
-
-    if (my_io_h) {
-        err = canl_io_close(my_ctx, my_io_h);
-        if (err){
-            printf("[SERVER] Cannot close connection\n");
-            print_error_from_canl(my_ctx);
-        }
-    }
-
-    if (my_io_h) {
+    if (my_io_h)
         err = canl_io_destroy(my_ctx, my_io_h);
-        if (err){
-            printf("[SERVER] Cannot destroy connection\n");
-            print_error_from_canl(my_ctx);
-        }
-        my_io_h = NULL;
-    }
 
     canl_free_ctx(my_ctx);
 

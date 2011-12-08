@@ -188,10 +188,17 @@ char *
 canl_get_error_message(canl_ctx cc)
 {
     glb_ctx *ctx = (glb_ctx*) cc;
+    int ret;
+    char *msg = NULL;
 
-    if (ctx == NULL || ctx->err_msg == NULL)
-	return "No error available";
+    if (ctx == NULL)
+	return "Context is not initialized";
 
+    ret = canl_get_error(ctx, &msg);
+    if (ret)
+	return "No human-error available";
+
+    ctx->err_msg = msg;
     return ctx->err_msg;
 }
 

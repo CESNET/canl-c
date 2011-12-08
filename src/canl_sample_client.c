@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port]" 
                         "[-s server] [-h] \n", argv[0]);
-                break;
+                exit(0);
             case 'p':
                 port = atoi(optarg);
                 break;
@@ -58,7 +58,8 @@ int main(int argc, char *argv[])
 
     err = canl_io_connect(my_ctx, my_io_h, p_server, port, 0, NULL, &timeout);
     if (err) {
-        printf("[CLIENT] connection cannot be established\n");
+        printf("[CLIENT] connection to %s cannot be established: %s\n",
+	       p_server, canl_get_error_message(my_ctx));
         goto end;
     }
     else {
@@ -97,10 +98,6 @@ int main(int argc, char *argv[])
     my_io_h = NULL;
 
 end:
-    canl_get_error(my_ctx, &err_msg);
-    if (err_msg != NULL)
-        printf("%s\n", err_msg);
-
     canl_free_ctx(my_ctx);
 
     return err;
