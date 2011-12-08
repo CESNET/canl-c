@@ -8,7 +8,6 @@
 
 #define BUF_LEN 1000
 #define BACKLOG 10
-static void print_error_from_canl(canl_ctx cc);
 
 int main(int argc, char *argv[])
 {
@@ -185,15 +184,4 @@ end:
     canl_free_ctx(my_ctx);
 
     return err;
-}
-
-static void print_error_from_canl(canl_ctx cc)
-{
-    char *reason = NULL;
-    canl_get_error(cc, &reason);
-    if (reason != NULL) {
-        printf("%s\n", reason);
-        free (reason);
-        reason = NULL;
-    }
 }

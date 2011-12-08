@@ -11,7 +11,6 @@ int main(int argc, char *argv[])
     canl_ctx my_ctx;
     canl_io_handler my_io_h = NULL;
     int err = 0;
-    char *err_msg = NULL;
     char buf[BUF_LEN];
     int buf_len = 0;
     char *p_server = NULL;
