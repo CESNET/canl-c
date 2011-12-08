@@ -44,8 +44,6 @@ typedef struct _asyn_result {
 
 typedef struct _io_handler
 {
-    asyn_result *ar;
-    struct sockaddr *s_addr;
     int sock;
     ossl_ctx * s_ctx;
 } io_handler;

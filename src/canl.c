@@ -100,24 +100,6 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
         goto end;
     }
 
-    io->ar = (asyn_result *) calloc(1, sizeof(*(io->ar)));
-    if (!io->ar) {
-        err = ENOMEM;
-        goto end;
-    }
-
-    io->ar->ent = (struct hostent *) calloc(1, sizeof(struct hostent));
-    if (!io->ar->ent) {
-        err = ENOMEM;
-        goto end;
-    }
-
-    io->s_addr = (struct sockaddr *) calloc(1, sizeof(struct sockaddr));
-    if (!io->s_addr) {
-        err = ENOMEM;
-        goto end;
-    }
-
     io->s_ctx = (ossl_ctx *) calloc(1, sizeof(*(io->s_ctx)));
     if (!io->s_ctx) {
         err = ENOMEM;
@@ -137,18 +119,23 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct sockaddr_in *sa_in = NULL;
+    struct sockaddr s_addr;
+    struct _asyn_result ar;
     int i = 0;
+
+    memset(&ar, 0, sizeof(ar));
+    memset(&s_addr, 0, sizeof(s_addr));
 
     if (!glb_cc) {
         return EINVAL;
     }
 
-    if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr)
+    if (!io_cc)
         return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
     /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
 
-    switch (err = asyn_getservbyname(AF_INET, io_cc->ar, host, NULL)) {
+    switch (err = asyn_getservbyname(AF_INET, &ar, host, NULL)) {
         case NETDB_SUCCESS:
             err = 0;
             break;
@@ -168,7 +155,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
         return set_error(cc, err, posix_error,
                 "Cannot resolve the server hostname (%s)", host);
 
-    sa_in = (struct sockaddr_in *) io_cc->s_addr;
+    sa_in = (struct sockaddr_in *) &s_addr;
 
     io_cc->sock = socket(AF_INET, SOCK_STREAM, 0);
     if (io_cc->sock == -1)
@@ -180,9 +167,9 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
 
     i = 0;
     /* XXX can the list be empty? */
-    while (io_cc->ar->ent->h_addr_list[i])
+    while (ar.ent->h_addr_list[i])
     {
-        memcpy(&sa_in->sin_addr.s_addr, io_cc->ar->ent->h_addr_list[i], 
+        memcpy(&sa_in->sin_addr.s_addr, ar.ent->h_addr_list[i], 
                 sizeof(struct in_addr));
         /* XXX timeouts missing */
         err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
@@ -228,7 +215,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
     if (!glb_cc) 
         return EINVAL; /* XXX Should rather be a CANL error */
 
-    if (!io_cc || !io_cc->ar || !io_cc->ar->ent || !io_cc->s_addr)
+    if (!io_cc)
         return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
     io_cc->sock = new_fd;
@@ -282,21 +269,8 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
 static void io_destroy(glb_ctx *cc, io_handler *io)
 {
     io_handler *io_cc = (io_handler*) io;
-    glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
 
-    // delete io_handler content
-    if (io_cc->ar) {
-        if (io_cc->ar->ent)
-            free_hostent(io_cc->ar->ent);
-        io_cc->ar->ent = NULL;
-        free (io_cc->ar);
-        io_cc->ar = NULL;
-    }
-    if (io_cc->s_addr) {
-        free (io_cc->s_addr);
-        io_cc->s_addr = NULL;
-    }
     if (io_cc->s_ctx) {
         /*TODO maybe new function because of BIO_free and SSL_free*/
         if (io_cc->s_ctx->ssl_io) {
@@ -327,11 +301,7 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
 	return set_error(glb_cc, EINVAL, posix_error,  "Invalid io handler");
 
     io_destroy(glb_cc, io_cc);
-    // delete io itself
-    if (io_cc) {
-        free (io_cc);
-        io_cc = NULL;
-    }
+    free (io_cc);
 
     return err;
 }
