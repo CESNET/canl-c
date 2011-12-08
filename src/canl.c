@@ -302,6 +302,8 @@ int canl_io_destroy(canl_ctx cc, canl_io_handler io)
     if (!io_cc)
 	return set_error(glb_cc, EINVAL, posix_error,  "Invalid io handler");
 
+    canl_io_close(cc, io);
+
     io_destroy(glb_cc, io_cc);
     free (io_cc);
 
