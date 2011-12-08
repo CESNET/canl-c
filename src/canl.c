@@ -106,6 +106,8 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
         goto end;
     }
 
+    io->sock = -1;
+
 end:
     if (err)
         update_error(cc, "failed to initialize io_handler");
@@ -232,7 +234,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
 end:
     if (err)
-        (io_cc)->sock = 0;
+        (io_cc)->sock = -1;
 
     return err;
 }
@@ -256,7 +258,7 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
     if (err <= 0)
         return err;
 
-    if (io_cc->sock) {
+    if (io_cc->sock != -1) {
         close (io_cc->sock);
         io_cc->sock = -1;
     }
