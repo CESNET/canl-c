@@ -6,7 +6,6 @@
 #include "sys/socket.h"
 #include "string.h"
 
-#define BACKLOG 10 //TODO just for testing - max incoming connections
 
 static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
