@@ -16,13 +16,13 @@ COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
 INSTALL=libtool --mode=install install
 
-CFLAGS_LIB=-Wall -pedantic -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -DDEBUG
+CFLAGS_LIB=-Wall -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -I.
 LFLAGS_LIB=-shared ${LIBCARES_LIBS} ${LIBSSL_LIBS}
 
-CFLAGS_CLI=-Wall -g -I${top_srcdir}/src
+CFLAGS_CLI=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_CLI=-L. -lcanl
 
-CFLAGS_SER=-Wall -g -I${top_srcdir}/src
+CFLAGS_SER=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_SER=-L. -lcanl
 
 HEAD_CANL=canl.h canl_locl.h canl_err.h
@@ -80,6 +80,10 @@ server: ${OBJ_SER}
 
 ${OBJ_SER}: ${SRC_SER} ${HEAD_SER} libcanl.la
 	${COMPILE} -c ${top_srcdir}/src/${SRC_SER} ${CFLAGS_SER} -o $@
+
+canl_err.h: canl_error_codes
+	${top_srcdir}/src/gen_err_codes.pl < $^ > $@
+
 
 check:
 

@@ -1,7 +1,9 @@
 #ifndef _CANL_H
 #define _CANL_H
 #include <sys/time.h>
-#include "sys/socket.h"
+#include <sys/socket.h>
+
+#include "canl_err.h"
 
 typedef void *canl_io_handler;
 typedef void *canl_ctx;

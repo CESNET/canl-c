@@ -86,7 +86,7 @@ void reset_error (glb_ctx *cc, unsigned long err_code)
     if (cc->err_msg)
         free(cc->err_msg);
     cc->err_msg = NULL;
-    cc->err_code = no_error;
+    cc->err_code = EMI_Err_OK;
     cc->err_orig = unknown_error;
 }
 

@@ -13,8 +13,16 @@
 #include <openssl/safestack.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "canl_err.h"
+
 #include "canl.h"
+
+typedef enum _CANL_ERROR_ORIGIN
+{
+    unknown_error = 0,
+    posix_error = 1,
+    ssl_error,
+    colin_error
+} CANL_ERROR_ORIGIN;
 
 typedef struct _cert_key_store {
     X509 *cert;
