@@ -9,6 +9,8 @@
 
 static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
+static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
+        int addrtype, int port, struct timeval *timeout);
 canl_ctx canl_create_ctx()
 {
     glb_ctx *ctx = NULL;
@@ -119,73 +121,66 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     int err = 0;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
-    struct sockaddr_in *sa_in = NULL;
-    struct sockaddr s_addr;
     struct _asyn_result ar;
     int i = 0;
+    int addr_types[] = {AF_INET6, AF_INET}; //TODO ip versions policy?
+    int ipver = AF_INET6;
+    int j = 0;
 
     memset(&ar, 0, sizeof(ar));
-    memset(&s_addr, 0, sizeof(s_addr));
 
     if (!glb_cc) {
         return EINVAL;
     }
 
     if (!io_cc)
-        return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+        return set_error(glb_cc, EINVAL, posix_error, 
+                "IO handler not initialized");
 
-    /*dns TODO - wrap it for using ipv6 and ipv4 at the same time*/
-    ar.ent = (struct hostent *) calloc (1, sizeof(struct hostent));
-    if (ar.ent == NULL)
-	return set_error(cc, ENOMEM, posix_error, "Not enough memory");
+    for (j = 0; j< sizeof(addr_types)/sizeof(*addr_types); j++) {
+        ipver = addr_types[j];
+        ar.ent = (struct hostent *) calloc (1, sizeof(struct hostent));
+        if (ar.ent == NULL)
+            return set_error(cc, ENOMEM, posix_error, "Not enough memory");
 
-    switch (err = asyn_getservbyname(AF_INET, &ar, host, NULL)) {
-        case NETDB_SUCCESS:
-            err = 0;
-            break;
-        case TRY_AGAIN:
-            err = ETIMEDOUT;
-            goto end;
-        case NETDB_INTERNAL:
-            err = EHOSTUNREACH; //TODO check
-            goto end;
-        default:
-            err = EHOSTUNREACH; //TODO check
-            goto end;
+        switch (err = asyn_getservbyname(ipver, &ar, host, NULL)) {
+            case NETDB_SUCCESS:
+                err = 0;
+                break;
+            case TRY_AGAIN:
+                err = ETIMEDOUT;
+                goto end;
+            case NETDB_INTERNAL:
+                err = EHOSTUNREACH; //TODO check
+                goto end;
+            default:
+                err = EHOSTUNREACH; //TODO check
+                goto end;
+        }
+
+        if (err)
+            /* XXX add error msg from ares */
+            return set_error(cc, err, posix_error,
+                    "Cannot resolve the server hostname (%s)", host);
+
+        i = 0;
+        /* XXX can the list be empty? */
+        while (ar.ent->h_addr_list[i])
+        {
+            err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i],
+                    ar.ent->h_addrtype, port, timeout);//TODO timeout
+	    if (!err)
+		break;
+            i++;
+        }
+        free_hostent(ar.ent);
+        ar.ent = NULL;
+	if (!err)
+	    break;
     }
 
     if (err)
-        /* XXX add error msg from ares */
-        return set_error(cc, err, posix_error,
-                "Cannot resolve the server hostname (%s)", host);
-
-    sa_in = (struct sockaddr_in *) &s_addr;
-
-    io_cc->sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (io_cc->sock == -1)
-        return set_error(cc, err, posix_error, "Failed to create socket: %s",
-                strerror(err));
-
-    sa_in->sin_family = AF_INET;
-    sa_in->sin_port = htons(port);
-
-    i = 0;
-    /* XXX can the list be empty? */
-    while (ar.ent->h_addr_list[i])
-    {
-        memcpy(&sa_in->sin_addr.s_addr, ar.ent->h_addr_list[i], 
-                sizeof(struct in_addr));
-        /* XXX timeouts missing */
-        err = connect(io_cc->sock, (struct sockaddr*) sa_in, sizeof(*sa_in));
-        if (err) 
-            err = errno;
-        else
-            break; //success
-        i++;
-    }
-
-    if (err)
-        return set_error(cc, ECONNREFUSED, posix_error,
+        return set_error(glb_cc, err, posix_error,
                 "Failed to make network connection to server %s", host);
 
     err = ssl_client_init(glb_cc, io_cc);
@@ -196,18 +191,63 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     if (err)
         goto end;
 
-    /*write succes or failure to cc, io*/
-    //if (err)
-    /*cc or io set error*/
-    //else
-    /*cc or io set succes*/
     err = 0;
 
 end:
     if (ar.ent != NULL)
-	free_hostent(ar.ent);
+        free_hostent(ar.ent);
 
     return err;
+}
+/* try to connect to addr with port (both ipv4 and 6)
+static int try_connect(io_handler *io_cc, glb_ctx *glb_cc, char *addr,
+        int addrtype, int port, struct timeval *timeout)
+ * return 0 when successful
+ * errno otherwise*/
+static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
+        int addrtype, int port, struct timeval *timeout)
+{
+    //struct timeval before,after,to;
+    struct sockaddr_storage a;
+    struct sockaddr_storage *p_a=&a;
+    socklen_t a_len;
+    //int  opt;
+    int err = 0;
+
+    struct sockaddr_in *p4 = (struct sockaddr_in *)p_a;
+    struct sockaddr_in6 *p6 = (struct sockaddr_in6 *)p_a;
+
+    memset(p_a, 0, sizeof *p_a);
+    p_a->ss_family = addrtype;
+    switch (addrtype) {
+        case AF_INET:
+            memcpy(&p4->sin_addr, addr, sizeof(struct in_addr));
+            p4->sin_port = htons(port);
+            a_len = sizeof (struct sockaddr_in);
+            break;
+        case AF_INET6:
+            memcpy(&p6->sin6_addr, addr, sizeof(struct in6_addr));
+            p6->sin6_port = htons(port);
+            a_len = sizeof (struct sockaddr_in6);
+            break;
+        default:
+            return NETDB_INTERNAL;
+            break;
+    }
+    
+    io_cc->sock = socket(a.ss_family, SOCK_STREAM, 0);
+    if (io_cc->sock == -1)
+        return errno;
+
+    err = connect(io_cc->sock,(struct sockaddr *) &a, a_len);
+    /* XXX timeouts missing */
+    if (err) {
+        close(io_cc->sock);
+        io_cc->sock = -1;
+        return errno;
+    }
+
+    return 0;
 }
 
 /*TODO select + timeout, EINTR!!! */ 
@@ -215,7 +255,7 @@ int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
         struct sockaddr s_addr, int flags, cred_handler ch, 
         struct timeval *timeout)
 {
-    int err = 0;
+   int err = 0;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
 
