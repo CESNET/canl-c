@@ -624,19 +624,18 @@ int ssl_close(glb_ctx *cc, io_handler *io)
     }
     /* TODO set_error*/
     if (ret < 0) {
-        set_error(cc, 0, unknown_error, "Error during SSL"
-                " shutdown");
+        set_error(cc, 0, unknown_error, "Error during SSL shutdown");
         return -1;
     }
     /* successful shutdown (uni/bi directional)*/
     if (ret2 == 0 || ret2 == 1)
         return ret2;
     else {
-        set_error(cc, ssl_err, ssl_error, "Error during SSL"
-                " shutdown");
+        set_error(cc, ssl_err, ssl_error, "Error during SSL shutdown");
         return -1;
     }
 }
+
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode)
 {

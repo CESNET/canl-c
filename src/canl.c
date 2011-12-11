@@ -14,44 +14,28 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
 canl_ctx canl_create_ctx()
 {
     glb_ctx *ctx = NULL;
-    int err = 0;
 
     /*create context*/
     ctx = (glb_ctx *) calloc(1, sizeof(*ctx));
-    if (!ctx) {
-        err = ENOMEM;
-        goto end;
-    }
-
-end:
-    if (err)
+    if (!ctx) 
         return NULL;
-    else
-        return ctx;
+    return ctx;
 }
 
 void canl_free_ctx(canl_ctx cc)
 {
     glb_ctx *ctx = (glb_ctx*) cc;
 
-    if (!cc) {
-        goto end;
-    }
-
+    if (!cc)
+        return;
 
     /*delete content*/
-
     if (ctx->err_msg) {
         free(ctx->err_msg);
         ctx->err_msg = NULL;
     }
 
     free(ctx);
-    cc = ctx = NULL;
-
-end:
-    return;
-
 }
 
 canl_io_handler canl_create_io_handler(canl_ctx cc)
@@ -60,15 +44,13 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
     glb_ctx *g_cc = cc;
     int err = 0;
 
-    if (!g_cc) {
-        err = EINVAL;
+    if (!g_cc)
         return NULL;
-    }
 
     /*create io handler*/
     new_io_h = (io_handler *) calloc(1, sizeof(*new_io_h));
     if (!new_io_h){
-        err = ENOMEM;
+        set_error(g_cc, ENOMEM, posix_error, "Not enough memory ");
         return NULL;
     }
 
@@ -92,27 +74,12 @@ end:
 
 static int init_io_content(glb_ctx *cc, io_handler *io)
 {
-    int err = 0;
-    if (!cc) {
-        return EINVAL;
-    }
-    if (!io) {
-        err = EINVAL;
-        goto end;
-    }
-
     io->s_ctx = (ossl_ctx *) calloc(1, sizeof(*(io->s_ctx)));
-    if (!io->s_ctx) {
-        err = ENOMEM;
-        goto end;
-    }
+    if (!io->s_ctx)
+        return set_error(cc, ENOMEM, posix_error, "Not enough memory");
 
     io->sock = -1;
-
-end:
-    if (err)
-        update_error(cc, "failed to initialize io_handler");
-    return err;
+    return 0;
 }
 
 int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port, 
@@ -123,7 +90,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct _asyn_result ar;
     int i = 0;
-    int addr_types[] = {AF_INET6, AF_INET}; //TODO ip versions policy?
+    int addr_types[] = {AF_INET, AF_INET6}; //TODO ip versions policy?
     int ipver = AF_INET6;
     int j = 0;
 
@@ -152,9 +119,13 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
                 goto end;
             case NETDB_INTERNAL:
                 err = EHOSTUNREACH; //TODO check
+                set_error(glb_cc, err, posix_error, "Cannot resolve"
+                        " the server hostname (%s)", host);
                 goto end;
             default:
                 err = EHOSTUNREACH; //TODO check
+                set_error(glb_cc, err, posix_error, "Cannot resolve"
+                        " the server hostname (%s)", host);
                 goto end;
         }
 
@@ -284,7 +255,6 @@ end:
     return err;
 }
 
-//TODO improve
 /* close connection, preserve some info for the future reuse */
 int canl_io_close(canl_ctx cc, canl_io_handler io)
 {
@@ -309,8 +279,6 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
     }
 
     return err;
-
-    /*set cc and io accordingly*/
 }
 
 static void io_destroy(glb_ctx *cc, io_handler *io)
@@ -415,10 +383,9 @@ int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert,
 
     if (!cc)
         return EINVAL;
-    if(!cert) {
-        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value");
-        return err;
-    }
+    if(!cert)
+        return set_error(glb_cc, EINVAL, posix_error, "invalid"
+                "parameter value");
 
     err = do_set_ctx_own_cert(glb_cc, cert, chain, key);
     if(err) {

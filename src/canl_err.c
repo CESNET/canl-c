@@ -184,6 +184,7 @@ canl_get_error_code(canl_ctx cc)
     return ctx->err_code;
 }
 
+/* TODO why canl_get_error, neuvolnila se pamet  ctx->err_msg ???*/
 char * 
 canl_get_error_message(canl_ctx cc)
 {
