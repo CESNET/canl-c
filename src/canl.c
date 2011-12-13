@@ -120,7 +120,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
                 err = EHOSTUNREACH; //TODO check
                 set_error(glb_cc, err, posix_error, "Cannot resolve"
                         " the server hostname (%s)", host);
-                goto end;
+                goto end; /* XXX continue */
         }
 
         if (err)
@@ -169,6 +169,7 @@ static int try_connect(io_handler *io_cc, glb_ctx *glb_cc, char *addr,
         int addrtype, int port, struct timeval *timeout)
  * return 0 when successful
  * errno otherwise*/
+/* XXX use set_error on errors and return a CANL return code */
 static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
         int addrtype, int port, struct timeval *timeout)
 {
