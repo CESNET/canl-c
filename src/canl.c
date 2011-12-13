@@ -109,24 +109,18 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
                 err = 0;
                 break;
             case TRY_AGAIN:
-                err = ETIMEDOUT;
+		err = set_error(glb_cc, ETIMEDOUT, posix_error,
+			        "Cannot resolve the server hostname (%s)", host);
                 goto end;
             case NETDB_INTERNAL:
-                err = EHOSTUNREACH; //TODO check
-                set_error(glb_cc, err, posix_error, "Cannot resolve"
-                        " the server hostname (%s)", host);
+		err = set_error(glb_cc, h_errno, netdb_error,
+			        "Cannot resolve the server hostname (%s)", host);
                 goto end;
             default:
-                err = EHOSTUNREACH; //TODO check
-                set_error(glb_cc, err, posix_error, "Cannot resolve"
-                        " the server hostname (%s)", host);
+		err = set_error(glb_cc, h_errno, netdb_error,
+			        "Cannot resolve the server hostname (%s)", host);
                 goto end; /* XXX continue */
         }
-
-        if (err)
-            /* XXX add error msg from ares */
-            return set_error(cc, err, posix_error,
-                    "Cannot resolve the server hostname (%s)", host);
 
         i = 0;
         /* XXX can the list be empty? */
