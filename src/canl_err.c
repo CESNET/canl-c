@@ -14,9 +14,10 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
     unsigned int err_msg_sum = 0; // sum of msg and format lengths
     int err_format_len = 0;
     int separator_len = 0;
-    const char *separator = "\n";
+    const char *separator = "; ";
     va_list ap;
-    char *new_msg;
+    char *new_msg = NULL;
+    char *old_msg = NULL;
 
     if (!cc)
         return;
@@ -36,17 +37,20 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
     err_format_len = vasprintf(&new_msg, err_format, ap);
 
     err_msg_len = strlen(cc->err_msg);
+    old_msg = cc->err_msg;
 
-    /* Add new error message to older one */
+    /* Add new error message to the older one */
     err_msg_sum = err_format_len + err_msg_len + separator_len + 1;
-    cc->err_msg = (char *) realloc (cc->err_msg, (err_msg_sum)*sizeof(char));
+    cc->err_msg = (char *) malloc ((err_msg_sum)*sizeof(char));
     if (cc->err_msg == NULL)
         return;
 
-    strcat (cc->err_msg, separator);
-    strcat (cc->err_msg, new_msg);
+    strncpy(cc->err_msg, new_msg, err_format_len + 1);
+    strncat (cc->err_msg, separator, separator_len + 1);
+    strncat (cc->err_msg, old_msg, err_msg_len + 1);
 
     free(new_msg);
+    free(old_msg);
 }
 
 /* If there was some error message in ctx, delete it and make new */
@@ -94,10 +98,9 @@ int canl_get_error(canl_ctx cc, char  **reason)
     char *new_error = NULL;
     char code_str[ERR_CODE_LEN];
     int code_len = 0;
-    char *separ = "\n";
+    char *separ = ": ";
     int separ_len = 0;
-    const char *msg_pref = "[CANL:MSG] ";
-    int msg_pref_len = 0;
+    int err_msg_len = 0;
     glb_ctx *ctx = (glb_ctx*) cc;
 
     code_str[0] = '\0';
@@ -115,10 +118,10 @@ int canl_get_error(canl_ctx cc, char  **reason)
     get_error_string(cc, code_str);
     code_len = strlen(code_str);
 
+    err_msg_len = strlen(ctx->err_msg);
+
     separ_len = strlen(separ);
-    msg_pref_len = strlen(msg_pref);
-    error_length = msg_pref_len + strlen(ctx->err_msg) + code_len + 
-        separ_len + 1;
+    error_length = err_msg_len + code_len + separ_len + 1;
     new_error = (char *) malloc ((error_length) * sizeof (char));
     if (!new_error) {
         err = ENOMEM;
@@ -126,10 +129,9 @@ int canl_get_error(canl_ctx cc, char  **reason)
         goto end;
     }
 
-    strncpy(new_error, code_str, code_len + 1);
+    strncpy(new_error, ctx->err_msg, err_msg_len + 1);
     strncat(new_error, separ, separ_len + 1);
-    strncat(new_error, msg_pref, msg_pref_len + 1);
-    strncat(new_error, ctx->err_msg, error_length + 1);
+    strncat(new_error, code_str, code_len + 1);
 
 end:
     *reason = new_error;
@@ -141,25 +143,18 @@ end:
 /*TODO ! map error codes to their human readable strings */
 static void get_error_string(glb_ctx *cc, char *code_str)
 {
-    int prefix_len = 0;
-    char *ssl_prefix = "[CANL:ERR:OPEN_SSL] ";
-    char *posix_prefix = "[CANL:ERR:POSIX] ";
     char *posix_str = NULL;
 
     switch (cc->err_orig) {
         case ssl_error:
-            prefix_len = strlen(ssl_prefix);
-            strncpy(code_str, ssl_prefix, prefix_len + 1);
-            ERR_error_string_n(cc->err_code, code_str + prefix_len,
-                    ERR_CODE_LEN - prefix_len);
+            ERR_error_string_n(cc->err_code, code_str,
+                    ERR_CODE_LEN);
             break;
         case posix_error:
-            prefix_len = strlen(posix_prefix);
-            strncpy(code_str, posix_prefix, prefix_len + 1);
             posix_str = strerror(cc->err_code);
             if (posix_str) {
-                strncpy(code_str + prefix_len, posix_str,
-                        ERR_CODE_LEN - prefix_len);
+                strncpy(code_str, posix_str,
+                        ERR_CODE_LEN);
                 code_str[ERR_CODE_LEN - 1] = '\0';
             }
             break;
