@@ -198,16 +198,16 @@ canl_get_error_message(canl_ctx cc)
     return ctx->err_msg;
 }
 
-/*if the error code is known to colin, assign appropriate colin code
-  TODO go through ssl errors and assign appr. colin code
+/*if the error code is known to canl, assign appropriate canl code
+  TODO go through ssl errors and assign appr. canl code
   ?preserve original one? */
 static unsigned long resolve_error(glb_ctx *cc, unsigned long err_code, 
         CANL_ERROR_ORIGIN err_orig)
 {
-    if (err_orig == colin_error) {
+    if (err_orig == canl_error) {
         cc->err_code = err_code;
-        cc->err_orig = colin_error;
-        return colin_error;
+        cc->err_orig = canl_error;
+        return canl_error;
     }
     if (err_orig == posix_error) {
         cc->err_code = err_code;
