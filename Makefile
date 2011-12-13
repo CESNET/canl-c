@@ -7,7 +7,7 @@ libdir=lib
 -include Makefile.inc
 -include ${top_srcdir}/project/version.properties
 
-VPATH=${top_srcdir}/src
+VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/
 LIBCARES_LIBS?=-lcares  
 LIBSSL_LIBS?=-lssl
 
@@ -35,6 +35,9 @@ SRC_SER=canl_sample_server.c
 HEAD_SER=canl.h
 OBJ_SER=canl_sample_server.lo
 
+YACC=bison -y
+CFLAGS=-Wall -fPIC -I${top_srcdir}/src/proxy -I.
+
 # In order to use libtool versioning correcty, we must have:
 #
 # current = major + minor + offset
@@ -51,23 +54,25 @@ major:=${shell \
 
 all: libcanl.la server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_err_desc.lo
+libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
-canl.lo: canl.c ${HEAD_CANL} 
-	${COMPILE} -c ${top_srcdir}/src/canl.c ${CFLAGS_LIB} -o $@
+%.lo: %.y
+	${YACC} -d ${YFLAGS} $<
+	mv y.tab.c $*.c
+	mv y.tab.h $*.h
+	${COMPILE} -c ${CFLAGS_LIB} $*.c
+	flex -b -f -d ${top_srcdir}/src/proxy/namespaces.l
+	flex -b -f -d ${top_srcdir}/src/proxy/signing_policy.l
 
-canl_dns.lo: canl_dns.c ${HEAD_CANL} 
-	${COMPILE} -c ${top_srcdir}/src/canl_dns.c ${CFLAGS_LIB} -o $@
+%.lo: %.c ${HEAD_CANL} 
+	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
 
-canl_err.lo: canl_err.c ${HEAD_CANL} 
-	${COMPILE} -c ${top_srcdir}/src/canl_err.c ${CFLAGS_LIB} -o $@
+lex.signing.lo: lex.signing.c
+	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
 
-canl_ssl.lo: canl_ssl.c ${HEAD_CANL}
-	${COMPILE} -c ${top_srcdir}/src/canl_ssl.c ${CFLAGS_LIB} -o $@
-
-canl_cert.lo: canl_cert.c ${HEAD_CANL}
-	${COMPILE} -c ${top_srcdir}/src/canl_cert.c ${CFLAGS_LIB} -o $@
+lex.namespaces.lo: lex.namespaces.c
+	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
 
 client: ${OBJ_CLI}
 	${LINK} $< ${LFLAGS_CLI} -o $@
@@ -103,4 +108,4 @@ stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo libcanl.la .libs client server canl_err.h canl_err_desc.c
+	rm -rfv *.o *.lo libcanl.la .libs client server signing_policy.c ${top_srcdir}/*.c ${top_srcdir}/*.h
