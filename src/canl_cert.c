@@ -1,4 +1,5 @@
 #include "canl_locl.h"
+
 static int set_cert(glb_ctx *cc, X509 *cert);
 static int set_key_file(glb_ctx *cc, char *key);
 static int set_cert_file(glb_ctx *cc, char *cert);

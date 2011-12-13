@@ -1,16 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
 #include "canl_locl.h"
-#include "sys/socket.h"
-#include "string.h"
-
 
 static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
 static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
         int addrtype, int port, struct timeval *timeout);
+
 canl_ctx canl_create_ctx()
 {
     glb_ctx *ctx = NULL;

@@ -1,8 +1,3 @@
-#define _GNU_SOURCE //vasprintf
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
 #include "canl_locl.h"
 
 #define ERR_CODE_LEN 512

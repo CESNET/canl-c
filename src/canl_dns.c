@@ -1,8 +1,3 @@
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
 #include "canl_locl.h"
 
 static int decrement_timeout(struct timeval *timeout, struct timeval before, struct timeval after);

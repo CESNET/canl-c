@@ -1,6 +1,7 @@
 #ifndef _CANL_LOCL_H
 #define _CANL_LOCL_H
 
+
 #include <errno.h>
 #include <ares.h>
 #include <ares_version.h>
@@ -13,6 +14,20 @@
 #include <openssl/safestack.h>
 #include <unistd.h>
 #include <fcntl.h>
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <string.h>
+
+
+
 
 #include "canl.h"
 
