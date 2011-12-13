@@ -16,6 +16,13 @@
 
 #include "canl.h"
 
+typedef struct canl_err_desc {
+    CANL_ERROR code;
+    const char *desc;
+    unsigned long openssl_lib;
+    unsigned long openssl_reason;
+} canl_err_desc;
+
 typedef enum _CANL_ERROR_ORIGIN
 {
     unknown_error = 0,
@@ -23,6 +30,7 @@ typedef enum _CANL_ERROR_ORIGIN
     ssl_error,
     colin_error
 } CANL_ERROR_ORIGIN;
+
 
 typedef struct _cert_key_store {
     X509 *cert;

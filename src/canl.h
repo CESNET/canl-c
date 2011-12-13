@@ -3,7 +3,7 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
-#include "canl_err.h"
+#include <canl_err.h>
 
 typedef void *canl_io_handler;
 typedef void *canl_ctx;

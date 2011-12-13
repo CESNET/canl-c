@@ -51,7 +51,7 @@ major:=${shell \
 
 all: libcanl.la server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo
+libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_err_desc.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 canl.lo: canl.c ${HEAD_CANL} 
@@ -81,9 +81,14 @@ server: ${OBJ_SER}
 ${OBJ_SER}: ${SRC_SER} ${HEAD_SER} libcanl.la
 	${COMPILE} -c ${top_srcdir}/src/${SRC_SER} ${CFLAGS_SER} -o $@
 
-canl_err.h: canl_error_codes
+canl_err.h: canl_error_codes 
 	${top_srcdir}/src/gen_err_codes.pl < $^ > $@
 
+canl_err_desc.lo: canl_err_desc.c ${HEAD_CANL}
+	${COMPILE} -c canl_err_desc.c ${CFLAGS_LIB} -o $@
+
+canl_err_desc.c: canl_error_codes canl_error_desc
+	${top_srcdir}/src/gen_err_desc.pl $^ > $@
 
 check:
 
@@ -98,4 +103,4 @@ stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo libcanl.la .libs client server
+	rm -rfv *.o *.lo libcanl.la .libs client server canl_err.h canl_err_desc.c

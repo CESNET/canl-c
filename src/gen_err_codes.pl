@@ -11,7 +11,7 @@ typedef enum _CANL_ERROR {);
 while (<STDIN>) {
     chomp;
     next if /^\s*#/;
-    printf ("\n    EMI_Err_%s,", $_);
+    printf ("\n    CANL_ERR_%s,", $_);
 }
 
 print STDOUT qq (
