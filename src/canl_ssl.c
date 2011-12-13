@@ -45,9 +45,9 @@ int ssl_server_init(glb_ctx *cc)
     //SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
     //SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
     // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
-    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, NULL);
+    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
     //SSL_CTX_set_verify_depth(ctx, 100);
-    //SSL_CTX_set_cert_verify_callback(ctx, proxy_app_verify_callback, 0);
+    SSL_CTX_set_cert_verify_callback(cc->ssl_ctx, proxy_app_verify_callback, 0);
     if (cc->cert_key) {
         if (cc->cert_key->cert) {
             err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
@@ -137,7 +137,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
 
     //SSL_CTX_set_options(cc->ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
     //TODO testing 
-    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, NULL);
+    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
     //SSL_CTX_set_verify_depth(ctx, 100);
     //SSL_CTX_load_verify_locations(ctx, NULL, cacertdir);
     //SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
