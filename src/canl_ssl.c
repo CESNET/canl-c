@@ -14,6 +14,9 @@ int ssl_server_init(glb_ctx *cc)
     int err = 0;
     unsigned long ssl_err = 0;
     CANL_ERROR_ORIGIN e_orig = unknown_error;
+    char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
+    char *ca_cert_dirn = NULL;
+    ca_cert_fn = user_cert_fn = user_key_fn = user_proxy_fn = NULL;
 
     if (!cc) {
 	return EINVAL;
@@ -30,8 +33,27 @@ int ssl_server_init(glb_ctx *cc)
         goto end;
     }
 
-    //TODO test hardcoded
-    SSL_CTX_load_verify_locations(cc->ssl_ctx, "~/terena_ca_file.pem", NULL);
+    err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
+            &user_cert_fn, &user_key_fn);
+    if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
+        err = do_set_ctx_own_cert_file(cc, user_cert_fn, user_key_fn);
+        if (err)
+            goto end;
+    }
+
+    free(user_cert_fn);
+    user_cert_fn = NULL;
+    free(user_key_fn);
+    user_key_fn = NULL;
+    //TODO where to use proxy on server side
+    free(user_proxy_fn);
+    user_proxy_fn = NULL;
+
+    SSL_CTX_load_verify_locations(cc->ssl_ctx, ca_cert_fn, ca_cert_dirn);
+    free(ca_cert_fn);
+    ca_cert_fn = NULL;
+    free(ca_cert_dirn);
+    ca_cert_dirn = NULL;
 
     //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
     err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
@@ -87,11 +109,11 @@ int ssl_server_init(glb_ctx *cc)
 
 end:
     if (ssl_err) {
-        set_error(cc, ssl_err, e_orig, "cannot initialize SSL context");
+        set_error(cc, ssl_err, e_orig, "Cannot initialize SSL context");
         return 1;
     }
     else if (err) {
-        set_error(cc, ssl_err, e_orig, "cannot initialize SSL context");
+        set_error(cc, err, e_orig, "Cannot initialize SSL context");
         return 1;
     }
     return 0;

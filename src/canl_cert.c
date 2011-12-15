@@ -59,6 +59,15 @@ end:
 int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
 {
     int err = 0;
+
+    if (!cc->cert_key){
+        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
+        if (!cc->cert_key) {
+            return set_error(cc, ENOMEM, posix_error, "not enought memory"
+                    " for the certificate storage"); 
+        }
+    }
+
     /* otherwise the private key is in cert file*/
     if (key) {
         err = set_key_file(cc, key);
@@ -80,23 +89,13 @@ static int set_key_file(glb_ctx *cc, char *key)
     int err = 0;
     FILE * key_file = NULL;
 
-    if (!cc->cert_key){
-        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
-        if (!cc->cert_key) {
-            err = ENOMEM;
-            set_error(cc, err, posix_error, "not enought memory for the"
-                    " certificate storage"); 
-            return ENOMEM;
-        }
-    }
-
     if (cc->cert_key->key) {
         EVP_PKEY_free(cc->cert_key->key);
         cc->cert_key->key = NULL;
     }
     key_file = fopen(key, "rb");
     if (!key_file) {
-       err = errno;
+        err = errno;
         set_error(cc, err, posix_error, "cannot open file with key");
         return err;
     }
@@ -131,15 +130,6 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     int err = 0;
     FILE * cert_file = NULL;
 
-    if (!cc->cert_key){
-        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
-        if (!cc->cert_key) {
-            err = ENOMEM;
-            set_error(cc, err, posix_error, "not enought memory for the"
-                    " certificate storage"); 
-            return ENOMEM;
-        }
-    }
 
     if (cc->cert_key->cert) {
         X509_free(cc->cert_key->cert);
