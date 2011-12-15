@@ -13,6 +13,9 @@ canl_ctx canl_create_ctx()
     ctx = (glb_ctx *) calloc(1, sizeof(*ctx));
     if (!ctx) 
         return NULL;
+
+    SSL_library_init();
+    SSL_load_error_strings();
     return ctx;
 }
 
@@ -52,9 +55,6 @@ canl_io_handler canl_create_io_handler(canl_ctx cc)
     if ((err = init_io_content(g_cc ,new_io_h))){
         goto end;
     }
-
-    SSL_library_init();
-    SSL_load_error_strings();
 
 end:
     if (err) {

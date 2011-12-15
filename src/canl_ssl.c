@@ -416,8 +416,8 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
             set_error (cc, err, posix_error, "Connection stuck"
                     " during handshake: timeout reached"); 
         }
-        else if (ret2 < 0)
-            set_error (cc, 0, unknown_error, "connection closed by"
+        else if (ret2 <= 0)
+            set_error (cc, ssl_err, ssl_error, "Connection closed by"
 		    " the other side");
 	else
 	    set_error (cc, 0, unknown_error, "Error during SSL handshake");
