@@ -80,6 +80,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
         int flags, cred_handler ch, struct timeval *timeout)
 {
     int err = 0;
+    CANL_ERROR_ORIGIN err_orig = unknown_error;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct _asyn_result ar;
@@ -109,16 +110,20 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
                 err = 0;
                 break;
             case TRY_AGAIN:
-		err = set_error(glb_cc, ETIMEDOUT, posix_error,
-			        "Cannot resolve the server hostname (%s)", host);
+                err = set_error(glb_cc, ETIMEDOUT, posix_error,
+                        "Cannot resolve the server hostname (%s)", host);
                 goto end;
             case NETDB_INTERNAL:
-		err = set_error(glb_cc, h_errno, netdb_error,
-			        "Cannot resolve the server hostname (%s)", host);
+                err = set_error(glb_cc, NETDB_INTERNAL, netdb_error,
+                        "Cannot resolve the server hostname (%s)", host);
                 goto end;
+            case HOST_NOT_FOUND:
+                err_orig = netdb_error;
+                continue;
+
             default:
-		err = set_error(glb_cc, h_errno, netdb_error,
-			        "Cannot resolve the server hostname (%s)", host);
+                err = set_error(glb_cc, err, netdb_error,
+                        "Cannot resolve the server hostname (%s)", host);
                 goto end; /* XXX continue */
         }
 
@@ -139,7 +144,7 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
     }
 
     if (err)
-        return set_error(glb_cc, err, posix_error,
+        return set_error(glb_cc, err, err_orig,
                 "Failed to make network connection to server %s", host);
 
     err = ssl_client_init(glb_cc, io_cc);
