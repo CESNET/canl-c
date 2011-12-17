@@ -2,7 +2,7 @@
 
 #define ERR_CODE_LEN 512
 
-static unsigned long resolve_error(glb_ctx *cc, unsigned long err_code, 
+static CANL_ERROR resolve_error(glb_ctx *cc, unsigned long err_code, 
         CANL_ERROR_ORIGIN err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 
@@ -196,26 +196,32 @@ canl_get_error_message(canl_ctx cc)
 /*if the error code is known to canl, assign appropriate canl code
   TODO go through ssl errors and assign appr. canl code
   ?preserve original one? */
-static unsigned long resolve_error(glb_ctx *cc, unsigned long err_code, 
+static CANL_ERROR resolve_error(glb_ctx *cc, unsigned long err_code, 
         CANL_ERROR_ORIGIN err_orig)
 {
     if (err_orig == canl_error) {
         cc->err_code = err_code;
         cc->err_orig = canl_error;
-        return canl_error;
+        return (int)err_code;
     }
     if (err_orig == posix_error) {
         cc->err_code = err_code;
         cc->err_orig = posix_error;
-        return posix_error;
+        return (int)err_code;
+    }
+    if (err_orig == netdb_error) {
+        cc->err_code = err_code;
+        cc->err_orig = netdb_error;
+        return (int)err_code;
     }
 
     switch (err_code) {
+	/*TODO map ssl_errors on canl errors*/
         default:
             cc->err_code = err_code;
             cc->err_orig = err_orig;
             break;
     }
 
-    return cc->err_code;
+    return 1; //TODO return ssl generic error - add it to canl_error_codes,desc
 }
