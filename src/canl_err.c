@@ -143,7 +143,7 @@ end:
 /*TODO ! map error codes to their human readable strings */
 static void get_error_string(glb_ctx *cc, char *code_str)
 {
-    char *posix_str = NULL;
+    char *new_str = NULL;
 
     switch (cc->err_orig) {
         case ssl_error:
@@ -151,9 +151,16 @@ static void get_error_string(glb_ctx *cc, char *code_str)
                     ERR_CODE_LEN);
             break;
         case posix_error:
-            posix_str = strerror(cc->err_code);
-            if (posix_str) {
-                strncpy(code_str, posix_str,
+            new_str = strerror(cc->err_code);
+            if (new_str) {
+                strncpy(code_str, new_str,
+                        ERR_CODE_LEN);
+                code_str[ERR_CODE_LEN - 1] = '\0';
+            }
+        case netdb_error:
+            new_str = hstrerror(cc->err_code);
+            if (new_str) {
+                strncpy(code_str, new_str,
                         ERR_CODE_LEN);
                 code_str[ERR_CODE_LEN - 1] = '\0';
             }
