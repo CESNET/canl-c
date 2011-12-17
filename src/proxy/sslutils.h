@@ -55,6 +55,8 @@ EXTERN_C_BEGIN
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/types.h>
 #include "openssl/crypto.h"
 
 

@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include "doio.h"
 
 char *vsnprintf_wrap(const char *format, va_list v)
 {
@@ -65,7 +66,7 @@ char *snprintf_wrap(const char *format, ...)
 int fileexists(const char *file) 
 {
   FILE *f = fopen(file, "r");
-  close(f);
+  fclose(f);
 
   return f != NULL;
 }

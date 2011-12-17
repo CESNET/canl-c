@@ -108,4 +108,4 @@ stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo libcanl.la .libs client server signing_policy.c ${top_srcdir}/*.c ${top_srcdir}/*.h
+	rm -rfv *.o *.lo libcanl.la .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup
