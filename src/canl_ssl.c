@@ -379,9 +379,9 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 		   " handshake: timeout reached");
         }
         else if (ret2 < 0)
-            set_error (cc, ssl_err, e_orig, "Error during SSL handshake");
-        else if (ret2 == 0)
-            set_error (cc, 0, unknown_error, "Connection closed"
+            return set_error(cc, ssl_err, e_orig, "Error during SSL handshake");
+        else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
+            set_error (cc, 0, ssl_error, "Connection closed"
                     " by the other side");
         else
             set_error (cc, err, unknown_error, "Error during SSL handshake");

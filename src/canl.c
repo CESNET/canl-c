@@ -4,6 +4,7 @@ static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
 static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
         int addrtype, int port, struct timeval *timeout);
+static void ssl_init();
 
 canl_ctx canl_create_ctx()
 {
@@ -14,9 +15,15 @@ canl_ctx canl_create_ctx()
     if (!ctx) 
         return NULL;
 
+    ssl_init();
+
+    return ctx;
+}
+
+static void ssl_init()
+{
     SSL_library_init();
     SSL_load_error_strings();
-    return ctx;
 }
 
 void canl_free_ctx(canl_ctx cc)
@@ -131,10 +138,12 @@ int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port,
         /* XXX can the list be empty? */
         while (ar.ent->h_addr_list[i])
         {
-            err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i],
+            err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i], 
                     ar.ent->h_addrtype, port, timeout);//TODO timeout
-	    if (!err)
-		break;
+            if (!err){
+                err_orig = posix_error;
+                break;
+            }
             i++;
         }
         free_hostent(ar.ent);
@@ -164,8 +173,6 @@ end:
     return err;
 }
 /* try to connect to addr with port (both ipv4 and 6)
-static int try_connect(io_handler *io_cc, glb_ctx *glb_cc, char *addr,
-        int addrtype, int port, struct timeval *timeout)
  * return 0 when successful
  * errno otherwise*/
 /* XXX use set_error on errors and return a CANL return code */
@@ -196,7 +203,7 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
             a_len = sizeof (struct sockaddr_in6);
             break;
         default:
-            return NETDB_INTERNAL;
+            return EINVAL;
             break;
     }
     
@@ -281,7 +288,6 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     int err = 0;
 
     if (io_cc->s_ctx) {
-        /*TODO maybe new function because of BIO_free and SSL_free*/
         if (io_cc->s_ctx->ssl_io) {
             SSL_free(io_cc->s_ctx->ssl_io);
             io_cc->s_ctx->ssl_io = NULL;
@@ -294,6 +300,7 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     free (io_cc->s_ctx);
     io_cc->s_ctx = NULL;
 }
+
 
 int canl_io_destroy(canl_ctx cc, canl_io_handler io)
 {
