@@ -1,0 +1,66 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+-include /usr/share/dpkg/buildflags.mk
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	/usr/bin/perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=/usr --libdir=lib --project=emi --module canl.c
+	touch $@
+
+build: build-arch build-indep
+
+build-arch build-indep: build-stamp
+
+build-stamp: configure-stamp
+	dh_testdir
+	CFLAGS="$(CFLAGS) $(CPPFLAGS)" LDFLAGS="$(LDFLAGS)" $(MAKE)
+	CFLAGS="$(CFLAGS) $(CPPFLAGS)" LDFLAGS="$(LDFLAGS)" $(MAKE) check
+	touch $@
+
+clean: configure-stamp
+	dh_testdir
+	dh_testroot
+	rm -f configure-stamp build-stamp
+	$(MAKE) clean
+	rm -f Makefile.inc config.status
+	dh_clean
+
+install: build-stamp
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	rm -vf $(CURDIR)/debian/tmp/usr/lib/*.la
+	rm -vf $(CURDIR)/debian/tmp/usr/lib/*.a
+	find $(CURDIR)/debian/tmp -name '*' -print | xargs -I {} -i bash -c "chrpath -d {} > /dev/null 2>&1" || echo 'Stripped RPATH'
+
+binary-indep:
+
+binary-arch: install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs
+	dh_installdocs
+	dh_installexamples
+	dh_installman
+	dh_installlogrotate
+	dh_installcron
+	dh_install --fail-missing
+	dh_link
+	dh_strip --dbg-package=emi-canl-c-dbg
+	dh_compress
+	dh_fixperms
+	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-arch binary-indep

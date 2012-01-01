@@ -100,12 +100,17 @@ check:
 install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/bin
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/${libdir}
-	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server-${major}
-	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client-${major}
+	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
+	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
+	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 libcanl.la ${DESTDIR}${PREFIX}${prefix}/${libdir}
+	${INSTALL} -m 644 ${top_srcdir}/src/canl.h canl_err.h ${DESTDIR}${PREFIX}${prefix}/include
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
 	rm -rfv *.o *.lo libcanl.la .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup
+
+distclean:
+	rm -rvf Makefile.inc config.status project/changelog *.spec debian/

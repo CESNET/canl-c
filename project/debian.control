@@ -1,0 +1,39 @@
+Source: emi-canl-c
+Priority: extra
+Maintainer: @MAINTAINER@
+Uploaders: @UPLOADERS@
+Build-Depends: debhelper (>= 7.0.50~), bison, chrpath, flex, libc-ares-dev, libssl-dev, libtool
+Standards-Version: 3.9.1
+Section: libs
+Homepage: @URL@
+DM-Upload-Allowed: yes
+@DEBIAN_VCS@
+
+Package: libcanl1
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: @SUMMARY@
+@DEBIAN_DESCRIPTION@
+
+Package: libcanl-dev
+Section: libdevel
+Architecture: any
+Depends: libcanl1 (= ${binary:Version}), ${misc:Depends}
+Description: Development files for EMI caNl
+ This package contains development libraries and header files for EMI caNL.
+
+Package: emi-canl-c-examples
+Section: misc
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Example programs of EMI caNl
+ This package contains client and server examples of EMI caNL.
+
+Package: emi-canl-c-dbg
+Section: debug
+Architecture: any
+Priority: extra
+Depends: libcanl1 (= ${binary:Version}), ${misc:Depends}
+Description: EMI caNl debugging symbols
+ This package contains debugging symbols for EMI caNl.
