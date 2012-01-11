@@ -285,16 +285,11 @@ int canl_io_close(canl_ctx cc, canl_io_handler io)
 static void io_destroy(glb_ctx *cc, io_handler *io)
 {
     io_handler *io_cc = (io_handler*) io;
-    int err = 0;
 
     if (io_cc->s_ctx) {
         if (io_cc->s_ctx->ssl_io) {
             SSL_free(io_cc->s_ctx->ssl_io);
             io_cc->s_ctx->ssl_io = NULL;
-        }
-        if (io_cc->s_ctx->bio_conn) {
-            err = BIO_free(io_cc->s_ctx->bio_conn);
-            io_cc->s_ctx->bio_conn = NULL;
         }
     }
     free (io_cc->s_ctx);

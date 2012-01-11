@@ -237,14 +237,9 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    io->s_ctx->bio_conn = BIO_new_socket(io->sock, BIO_NOCLOSE);
-    (void)BIO_set_nbio(io->s_ctx->bio_conn,1);
-
     io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
-    SSL_set_bio(io->s_ctx->ssl_io, io->s_ctx->bio_conn, io->s_ctx->bio_conn);
-
-    io->s_ctx->bio_conn = NULL;
+    SSL_set_fd(io->s_ctx->ssl_io, io->sock);
 
     err = do_ssl_connect(cc, io, timeout); 
     if (err) {
@@ -278,13 +273,9 @@ int ssl_accept(glb_ctx *cc, io_handler *io,
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    io->s_ctx->bio_conn = BIO_new_socket(io->sock, BIO_NOCLOSE);
-    (void)BIO_set_nbio(io->s_ctx->bio_conn,1);
-
     io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
-    SSL_set_bio(io->s_ctx->ssl_io, io->s_ctx->bio_conn, 
-            io->s_ctx->bio_conn);
+    SSL_set_fd(io->s_ctx->ssl_io, io->sock);
 
     err = do_ssl_accept(cc, io, timeout);
         if (err) {

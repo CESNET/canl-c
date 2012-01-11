@@ -66,7 +66,6 @@ typedef struct _glb_ctx
 typedef struct _ossl_ctx
 {
     SSL *ssl_io;
-    BIO *bio_conn;
 } ossl_ctx;
 
 typedef struct _asyn_result {
