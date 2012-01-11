@@ -47,6 +47,11 @@ typedef enum _CANL_ERROR_ORIGIN
     netdb_error,
 } CANL_ERROR_ORIGIN;
 
+typedef enum _CANL_AUTH_MECHANISM
+{
+    x509 = 0,
+    kerberos = 1, /* and others may be added*/
+} CANL_AUTH_MECHANISM;
 
 typedef struct _cert_key_store {
     X509 *cert;
@@ -55,7 +60,6 @@ typedef struct _cert_key_store {
 
 typedef struct _glb_ctx
 {
-    int opened_ios;
     char * err_msg;
     unsigned long err_code;
     CANL_ERROR_ORIGIN err_orig;
@@ -73,10 +77,17 @@ typedef struct _asyn_result {
     int err;
 } asyn_result;
 
+typedef struct _principal_int {
+    char *name;
+    CANL_AUTH_MECHANISM mech_oid;
+    char *raw;  /* e.g. the PEM encoded cert/chain */
+} principal_int;
+
 typedef struct _io_handler
 {
     int sock;
-    ossl_ctx * s_ctx;
+    ossl_ctx *s_ctx;
+    principal_int *princ_int;
 } io_handler;
 
 void reset_error (glb_ctx *cc, unsigned long err_code);
