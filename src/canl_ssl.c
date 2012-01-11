@@ -36,9 +36,12 @@ int ssl_server_init(glb_ctx *cc)
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
-        err = do_set_ctx_own_cert_file(cc, user_cert_fn, user_key_fn);
-        if (err)
-            return err;
+        if (user_cert_fn && user_key_fn && !access(user_cert_fn, R_OK) && 
+                !access(user_key_fn, R_OK)) {
+            err = do_set_ctx_own_cert_file(cc, user_cert_fn, user_key_fn);
+            if (err)
+                return err;
+        }
     }
 
     free(user_cert_fn);
@@ -150,7 +153,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
-        if (user_proxy_fn) {
+        if (user_proxy_fn && !access(user_proxy_fn, R_OK)) {
             err = do_set_ctx_own_cert_file(cc, user_proxy_fn, user_proxy_fn);
             if (err)
                 return err;
