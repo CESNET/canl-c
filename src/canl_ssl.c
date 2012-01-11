@@ -6,6 +6,7 @@
 
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
+static int check_hostname_cert(glb_ctx *cc, io_handler *io);
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
@@ -245,16 +246,24 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
     if (err) {
         goto end;
     }
-    /*
-       if (post_connection_check(io->s_ctx->ssl_io)) {
-       opened = 1;
-       (void)Send("0");
-       return 1;
-       }
-     */
+    /*check server hostname on the certificate*/
+    err = check_hostname_cert(cc, io);
 
 end:
     return err;
+}
+
+static int check_hostname_cert(glb_ctx *cc, io_handler *io)
+{
+    X509 * serv_cert = NULL;
+    /*if voms extensions are present, hostname has to correspond*/
+    serv_cert = SSL_get_peer_certificate(io->s_ctx->ssl_io);
+    /* ... */
+
+    /*else hostname has to correspond to subject*/
+
+    X509_free(serv_cert);
+    return 0;
 }
 
 int ssl_accept(glb_ctx *cc, io_handler *io,
@@ -278,17 +287,9 @@ int ssl_accept(glb_ctx *cc, io_handler *io,
     SSL_set_fd(io->s_ctx->ssl_io, io->sock);
 
     err = do_ssl_accept(cc, io, timeout);
-        if (err) {
+    if (err) {
         goto end;
     }
-
-    /*
-       if (post_connection_check(io->s_ctx->ssl_io)) {
-       opened = 1;
-       (void)Send("0");
-       return 1;
-       }
-     */
 
 end:
     return err;
