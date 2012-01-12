@@ -42,35 +42,28 @@ void canl_free_ctx(canl_ctx cc)
     free(ctx);
 }
 
-canl_io_handler canl_create_io_handler(canl_ctx cc)
+int canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
 {
     io_handler *new_io_h = NULL;
     glb_ctx *g_cc = cc;
     int err = 0;
 
-    if (!g_cc)
-        return NULL;
+    if (!g_cc || io == NULL)
+        return EINVAL;
 
     /*create io handler*/
     new_io_h = (io_handler *) calloc(1, sizeof(*new_io_h));
-    if (!new_io_h){
-        set_error(g_cc, ENOMEM, posix_error, "Not enough memory ");
-        return NULL;
-    }
+    if (!new_io_h)
+        return set_error(g_cc, ENOMEM, posix_error, "Not enough memory");
 
     /* allocate memory and initialize io content*/
     if ((err = init_io_content(g_cc ,new_io_h))){
-        goto end;
+	free(new_io_h);
+	return err;
     }
 
-end:
-    if (err) {
-        update_error(g_cc,"cannot create canl_io_handler");
-        if ((err = canl_io_destroy(cc, (canl_io_handler)new_io_h)))
-            update_error(g_cc, "cannot destroy canl_ctx");
-        new_io_h = NULL;
-    }
-    return new_io_h;
+    *io = new_io_h;
+    return 0;
 }
 
 static int init_io_content(glb_ctx *cc, io_handler *io)

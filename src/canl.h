@@ -16,7 +16,7 @@ typedef void *canl_principal;
 
 canl_ctx canl_create_ctx();
 void canl_free_ctx(canl_ctx cc);
-canl_io_handler canl_create_io_handler(canl_ctx cc);
+int canl_create_io_handler(canl_ctx, canl_io_handler*);
 
 int canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *service,
         int port, gss_OID_set auth_mechs, int flags, struct timeval *timeout);

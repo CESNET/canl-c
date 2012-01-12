@@ -47,8 +47,8 @@ int main(int argc, char *argv[])
         goto end;
     }
 
-    my_io_h = canl_create_io_handler(my_ctx);
-    if (!my_io_h) {
+    err = canl_create_io_handler(my_ctx, &my_io_h);
+    if (err) {
 	printf("io handler cannot be created: %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
    timeout.tv_sec = 150;
    timeout.tv_usec = 0;
 
-    err = canl_io_connect(my_ctx, my_io_h, p_server, port, 0, NULL, &timeout);
+    err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0, &timeout);
     if (err) {
         printf("[CLIENT] connection to %s cannot be established: %s\n",
 	       p_server, canl_get_error_message(my_ctx));

@@ -14,7 +14,6 @@ int main(int argc, char *argv[])
 {
     canl_ctx my_ctx;
     canl_io_handler my_io_h = NULL;
-    canl_io_handler my_new_io_h;
     int err = 0;
     int opt, port = 4321;
     char *serv_cert = NULL;
@@ -51,15 +50,8 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    my_io_h = canl_create_io_handler(my_ctx);
-    if (!my_io_h) {
-        printf("[SERVER] io handler cannot be created: %s\n",
-	       canl_get_error_message(my_ctx));
-        goto end;
-    }
-
-    my_new_io_h = canl_create_io_handler(my_ctx);
-    if (!my_new_io_h) {
+    err = canl_create_io_handler(my_ctx, &my_io_h);
+    if (err) {
         printf("[SERVER] io handler cannot be created: %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
