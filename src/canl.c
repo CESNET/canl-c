@@ -83,7 +83,8 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
     return 0;
 }
 
-int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port, 
+int canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *service,
+	int port, gss_OID_set auth_mechs,
         int flags, struct timeval *timeout)
 {
     int err = 0;
@@ -224,7 +225,7 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
 
 /*TODO select + timeout, EINTR!!! */ 
 int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
-        struct sockaddr s_addr, int flags,
+        struct sockaddr s_addr, int flags, canl_principal *peer,
         struct timeval *timeout)
 {
    int err = 0;
