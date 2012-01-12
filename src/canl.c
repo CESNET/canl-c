@@ -84,7 +84,7 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
 }
 
 int canl_io_connect(canl_ctx cc, canl_io_handler io, char * host, int port, 
-        int flags, cred_handler ch, struct timeval *timeout)
+        int flags, struct timeval *timeout)
 {
     int err = 0;
     CANL_ERROR_ORIGIN err_orig = unknown_error;
@@ -224,7 +224,7 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
 
 /*TODO select + timeout, EINTR!!! */ 
 int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
-        struct sockaddr s_addr, int flags, cred_handler ch, 
+        struct sockaddr s_addr, int flags,
         struct timeval *timeout)
 {
    int err = 0;
