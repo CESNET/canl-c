@@ -3,6 +3,10 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
+#ifdef __cplusplus
+extern "C" { 
+#endif
+
 #include <canl_err.h>
 
 typedef void *canl_io_handler;
@@ -41,4 +45,9 @@ int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert,
         canl_stack_of_x509 chain, canl_pkey key);
 int canl_set_ctx_own_cert_file(canl_ctx cc, char *cert, char *key,
         canl_password_callback cb, void *userdata);
+
+#ifdef __cplusplus
+}       
+#endif 
+
 #endif
