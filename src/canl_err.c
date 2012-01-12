@@ -90,7 +90,8 @@ void reset_error (glb_ctx *cc, unsigned long err_code)
 }
 
 /* Provide human readable information about errors */
-int canl_get_error(canl_ctx cc, char  **reason)
+canl_err_code
+canl_get_error(canl_ctx cc, char  **reason)
 {
     int err = 0;
     int e_orig = unknown_error;

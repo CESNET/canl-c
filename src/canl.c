@@ -42,7 +42,8 @@ void canl_free_ctx(canl_ctx cc)
     free(ctx);
 }
 
-int canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
+canl_err_code
+canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
 {
     io_handler *new_io_h = NULL;
     glb_ctx *g_cc = cc;
@@ -76,7 +77,8 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
     return 0;
 }
 
-int canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *service,
+canl_err_code
+canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *service,
 	int port, gss_OID_set auth_mechs,
         int flags, struct timeval *timeout)
 {
@@ -217,7 +219,8 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
 }
 
 /*TODO select + timeout, EINTR!!! */ 
-int canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
+canl_err_code
+canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
         struct sockaddr s_addr, int flags, canl_principal *peer,
         struct timeval *timeout)
 {
@@ -251,7 +254,8 @@ end:
 }
 
 /* close connection, preserve some info for the future reuse */
-int canl_io_close(canl_ctx cc, canl_io_handler io)
+canl_err_code
+canl_io_close(canl_ctx cc, canl_io_handler io)
 {
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
@@ -291,7 +295,8 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
 }
 
 
-int canl_io_destroy(canl_ctx cc, canl_io_handler io)
+canl_err_code
+canl_io_destroy(canl_ctx cc, canl_io_handler io)
 {
     int err = 0;
     glb_ctx *glb_cc = (glb_ctx*) cc;
