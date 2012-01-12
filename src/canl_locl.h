@@ -31,6 +31,8 @@
 
 #include "canl.h"
 
+#include "canl_ssl.h"
+
 typedef struct canl_err_desc {
     CANL_ERROR code;
     const char *desc;
