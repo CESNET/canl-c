@@ -156,7 +156,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
     if (err)
         goto end;
 
-    err = ssl_connect(glb_cc, io_cc, timeout); //TODO timeout
+    err = ssl_connect(glb_cc, io_cc, timeout, host); //TODO timeout
     if (err)
         goto end;
 

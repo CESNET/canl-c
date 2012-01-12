@@ -101,7 +101,7 @@ int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name,
         struct timeval *timeout);
 int ssl_client_init(glb_ctx *cc, io_handler *io);
 int ssl_server_init(glb_ctx *cc);
-int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout);
+int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char * host);
 int ssl_accept(glb_ctx *cc, io_handler *io,
         struct timeval *timeout);
 int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 

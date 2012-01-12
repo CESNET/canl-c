@@ -6,7 +6,7 @@
 
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
 static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
-static int check_hostname_cert(glb_ctx *cc, io_handler *io);
+static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host);
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
@@ -223,7 +223,7 @@ end:
     return 0;
 }
 
-int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
+int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char * host)
 {
     int err = 0, flags;
 
@@ -247,23 +247,62 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout)
         goto end;
     }
     /*check server hostname on the certificate*/
-    err = check_hostname_cert(cc, io);
+    err = check_hostname_cert(cc, io, host);
 
 end:
     return err;
 }
 
-static int check_hostname_cert(glb_ctx *cc, io_handler *io)
+static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host)
 {
     X509 * serv_cert = NULL;
-    /*if voms extensions are present, hostname has to correspond*/
-    serv_cert = SSL_get_peer_certificate(io->s_ctx->ssl_io);
-    /* ... */
+    X509_EXTENSION *ext = NULL;
+    int i = 0;
+    GENERAL_NAMES *ialt = NULL;
+    unsigned char *pBuffer = NULL;
+    int correspond = 0;
+    struct sockaddr *addr = NULL;
+    socklen_t addrlen = 0;
 
+    /*if extensions are present, hostname has to correspond
+     *  to subj. alt. name*/
+    serv_cert = SSL_get_peer_certificate(io->s_ctx->ssl_io);
+    i = X509_get_ext_by_NID(serv_cert, NID_subject_alt_name, -1);
+    if (i >= 0) {
+        /* subj. alt. name extention present */
+        if(!(ext = X509_get_ext(serv_cert, i)) ||
+                !(ialt = X509V3_EXT_d2i(ext)) )
+            goto end;
+        for(i = 0; i < sk_GENERAL_NAME_num(ialt); i++) {
+            const GENERAL_NAME *gen = sk_GENERAL_NAME_value(ialt, i);
+            switch (gen->type) {
+                case GEN_DNS:
+                    ASN1_STRING_to_UTF8((unsigned char**)&pBuffer, gen->d.ia5);
+#ifdef DEBUG
+                    printf(" %s",pBuffer);
+#endif
+                    if (!strcmp(pBuffer, host)) { //TODO substr maybe
+                        correspond = 1;
+                        OPENSSL_free(pBuffer);
+                        pBuffer = NULL;
+                        goto end;
+                    }
+                    OPENSSL_free(pBuffer);
+                    pBuffer = NULL;
+                    break;
+            }
+        }
+    }
     /*else hostname has to correspond to subject*/
 
+end:
     X509_free(serv_cert);
-    return 0;
+    if (correspond)
+        return 0;
+    else {
+     return set_error(cc, CANL_ERR_criticalExtensionError, canl_error, 
+             "Cannot validate server hostname" ); //TODO check
+    }
 }
 
 int ssl_accept(glb_ctx *cc, io_handler *io,
