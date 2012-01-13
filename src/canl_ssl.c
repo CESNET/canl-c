@@ -263,12 +263,13 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host)
     int correspond = 0;
     struct sockaddr *addr = NULL;
     socklen_t addrlen = 0;
+    X509_NAME *sn = NULL;
 
     /*if extensions are present, hostname has to correspond
      *  to subj. alt. name*/
     serv_cert = SSL_get_peer_certificate(io->s_ctx->ssl_io);
     i = X509_get_ext_by_NID(serv_cert, NID_subject_alt_name, -1);
-    if (i >= 0) {
+    if (i != -1) {
         /* subj. alt. name extention present */
         if(!(ext = X509_get_ext(serv_cert, i)) ||
                 !(ialt = X509V3_EXT_d2i(ext)) )
@@ -293,15 +294,41 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host)
             }
         }
     }
-    /*else hostname has to correspond to subject*/
+    else {
+        /*else hostname has to correspond to common name*/
+        sn = X509_get_subject_name(serv_cert); 
+        i = X509_NAME_get_index_by_NID(sn, NID_commonName, -1);
+        if (i != -1) {
+            while (1) {
+                X509_NAME_ENTRY *cn = X509_NAME_get_entry(sn, i);
+                ASN1_STRING_to_UTF8((unsigned char**)&pBuffer,
+                        X509_NAME_ENTRY_get_data(cn));
+                if (!strcmp(pBuffer, host)) { //TODO substr maybe
+                    correspond = 1;
+                    OPENSSL_free(pBuffer);
+                    pBuffer = NULL;
+                    goto end;
+                }
+                i = X509_NAME_get_index_by_NID(sn, NID_commonName, i);
+                OPENSSL_free(pBuffer);
+                pBuffer = NULL;
+                if (i == -1)
+                    break;
+            }
+        }
+        else
+            return set_error(cc, CANL_ERR_unknownMsg, canl_error,
+                    "Common name entry does not exist"); //TODO check
+    }
 
 end:
     X509_free(serv_cert);
     if (correspond)
         return 0;
     else {
-     return set_error(cc, CANL_ERR_criticalExtensionError, canl_error, 
-             "Cannot validate server hostname" ); //TODO check
+        return set_error(cc, CANL_ERR_unknownMsg, canl_error, 
+                "Cannot validate server hostname against its certificate" );
+        //TODO check
     }
 }
 
@@ -716,9 +743,23 @@ int ssl_close(glb_ctx *cc, io_handler *io)
 
 canl_err_code 
 canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
-		      canl_password_callback cb, void *userdata)
+        canl_password_callback cb, void *userdata)
 {
-    return ENOSYS;
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    int err = 0;
+
+    if (!cc)
+        return EINVAL;
+    if(!cert ) {
+        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value");
+        return EINVAL;
+    }
+
+    err = do_set_ctx_own_cert_file(glb_cc, cert, key);
+    if(err) {
+        update_error(glb_cc, "can't set cert or key to context");
+    }
+    return err;
 }
 
 #ifdef DEBUG
