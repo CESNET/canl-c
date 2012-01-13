@@ -370,6 +370,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     return b_written;
 }
 
+#if 0
 int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert, 
         canl_stack_of_x509 chain, canl_pkey key)
 {
@@ -409,3 +410,4 @@ int canl_set_ctx_own_cert_file(canl_ctx cc, char *cert, char *key,
     }
         return err;
 }
+#endif

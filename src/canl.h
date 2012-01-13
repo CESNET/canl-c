@@ -20,6 +20,8 @@ typedef void *canl_principal;
 
 typedef long canl_err_code;
 
+typedef char (*canl_password_callback)(canl_ctx cc, void *userdata);
+
 canl_ctx CANL_CALLCONV
 canl_create_ctx();
 
@@ -71,6 +73,10 @@ canl_mech2str(canl_ctx, gss_OID);
 
 const gss_OID CANL_CALLCONV
 canl_str2mech(canl_ctx, const char mech);
+
+canl_err_code CANL_CALLCONV
+canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
+		      canl_password_callback cb, void *userdata);
 
 #ifdef __cplusplus
 }       

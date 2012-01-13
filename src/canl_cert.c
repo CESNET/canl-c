@@ -4,6 +4,7 @@ static int set_cert(glb_ctx *cc, X509 *cert);
 static int set_key_file(glb_ctx *cc, char *key);
 static int set_cert_file(glb_ctx *cc, char *cert);
 
+#if 0
 //TODO just stub
 int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain, 
         canl_pkey key)
@@ -33,6 +34,7 @@ int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain,
 */
     return 0;
 }
+#endif
 
 static int set_cert(glb_ctx *cc, X509 *cert)
 {

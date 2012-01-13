@@ -714,6 +714,13 @@ int ssl_close(glb_ctx *cc, io_handler *io)
     }
 }
 
+canl_err_code 
+canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
+		      canl_password_callback cb, void *userdata)
+{
+    return ENOSYS;
+}
+
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode)
 {
