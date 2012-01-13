@@ -7,7 +7,7 @@ libdir=lib
 -include Makefile.inc
 -include ${top_srcdir}/project/version.properties
 
-VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/
+VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/:${top_srcdir}/examples
 LIBCARES_LIBS?=-lcares  
 LIBSSL_LIBS?=-lssl
 
@@ -78,13 +78,13 @@ client: ${OBJ_CLI}
 	${LINK} $< ${LFLAGS_CLI} -o $@
 
 ${OBJ_CLI}: ${SRC_CLI} ${HEAD_CLI} libcanl.la
-	${COMPILE} -c ${top_srcdir}/src/${SRC_CLI} ${CFLAGS_CLI} -o $@
+	${COMPILE} -c ${top_srcdir}/examples/${SRC_CLI} ${CFLAGS_CLI} -o $@
 
 server: ${OBJ_SER}
 	${LINK} $< ${LFLAGS_SER} -o $@
 
 ${OBJ_SER}: ${SRC_SER} ${HEAD_SER} libcanl.la
-	${COMPILE} -c ${top_srcdir}/src/${SRC_SER} ${CFLAGS_SER} -o $@
+	${COMPILE} -c ${top_srcdir}/examples/${SRC_SER} ${CFLAGS_SER} -o $@
 
 canl_err.h: canl_error_codes 
 	${top_srcdir}/src/gen_err_codes.pl < $^ > $@
