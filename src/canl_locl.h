@@ -102,7 +102,7 @@ typedef struct canl_mech {
     void *global_context;
 
     canl_err_code (*initialize)
-        (void **);
+        (glb_ctx *, void **);
 
     canl_err_code (*finish)
 	(void *);
@@ -142,8 +142,8 @@ int update_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_ori
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);
-int ssl_client_init(glb_ctx *cc, void **ctx);
-int ssl_server_init(glb_ctx *cc, void **ctx);
+int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx);
+int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx);
 int ssl_free(glb_ctx *cc, void *ctx);
 int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char * host);
 int ssl_accept(glb_ctx *cc, io_handler *io,

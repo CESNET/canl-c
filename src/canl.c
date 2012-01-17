@@ -20,7 +20,7 @@ canl_ctx canl_create_ctx()
         return NULL;
 
     for (i = 0; i < sizeof(mechs)/sizeof(mechs[0]); i++)
-	mechs[i]->initialize(&mechs[i]->global_context);
+	mechs[i]->initialize(ctx, &mechs[i]->global_context);
 
     return ctx;
 }
@@ -101,7 +101,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
         return set_error(glb_cc, EINVAL, posix_error, 
                 "IO handler not initialized");
 
-    err = ssl_client_init(glb_cc, (void **) &glb_cc->ssl_ctx);
+    err = ssl_client_init(glb_cc, glb_cc->ssl_ctx, (void **) &io_cc->s_ctx->ssl_io);
     if (err)
 	return err;
 
@@ -235,7 +235,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->sock = new_fd;
 
-    err = ssl_server_init(glb_cc, (void **) &glb_cc->ssl_ctx);
+    err = ssl_server_init(glb_cc, glb_cc->ssl_ctx, (void **) &io_cc->s_ctx->ssl_io);
     if (err)
         goto end;
 

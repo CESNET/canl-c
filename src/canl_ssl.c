@@ -11,38 +11,72 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host);
 static void dbg_print_ssl_error(int errorcode);
 #endif
 
-int ssl_initialize()
-{
-    SSL_library_init();
-    SSL_load_error_strings();
-    return 0;
-}
-
-int ssl_server_init(glb_ctx *cc, void **ctx)
+int ssl_initialize(glb_ctx *cc, void **ctx)
 {
     int err = 0;
-    unsigned long ssl_err = 0;
-    CANL_ERROR_ORIGIN e_orig = unknown_error;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
     char *ca_cert_dirn = NULL;
     ca_cert_fn = user_cert_fn = user_key_fn = user_proxy_fn = NULL;
     SSL_CTX *ssl_ctx = NULL;
 
-    if (!cc) {
+    if (!cc)
 	return EINVAL;
-    }
 
-    //OpenSSL_add_all_algorithms();
-    //OpenSSL_add_all_ciphers();
+    SSL_library_init();
+    SSL_load_error_strings();
     ERR_clear_error();
 
-    ssl_ctx = SSL_CTX_new(SSL_SERVER_METH);
-    if (!ssl_ctx){
-        err = ERR_get_error();
-        e_orig = ssl_error;
-        goto end;
+    ssl_ctx = SSL_CTX_new(SSLv23_method());
+    if (!ssl_ctx)
+	return set_error(cc, ERR_get_error(), ssl_error,
+			 "Cannot initialize SSL context");
+    SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2);
+
+    err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, NULL, NULL, NULL);
+    if (!err && (ca_cert_fn || ca_cert_dirn))
+	SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
+
+    if (ca_cert_fn)
+	free(ca_cert_fn);
+    if (ca_cert_dirn)
+	free(ca_cert_dirn);
+
+    //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
+    if (!err) {
+	err = set_error(cc, ERR_get_error(), ssl_error,
+			"No cipher to use");
+	goto end;
     }
 
+    //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
+    //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
+    // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
+    //SSL_CTX_set_verify_depth(ctx, 100);
+
+    *ctx = ssl_ctx;
+    ssl_ctx = NULL;
+    err = 0;
+
+end:
+    if (ssl_ctx)
+	SSL_CTX_free(ssl_ctx);
+
+    return err;
+}
+
+int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
+{
+    SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
+    SSL *ssl = NULL;
+
+    if (cc == NULL)
+	return EINVAL;
+
+    if (ssl_ctx == NULL)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+
+#if 0
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
@@ -61,28 +95,20 @@ int ssl_server_init(glb_ctx *cc, void **ctx)
     //TODO where to use proxy on server side
     free(user_proxy_fn);
     user_proxy_fn = NULL;
+#endif
 
-    SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
-    free(ca_cert_fn);
-    ca_cert_fn = NULL;
-    free(ca_cert_dirn);
-    ca_cert_dirn = NULL;
+    ssl = SSL_new(ssl_ctx);
+    if (ssl == NULL)
+	return set_error(cc, ERR_get_error(), ssl_error,
+		         "Failed to create SSL connection context");
 
-    //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
-    if (!err) {
-        ssl_err = ERR_get_error();
-        set_error(cc, ssl_err, e_orig, "no cipher to use");
-        return err;
-    }
-    err = 0;
+    /* XXX: should be only defined on the SSL level: */
+    SSL_CTX_set_verify(ssl, SSL_VERIFY_NONE, proxy_verify_callback);
+    SSL_CTX_set_cert_verify_callback(ssl, proxy_app_verify_callback, 0);
 
-    //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
-    //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
-    // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
-    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
-    //SSL_CTX_set_verify_depth(ctx, 100);
-    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
+    SSL_set_accept_state(ssl);
+
+#if 0
     if (cc->cert_key) {
         if (cc->cert_key->cert) {
             err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
@@ -117,46 +143,32 @@ int ssl_server_init(glb_ctx *cc, void **ctx)
                 " the certificate public key"); 
         return 1;
     }
+#endif
 
-    err = 0;
-    *ctx = ssl_ctx;
+    *ctx = ssl;
 
-end:
-    if (ssl_err) {
-        set_error(cc, ssl_err, e_orig, "Cannot initialize SSL context");
-        return 1;
-    }
-    else if (err) {
-        set_error(cc, err, e_orig, "Cannot initialize SSL context");
-        return 1;
-    }
     return 0;
 }
 
-int ssl_client_init(glb_ctx *cc, void **ctx)
+int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 {
-    unsigned long ssl_err = 0;
-    int err = 0;
-    CANL_ERROR_ORIGIN e_orig = unknown_error;
-    char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
-    char *ca_cert_dirn = NULL;
-    ca_cert_fn = user_cert_fn = user_key_fn = user_proxy_fn = NULL;
-    SSL_CTX *ssl_ctx = NULL;
+    SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
+    SSL *ssl = NULL;
 
-    if (!cc) {
-        return EINVAL;
-    }
+    if (cc == NULL)
+	return EINVAL;
 
-    //OpenSSL_add_all_algorithms();
-    //OpenSSL_add_all_ciphers();
-    ERR_clear_error();
+    if (ssl_ctx == NULL)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
 
-    ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
-    if (!ssl_ctx){
-        ssl_err = ERR_get_error();
-        e_orig = ssl_error;
-        goto end;
-    }
+    ssl = SSL_new(ssl_ctx);
+    if (ssl == NULL)
+	return set_error(cc, ERR_get_error(), ssl_error,
+		         "Failed to create SSL connection context");
+
+    SSL_set_connect_state(ssl);
+
+#if 0
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
@@ -173,30 +185,6 @@ int ssl_client_init(glb_ctx *cc, void **ctx)
     user_key_fn = NULL;
     free(user_proxy_fn);
     user_proxy_fn = NULL;
-
-    SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
-    free(ca_cert_fn);
-    ca_cert_fn = NULL;
-    free(ca_cert_dirn);
-    ca_cert_dirn = NULL;
-    
-    //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
-    if (!err) {
-        ssl_err = ERR_get_error();
-        set_error(cc, ssl_err, e_orig, "no cipher to use");
-        return err;
-    }
-    err = 0;
-
-    //SSL_CTX_set_options(ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
-    //TODO testing 
-    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
-    //SSL_CTX_set_verify_depth(ctx, 100);
-    //SSL_CTX_load_verify_locations(ctx, NULL, cacertdir);
-    //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
-    //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
-
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
@@ -216,18 +204,9 @@ int ssl_client_init(glb_ctx *cc, void **ctx)
             }
         }
     }
+#endif
 
-    *ctx = ssl_ctx;
-
-end:
-    if (ssl_err) {
-        set_error(cc, ssl_err, e_orig, "cannot initialize SSL context");
-    return 1;
-    }
-    else if (err) {
-        set_error(cc, err, e_orig, "cannot initialize SSL context");
-    return 1;
-    }
+    *ctx = ssl;
     return 0;
 }
 
@@ -246,7 +225,6 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
     SSL_set_fd(io->s_ctx->ssl_io, io->sock);
 
@@ -356,7 +334,6 @@ int ssl_accept(glb_ctx *cc, io_handler *io,
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    io->s_ctx->ssl_io = SSL_new(cc->ssl_ctx);
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
     SSL_set_fd(io->s_ctx->ssl_io, io->sock);
 
