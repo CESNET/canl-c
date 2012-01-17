@@ -108,6 +108,9 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
 
+    SSL_use_certificate_file(ssl, "/etc/grid-security/hostcert.pem", SSL_FILETYPE_PEM);
+    SSL_use_PrivateKey_file(ssl, "/etc/grid-security/hostkey.pem", SSL_FILETYPE_PEM);
+
     SSL_set_accept_state(ssl);
 
 #if 0
