@@ -294,8 +294,8 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host)
             }
         }
     }
+    /*else hostname has to correspond to common name*/
     else {
-        /*else hostname has to correspond to common name*/
         sn = X509_get_subject_name(serv_cert); 
         i = X509_NAME_get_index_by_NID(sn, NID_commonName, -1);
         if (i != -1) {
