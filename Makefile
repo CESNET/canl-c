@@ -25,7 +25,7 @@ LFLAGS_CLI=-L. -lcanl
 CFLAGS_SER=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_SER=-L. -lcanl
 
-HEAD_CANL=canl.h canl_locl.h canl_err.h
+HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h
 
 SRC_CLI=canl_sample_client.c
 HEAD_CLI=canl.h
@@ -54,7 +54,7 @@ major:=${shell \
 
 all: libcanl.la server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
+libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 %.lo: %.y
