@@ -749,6 +749,13 @@ int ssl_close(glb_ctx *cc, io_handler *io)
     }
 }
 
+int
+ssl_free(glb_ctx *cc, void *ctx)
+{
+    SSL_free(ctx);
+    return 0;
+}
+
 canl_err_code 
 canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
         canl_password_callback cb, void *userdata)
@@ -815,6 +822,7 @@ struct canl_mech canl_mech_ssl = {
     ssl_initialize,
     ssl_client_init,
     ssl_server_init,
+    ssl_free,
     ssl_connect,
     ssl_accept,
     ssl_close,

@@ -72,6 +72,7 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
     if (!io->s_ctx)
         return set_error(cc, ENOMEM, posix_error, "Not enough memory");
 
+    io->authn_mech.type = AUTH_UNDEF;
     io->sock = -1;
     return 0;
 }
@@ -283,13 +284,14 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     io_handler *io_cc = (io_handler*) io;
 
     if (io_cc->s_ctx) {
-        if (io_cc->s_ctx->ssl_io) {
-            SSL_free(io_cc->s_ctx->ssl_io);
-            io_cc->s_ctx->ssl_io = NULL;
-        }
+	if (io_cc->s_ctx->ssl_io)
+	    ssl_free(cc, io_cc->s_ctx->ssl_io);
+
+	free (io_cc->s_ctx);
+	io_cc->s_ctx = NULL;
     }
-    free (io_cc->s_ctx);
-    io_cc->s_ctx = NULL;
+
+    return;
 }
 
 

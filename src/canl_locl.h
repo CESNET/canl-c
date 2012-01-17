@@ -49,6 +49,7 @@ typedef enum _CANL_ERROR_ORIGIN
 
 typedef enum _CANL_AUTH_MECHANISM
 {
+    AUTH_UNDEF = -1,
     x509 = 0,
     KRB5 = 1, /* and others may be added*/
     TLS,
@@ -109,6 +110,9 @@ typedef struct canl_mech {
     canl_err_code (*server_init)
         (glb_ctx *, void *);
 
+    canl_err_code (*free_ctx)
+	(glb_ctx *, void *);
+
     canl_err_code (*connect)
         (glb_ctx *, void *, io_handler *, struct timeval *, const char *);
 
@@ -137,6 +141,7 @@ int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name,
         struct timeval *timeout);
 int ssl_client_init(glb_ctx *cc, io_handler *io);
 int ssl_server_init(glb_ctx *cc);
+int ssl_free(glb_ctx *cc, void *ctx);
 int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char * host);
 int ssl_accept(glb_ctx *cc, io_handler *io,
         struct timeval *timeout);
