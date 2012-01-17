@@ -10,6 +10,14 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host);
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
+
+int ssl_init()
+{
+    SSL_library_init();
+    SSL_load_error_strings();
+    return 0;
+}
+
 int ssl_server_init(glb_ctx *cc)
 {
     int err = 0;

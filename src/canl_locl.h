@@ -107,5 +107,6 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size,
 int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
         struct timeval *tout);
 int ssl_close(glb_ctx *cc, io_handler *io);
+int ssl_init();
 
 #endif

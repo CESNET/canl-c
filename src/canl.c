@@ -4,7 +4,6 @@ static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
 static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
         int addrtype, int port, struct timeval *timeout);
-static void ssl_init();
 
 canl_ctx canl_create_ctx()
 {
@@ -18,12 +17,6 @@ canl_ctx canl_create_ctx()
     ssl_init();
 
     return ctx;
-}
-
-static void ssl_init()
-{
-    SSL_library_init();
-    SSL_load_error_strings();
 }
 
 void canl_free_ctx(canl_ctx cc)
