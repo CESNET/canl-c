@@ -11,7 +11,7 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host);
 static void dbg_print_ssl_error(int errorcode);
 #endif
 
-int ssl_init()
+int ssl_initialize()
 {
     SSL_library_init();
     SSL_load_error_strings();
@@ -808,3 +808,16 @@ static void dbg_print_ssl_error(int errorcode)
     }
 }
 #endif
+
+struct canl_mech canl_mech_ssl = {
+    TLS,
+    NULL,
+    ssl_initialize,
+    ssl_client_init,
+    ssl_server_init,
+    ssl_connect,
+    ssl_accept,
+    ssl_close,
+    ssl_read,
+    ssl_write
+};

@@ -1,5 +1,9 @@
 #include "canl_locl.h"
 
+static struct canl_mech *mechs[] = {
+    &canl_mech_ssl,
+};
+
 static void io_destroy(glb_ctx *cc, io_handler *io);
 static int init_io_content(glb_ctx *cc, io_handler *io);
 static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
@@ -14,7 +18,7 @@ canl_ctx canl_create_ctx()
     if (!ctx) 
         return NULL;
 
-    ssl_init();
+    ssl_initialize();
 
     return ctx;
 }
