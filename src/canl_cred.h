@@ -17,6 +17,15 @@ typedef enum canl_cert_type {
     CANL_RFC,
 } canl_cert_type;
 
+typedef struct _creds {
+    EVP_PKEY *key;
+    STACK_OF(X509) *c_cert_chain;
+    X509 *c_cert;
+    long c_lifetime;
+    X509_EXTENSION * c_cert_ext;
+    canl_cert_type c_type;
+} creds;
+
 /* Routines to handle credentials */
 
 canl_err_code CANL_CALLCONV
