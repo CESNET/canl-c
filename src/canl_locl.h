@@ -105,32 +105,35 @@ typedef struct canl_mech {
         (glb_ctx *, void **);
 
     canl_err_code (*finish)
-	(void *);
+	(glb_ctx *, void *);
 
     canl_err_code (*client_init)
-        (glb_ctx *, void **);
+        (glb_ctx *, void *, void **);
 
     canl_err_code (*server_init)
-        (glb_ctx *, void **);
+        (glb_ctx *, void *, void **);
 
     canl_err_code (*free_ctx)
 	(glb_ctx *, void *);
 
     canl_err_code (*connect)
-        (glb_ctx *, void *, io_handler *, struct timeval *, const char *);
+        (glb_ctx *, io_handler *, void *, void *, struct timeval *, const char *);
 
     canl_err_code (*accept)
-        (glb_ctx *, void *, io_handler *, struct timeval *);
+        (glb_ctx *, io_handler *, void *, void *, struct timeval *);
 
     canl_err_code (*close)
-        (glb_ctx *, void *, io_handler *);
+        (glb_ctx *, io_handler *, void *);
 
     canl_err_code (*read)
-        (glb_ctx *, void *, io_handler *, void *, size_t, struct timeval *);
+        (glb_ctx *, io_handler *, void *, size_t, struct timeval *);
 
     canl_err_code (*write)
         (glb_ctx *, void *, io_handler *, void *, size_t, struct timeval *);
 } canl_mech;
+
+struct canl_mech *
+find_mech(gss_OID oid);
 
 extern struct canl_mech canl_mech_ssl;
 

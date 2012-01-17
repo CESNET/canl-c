@@ -90,6 +90,8 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
     int addr_types[] = {AF_INET, AF_INET6}; //TODO ip versions policy?
     int ipver = AF_INET6;
     int j = 0;
+    struct canl_mech *mech;
+    gss_OID oid;
 
     memset(&ar, 0, sizeof(ar));
 
@@ -100,10 +102,6 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
     if (!io_cc)
         return set_error(glb_cc, EINVAL, posix_error, 
                 "IO handler not initialized");
-
-    err = ssl_client_init(glb_cc, glb_cc->ssl_ctx, (void **) &io_cc->s_ctx->ssl_io);
-    if (err)
-	return err;
 
     for (j = 0; j< sizeof(addr_types)/sizeof(*addr_types); j++) {
         ipver = addr_types[j];
@@ -135,16 +133,38 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
         }
 
 	err = ECONNREFUSED;
-	for (i = 0; ar.ent->h_addr_list[i]; i++) {
-            err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i], 
-                    ar.ent->h_addrtype, port, timeout);//TODO timeout
-	    if (err)
-		continue;
+	j = 0;
+	do {
+	    if (auth_mechs == GSS_C_NO_OID_SET || auth_mechs->count == 0)
+		oid = GSS_C_NO_OID;
+	    else
+		oid = &auth_mechs->elements[j];
 
-	    err = ssl_connect(glb_cc, io_cc, timeout, host); //TODO timeout
-	    if (err)
-		continue;
-        }
+	    mech = find_mech(oid);
+
+	    for (i = 0; ar.ent->h_addr_list[i]; i++) {
+		void *ctx = NULL;
+
+		err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i], 
+			ar.ent->h_addrtype, port, timeout);//TODO timeout
+		if (err)
+		    continue;
+
+		err = mech->client_init(glb_cc, mech->global_context, &ctx);
+		if (err)
+		    continue;
+
+		err = mech->connect(glb_cc, io_cc, mech->global_context,
+				    ctx, timeout, host); //TODO timeout
+		if (err) {
+		    mech->free_ctx(glb_cc, ctx);
+		    continue;
+		}
+		io_cc->authn_mech.ctx = ctx;
+		io_cc->authn_mech.type = mech->mech;
+	    }
+	    j++;
+	} while (auth_mechs != GSS_C_NO_OID_SET && j < auth_mechs->count);
 
         free_hostent(ar.ent);
         ar.ent = NULL;
@@ -408,3 +428,10 @@ int canl_set_ctx_own_cert_file(canl_ctx cc, char *cert, char *key,
         return err;
 }
 #endif
+
+struct canl_mech *
+find_mech(gss_OID oid)
+{
+    /* XXX */
+    return &canl_mech_ssl;
+}

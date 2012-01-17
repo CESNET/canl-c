@@ -210,8 +210,11 @@ int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     return 0;
 }
 
-int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char * host)
+int ssl_connect(glb_ctx *cc, io_handler *io, void *mech_ctx, void *auth_ctx,
+	        struct timeval *timeout, const char * host)
 {
+    SSL_ctx *ctx = (SSL_ctx *) mech_ctx;
+    SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
 
     if (!cc) {
@@ -226,7 +229,7 @@ int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
-    SSL_set_fd(io->s_ctx->ssl_io, io->sock);
+    SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_connect(cc, io, timeout); 
     if (err) {
@@ -318,9 +321,11 @@ end:
     }
 }
 
-int ssl_accept(glb_ctx *cc, io_handler *io,
+int ssl_accept(glb_ctx *cc, io_handler *io, void *mech_ctx, void *auth_ctx,
         struct timeval *timeout)
 {
+    SSL_ctx *ctx = (SSL_ctx *) mech_ctx;
+    SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
 
     if (!cc) {
@@ -667,8 +672,10 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
  * ret = 0 connection closed successfully (one direction)
  * ret = 1 connection closed successfully (both directions)
  * ret < 0 error occured (e.g. timeout reached) */
-int ssl_close(glb_ctx *cc, io_handler *io)
+int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
 {
+    SSL_ctx *ctx = (SSL_ctx *) mech_ctx;
+    SSL *ssl = (SSL *) auth_ctx;
     int timeout = DESTROY_TIMEOUT;
     time_t starttime, curtime;
     int expected = 0, error = 0, ret = 0, ret2 = 0;
