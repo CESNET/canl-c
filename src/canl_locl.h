@@ -69,11 +69,6 @@ typedef struct _glb_ctx
     cert_key_store *cert_key;
 } glb_ctx;
 
-typedef struct _ossl_ctx
-{
-    SSL *ssl_io;
-} ossl_ctx;
-
 typedef struct _asyn_result {
     struct hostent *ent;
     int err;
@@ -88,10 +83,10 @@ typedef struct _principal_int {
 typedef struct _io_handler
 {
     int sock;
-    ossl_ctx *s_ctx;
     principal_int *princ_int;
     struct authn_mech {
 	CANL_AUTH_MECHANISM type;
+	gss_OID oid;
 	void *ctx;
     } authn_mech;
 } io_handler;
@@ -150,11 +145,11 @@ int ssl_free(glb_ctx *cc, void *ctx);
 int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx, struct timeval *timeout, const char * host);
 int ssl_accept(glb_ctx *cc, io_handler *io, void *conn_ctx,
         struct timeval *timeout);
-int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
-        struct timeval *tout);
-int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
-        struct timeval *tout);
-int ssl_close(glb_ctx *cc, io_handler *io);
+int ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
+	void *buffer, size_t size, struct timeval *tout);
+int ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
+	void *buffer, size_t size, struct timeval *tout);
+int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx);
 int ssl_initialize();
 
 #endif

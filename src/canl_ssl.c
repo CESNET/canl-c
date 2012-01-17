@@ -4,9 +4,9 @@
 #define SSL_CLIENT_METH SSLv3_client_method()
 #define DESTROY_TIMEOUT 10
 
-static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout);
-static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout);
-static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host);
+static int do_ssl_connect( glb_ctx *cc, io_handler *io, SSL *ssl, struct timeval *timeout);
+static int do_ssl_accept( glb_ctx *cc, io_handler *io, SSL *ssl, struct timeval *timeout);
+static int check_hostname_cert(glb_ctx *cc, io_handler *io, SSL *ssl, const char *host);
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
@@ -210,11 +210,11 @@ int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     return 0;
 }
 
-int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx,
+int ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	        struct timeval *timeout, const char * host)
 {
     SSL_CTX *ctx;
-    SSL *ssl = (SSL *) conn_ctx;
+    SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
 
     if (!cc) {
@@ -224,7 +224,7 @@ int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx,
         err = EINVAL;
         goto end;
     }
-    if (conn_ctx == NULL)
+    if (ssl == NULL)
 	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
 
     ctx = SSL_get_SSL_CTX(ssl);
@@ -235,18 +235,19 @@ int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx,
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
     SSL_set_fd(ssl, io->sock);
 
-    err = do_ssl_connect(cc, io, timeout); 
+    err = do_ssl_connect(cc, io, ssl, timeout); 
     if (err) {
         goto end;
     }
     /*check server hostname on the certificate*/
-    err = check_hostname_cert(cc, io, host);
+    err = check_hostname_cert(cc, io, ssl, host);
 
 end:
     return err;
 }
 
-static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host)
+static int check_hostname_cert(glb_ctx *cc, io_handler *io,
+			       SSL *ssl, const char *host)
 {
     X509 * serv_cert = NULL;
     X509_EXTENSION *ext = NULL;
@@ -260,7 +261,7 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, const char *host)
 
     /*if extensions are present, hostname has to correspond
      *  to subj. alt. name*/
-    serv_cert = SSL_get_peer_certificate(io->s_ctx->ssl_io);
+    serv_cert = SSL_get_peer_certificate(ssl);
     i = X509_get_ext_by_NID(serv_cert, NID_subject_alt_name, -1);
     if (i != -1) {
         /* subj. alt. name extention present */
@@ -348,9 +349,9 @@ int ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx,
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
     //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
-    SSL_set_fd(io->s_ctx->ssl_io, io->sock);
+    SSL_set_fd(ssl, io->sock);
 
-    err = do_ssl_accept(cc, io, timeout);
+    err = do_ssl_accept(cc, io, ssl, timeout);
     if (err) {
         goto end;
     }
@@ -418,7 +419,8 @@ int do_select(int fd, time_t starttime, int timeout, int wanted)
         ((errorcode) == SSL_ERROR_WANT_READ ||                 \
          (errorcode) == SSL_ERROR_WANT_WRITE)))
 
-static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
+static int do_ssl_connect(glb_ctx *cc, io_handler *io,
+			  SSL *ssl, struct timeval *timeout)
 {
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
@@ -440,12 +442,12 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
     do {
         ret = do_select(io->sock, starttime, locl_timeout, expected);
         if (ret > 0) {
-            ret2 = SSL_connect(io->s_ctx->ssl_io);
+            ret2 = SSL_connect(ssl);
             if (ret2 < 0) {
                 ssl_err = ERR_get_error();
                 e_orig = ssl_error;
             }
-            expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
+            expected = errorcode = SSL_get_error(ssl, ret2);
         }
         curtime = time(NULL);
     } while (TEST_SELECT(ret, ret2, locl_timeout, curtime, starttime, errorcode));
@@ -471,7 +473,8 @@ static int do_ssl_connect( glb_ctx *cc, io_handler *io, struct timeval *timeout)
     return 0;
 }
 
-static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
+static int do_ssl_accept(glb_ctx *cc, io_handler *io,
+			 SSL *ssl, struct timeval *timeout)
 {
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
@@ -493,12 +496,12 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
     do {
         ret = do_select(io->sock, starttime, locl_timeout, expected);
         if (ret > 0) {
-            ret2 = SSL_accept(io->s_ctx->ssl_io);
+            ret2 = SSL_accept(ssl);
             if (ret2 < 0) {
                 ssl_err = ERR_peek_error();
                 e_orig = ssl_error;
             }
-            expected = errorcode = SSL_get_error(io->s_ctx->ssl_io, ret2);
+            expected = errorcode = SSL_get_error(ssl, ret2);
         }
         curtime = time(NULL);
 #ifdef DEBUG
@@ -530,7 +533,8 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io, struct timeval *timeout)
 }
 
 /* this function has to return # bytes written or ret < 0 when sth went wrong*/
-int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct timeval *timeout)
+int ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
+	      void *buffer, size_t size, struct timeval *timeout)
 {
     int err = 0;
     int ret = 0, nwritten=0;
@@ -542,13 +546,19 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
     int locl_timeout;
     int touted = 0;
     int to = 0; // bool
+    SSL *ssl = (SSL *) auth_ctx;
 
-    if (!io->s_ctx || !io->s_ctx->ssl_io) {
-        set_error(cc, EINVAL, posix_error, "SSL not initialized");
-        return -1;
-    }
-    
-    fd = BIO_get_fd(SSL_get_rbio(io->s_ctx->ssl_io), NULL);
+    if (cc == NULL)
+	return EINVAL;
+
+    if (io == NULL)
+	return set_error(cc, EINVAL, posix_error,
+			 "Connection not established");
+
+    if (ssl == NULL)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+
+    fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     str = buffer;//TODO !!!!!! text.c_str();
 
     curtime = starttime = time(NULL);
@@ -569,9 +579,9 @@ int ssl_write(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct tim
         if (ret > 0) {
             int v;
             errno = 0;
-            ret = SSL_write(io->s_ctx->ssl_io, str + nwritten,
+            ret = SSL_write(ssl, str + nwritten,
                     strlen(str) - nwritten);
-            v = SSL_get_error(io->s_ctx->ssl_io, ret);
+            v = SSL_get_error(ssl, ret);
 
             switch (v) {
                 case SSL_ERROR_NONE:
@@ -621,7 +631,8 @@ end:
     return ret;
 }
 
-int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct timeval *tout)
+int ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
+	     void *buffer, size_t size, struct timeval *tout)
 {
     int err = 0;
     int ret = 0, nwritten=0, ret2 = 0;
@@ -630,14 +641,19 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
     time_t starttime, curtime;
     int expected = 0, error = 0;
     int timeout;
+    SSL *ssl = (SSL *) auth_ctx;
 
-    if (!io->s_ctx || !io->s_ctx->ssl_io) {
-        err = EINVAL;
-        set_error(cc, err, posix_error, "wrong ssl handler"); 
-        return -1;
-    }
+    if (cc == NULL)
+	return EINVAL;
 
-    fd = BIO_get_fd(SSL_get_rbio(io->s_ctx->ssl_io), NULL);
+    if (io == NULL)
+	return set_error(cc, EINVAL, posix_error,
+			 "Connection not established");
+
+    if (ssl == NULL)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+
+    fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     str = buffer;//TODO !!!!!! text.c_str();
 
     curtime = starttime = time(NULL);
@@ -653,11 +669,11 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
         curtime = time(NULL);
 
         if (ret > 0) {
-            ret2 = SSL_read(io->s_ctx->ssl_io, str + nwritten,
+            ret2 = SSL_read(ssl, str + nwritten,
                     strlen(str) - nwritten);
 
             if (ret2 <= 0) {
-                expected = error = SSL_get_error(io->s_ctx->ssl_io, ret2);
+                expected = error = SSL_get_error(ssl, ret2);
             }
         }
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
@@ -680,33 +696,31 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
  * ret = 0 connection closed successfully (one direction)
  * ret = 1 connection closed successfully (both directions)
  * ret < 0 error occured (e.g. timeout reached) */
-int ssl_close(glb_ctx *cc, io_handler *io)
+int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
 {
     SSL_CTX *ctx;
-    SSL *ssl = NULL;
     int timeout = DESTROY_TIMEOUT;
     time_t starttime, curtime;
     int expected = 0, error = 0, ret = 0, ret2 = 0;
     int fd;
     unsigned long ssl_err = 0;
+    SSL *ssl = (SSL *) auth_ctx;
 
     if (!cc)
         return EINVAL;
     if (!io)
         return set_error(cc, EINVAL, posix_error,
 			 "Connection not initialized");
-
-    ssl = io->s_ctx->ssl_io;
-    if (!ssl)
+    if (ssl == NULL)
 	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
 
     ctx = SSL_get_SSL_CTX(ssl);
 
-    fd = BIO_get_fd(SSL_get_rbio(io->s_ctx->ssl_io), NULL);
+    fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     curtime = starttime = time(NULL);
     
     /* check the shutdown state*/
-    ret = SSL_get_shutdown(io->s_ctx->ssl_io);
+    ret = SSL_get_shutdown(ssl);
     if (ret & SSL_SENT_SHUTDOWN)
         if (ret & SSL_RECEIVED_SHUTDOWN)
             return 1;
@@ -722,10 +736,10 @@ int ssl_close(glb_ctx *cc, io_handler *io)
 	curtime = time(NULL);
 
 	if (ret > 0) {
-	    ret2 = SSL_shutdown(io->s_ctx->ssl_io);
+	    ret2 = SSL_shutdown(ssl);
 	    if (ret2 < 0) {
                 ssl_err = ERR_peek_error();
-		expected = error = SSL_get_error(io->s_ctx->ssl_io, ret2);
+		expected = error = SSL_get_error(ssl, ret2);
             }
         }
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));

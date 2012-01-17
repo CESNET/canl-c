@@ -68,11 +68,8 @@ canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
 
 static int init_io_content(glb_ctx *cc, io_handler *io)
 {
-    io->s_ctx = (ossl_ctx *) calloc(1, sizeof(*(io->s_ctx)));
-    if (!io->s_ctx)
-        return set_error(cc, ENOMEM, posix_error, "Not enough memory");
-
     io->authn_mech.type = AUTH_UNDEF;
+    io->authn_mech.oid = GSS_C_NO_OID;
     io->sock = -1;
     return 0;
 }
@@ -267,6 +264,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->authn_mech.ctx = conn_ctx;
     io_cc->authn_mech.type = mech->mech;
+    io_cc->authn_mech.oid = GSS_C_NO_OID;
 
     err = 0;
 
@@ -286,6 +284,8 @@ canl_io_close(canl_ctx cc, canl_io_handler io)
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
+    canl_mech *mech;
+
     /*check cc and io*/
     if (!cc) {
         return EINVAL; /* XXX Should rather be a CANL error */
@@ -294,9 +294,11 @@ canl_io_close(canl_ctx cc, canl_io_handler io)
     if (!io)
 	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 
-    err = ssl_close(glb_cc, io_cc);
-    if (err <= 0)
-        return err;
+    if (io_cc->authn_mech.ctx) {
+	mech = find_mech(io_cc->authn_mech.oid);
+	mech->close(glb_cc, io, io_cc->authn_mech.ctx);
+	/* XXX can it be safely reopened ?*/
+    }
 
     if (io_cc->sock != -1) {
         close (io_cc->sock);
@@ -309,13 +311,17 @@ canl_io_close(canl_ctx cc, canl_io_handler io)
 static void io_destroy(glb_ctx *cc, io_handler *io)
 {
     io_handler *io_cc = (io_handler*) io;
+    canl_mech *mech;
+    
+    if (io == NULL)
+	return;
 
-    if (io_cc->s_ctx) {
-	if (io_cc->s_ctx->ssl_io)
-	    ssl_free(cc, io_cc->s_ctx->ssl_io);
-
-	free (io_cc->s_ctx);
-	io_cc->s_ctx = NULL;
+    if (io_cc->authn_mech.ctx) {
+	mech = find_mech(io->authn_mech.oid);
+	mech->free_ctx(cc, io_cc->authn_mech.ctx);
+	io_cc->authn_mech.ctx = NULL;
+	io_cc->authn_mech.type = AUTH_UNDEF;
+	io_cc->authn_mech.oid = GSS_C_NO_OID;
     }
 
     return;
@@ -359,13 +365,18 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
 	 set_error(cc, EINVAL, posix_error, "IO handler not initialized");
 	 return -1;
     }
+
+    if (io_cc->authn_mech.ctx == NULL)
+	return set_error(cc, EINVAL, posix_error, "Connection not secured");
+
     
     if (!buffer || !size) {
 	set_error(cc, EINVAL, posix_error, "No memory to write into");
 	return -1;
     }
 
-    b_recvd = ssl_read(glb_cc, io_cc, buffer, size, timeout);
+    b_recvd = ssl_read(glb_cc, io_cc, io_cc->authn_mech.ctx,
+		       buffer, size, timeout);
 
     return b_recvd;
 }
@@ -384,12 +395,16 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 	return -1;
     }
 
+    if (io_cc->authn_mech.ctx == NULL)
+	return set_error(cc, EINVAL, posix_error, "Connection not secured");
+
     if (!buffer || !size) {
 	set_error(cc, EINVAL, posix_error, "No memory to read from");
 	return -1;
     }
 
-    b_written = ssl_write(glb_cc, io_cc, buffer, size, timeout);
+    b_written = ssl_write(glb_cc, io_cc, io_cc->authn_mech.ctx,
+			  buffer, size, timeout);
 
     return b_written;
 }
