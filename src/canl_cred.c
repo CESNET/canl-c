@@ -4,13 +4,59 @@
 canl_err_code CANL_CALLCONV
 canl_cred_create(canl_ctx ctx, canl_cred * cred)
 {
-    return ENOSYS; 
+    glb_ctx *cc = ctx;
+    creds *crd = NULL;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+
+    /*create new cred. handler*/
+    crd = (creds *) calloc(1, sizeof(*crd));
+    if (crd)
+        return set_error(cc, ENOMEM, posix_error, "Not enough memory");
+
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
 canl_cred_free(canl_ctx ctx, canl_cred cred)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+
+    /* Delete contents*/
+    if (crd->c_key) {
+        EVP_PKEY_free(crd->c_key);
+        crd->c_key = NULL;
+    }
+    if (crd->c_cert) {
+        X509_free(crd->c_cert);
+        crd->c_cert = NULL;
+    }
+    if (crd->c_cert_ext) {
+        X509_EXTENSION_free(crd->c_cert_ext);
+        crd->c_cert_ext = NULL;
+    }
+    if (crd->c_cert_chain) {
+        sk_X509_pop_free(crd->c_cert_chain, X509_free);
+        crd->c_cert_chain = NULL;
+    }
+
+    free (crd);
+    crd = NULL;
+
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV

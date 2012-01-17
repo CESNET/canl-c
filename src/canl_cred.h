@@ -18,7 +18,7 @@ typedef enum canl_cert_type {
 } canl_cert_type;
 
 typedef struct _creds {
-    EVP_PKEY *key;
+    EVP_PKEY *c_key;
     STACK_OF(X509) *c_cert_chain;
     X509 *c_cert;
     long c_lifetime;
