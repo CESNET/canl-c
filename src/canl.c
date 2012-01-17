@@ -227,7 +227,8 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
     if (err) {
         close(io_cc->sock);
         io_cc->sock = -1;
-        return errno;
+        return set_error(glb_cc, errno, posix_error,
+			 "Failed to open network connection");
     }
 
     return 0;
@@ -257,7 +258,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
     if (err)
         goto end;
 
-    err = mech->accept(glb_cc, io_cc, timeout, conn_ctx); 
+    err = mech->accept(glb_cc, io_cc, conn_ctx, timeout); 
     if (err)
 	goto end;
 
