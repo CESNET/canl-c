@@ -756,6 +756,13 @@ ssl_free(glb_ctx *cc, void *ctx)
     return 0;
 }
 
+int
+ssl_finish(glb_ctx *cc, void *ctx)
+{
+    SSL_CTX_free(ctx);
+    return 0;
+}
+
 canl_err_code 
 canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
         canl_password_callback cb, void *userdata)

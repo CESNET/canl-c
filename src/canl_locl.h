@@ -104,6 +104,9 @@ typedef struct canl_mech {
     canl_err_code (*initialize)
         (void **);
 
+    canl_err_code (*finish)
+	(void *);
+
     canl_err_code (*client_init)
         (glb_ctx *, void **);
 
@@ -111,9 +114,6 @@ typedef struct canl_mech {
         (glb_ctx *, void **);
 
     canl_err_code (*free_ctx)
-	(glb_ctx *, void *);
-
-    canl_err_code (*free_global_ctx) /* XXX: ???? */
 	(glb_ctx *, void *);
 
     canl_err_code (*connect)
