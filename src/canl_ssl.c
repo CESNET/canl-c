@@ -11,7 +11,8 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io, SSL *ssl, const char
 static void dbg_print_ssl_error(int errorcode);
 #endif
 
-int ssl_initialize(glb_ctx *cc, void **ctx)
+static canl_err_code
+ssl_initialize(glb_ctx *cc, void **ctx)
 {
     int err = 0;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
@@ -65,7 +66,8 @@ end:
     return err;
 }
 
-int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
+static canl_err_code
+ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 {
     SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
     SSL *ssl = NULL;
@@ -150,7 +152,8 @@ int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     return 0;
 }
 
-int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
+static canl_err_code
+ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 {
     SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
     SSL *ssl = NULL;
@@ -210,7 +213,8 @@ int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     return 0;
 }
 
-int ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
+static canl_err_code
+ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	        struct timeval *timeout, const char * host)
 {
     SSL_CTX *ctx;
@@ -326,8 +330,8 @@ end:
     }
 }
 
-int ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx,
-        struct timeval *timeout)
+static canl_err_code
+ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
 {
     SSL_CTX *ctx = NULL;
     SSL *ssl = (SSL *) auth_ctx;
@@ -533,7 +537,8 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
 }
 
 /* this function has to return # bytes written or ret < 0 when sth went wrong*/
-int ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
+static canl_err_code
+ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	      void *buffer, size_t size, struct timeval *timeout)
 {
     int err = 0;
@@ -631,7 +636,8 @@ end:
     return ret;
 }
 
-int ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
+static canl_err_code
+ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	     void *buffer, size_t size, struct timeval *tout)
 {
     int err = 0;
@@ -696,7 +702,8 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
  * ret = 0 connection closed successfully (one direction)
  * ret = 1 connection closed successfully (both directions)
  * ret < 0 error occured (e.g. timeout reached) */
-int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
+static canl_err_code
+ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
 {
     SSL_CTX *ctx;
     int timeout = DESTROY_TIMEOUT;
@@ -763,14 +770,14 @@ int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
     }
 }
 
-int
+static canl_err_code
 ssl_free(glb_ctx *cc, void *ctx)
 {
     SSL_free(ctx);
     return 0;
 }
 
-int
+static canl_err_code
 ssl_finish(glb_ctx *cc, void *ctx)
 {
     SSL_CTX_free(ctx);
@@ -841,6 +848,7 @@ struct canl_mech canl_mech_ssl = {
     TLS,
     NULL,
     ssl_initialize,
+    ssl_finish,
     ssl_client_init,
     ssl_server_init,
     ssl_free,

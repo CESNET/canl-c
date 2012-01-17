@@ -151,8 +151,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 		if (err)
 		    continue;
 
-		err = mech->connect(glb_cc, io_cc, mech->global_context,
-				    ctx, timeout, host); //TODO timeout
+		err = mech->connect(glb_cc, io_cc, ctx, timeout, host); //TODO timeout
 		if (err) {
 		    mech->free_ctx(glb_cc, ctx);
 		    continue;
@@ -254,11 +253,11 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->sock = new_fd;
 
-    err = ssl_server_init(glb_cc, mech->global_context, &conn_ctx);
+    err = mech->server_init(glb_cc, mech->global_context, &conn_ctx);
     if (err)
         goto end;
 
-    err = ssl_accept(glb_cc, io_cc, timeout, conn_ctx); 
+    err = mech->accept(glb_cc, io_cc, timeout, conn_ctx); 
     if (err)
 	goto end;
 
@@ -357,6 +356,7 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int b_recvd = 0;
+    struct canl_mech *mech;
     
     if (!cc)
         return -1;
@@ -368,15 +368,16 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
 
     if (io_cc->authn_mech.ctx == NULL)
 	return set_error(cc, EINVAL, posix_error, "Connection not secured");
-
     
     if (!buffer || !size) {
 	set_error(cc, EINVAL, posix_error, "No memory to write into");
 	return -1;
     }
 
-    b_recvd = ssl_read(glb_cc, io_cc, io_cc->authn_mech.ctx,
-		       buffer, size, timeout);
+    mech = find_mech(io_cc->authn_mech.oid);
+
+    b_recvd = mech->read(glb_cc, io_cc, io_cc->authn_mech.ctx,
+		         buffer, size, timeout);
 
     return b_recvd;
 }
@@ -386,6 +387,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int b_written = 0;
+    struct canl_mech *mech;
 
     if (!cc)
         return -1;
@@ -403,8 +405,10 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 	return -1;
     }
 
-    b_written = ssl_write(glb_cc, io_cc, io_cc->authn_mech.ctx,
-			  buffer, size, timeout);
+    mech = find_mech(io_cc->authn_mech.oid);
+
+    b_written = mech->write(glb_cc, io_cc, io_cc->authn_mech.ctx,
+			    buffer, size, timeout);
 
     return b_written;
 }

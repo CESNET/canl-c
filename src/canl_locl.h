@@ -111,19 +111,19 @@ typedef struct canl_mech {
 	(glb_ctx *, void *);
 
     canl_err_code (*connect)
-        (glb_ctx *, io_handler *, void *, void *, struct timeval *, const char *);
+        (glb_ctx *, io_handler *, void *, struct timeval *, const char *);
 
     canl_err_code (*accept)
-        (glb_ctx *, io_handler *, void *, void *, struct timeval *);
+        (glb_ctx *, io_handler *, void *, struct timeval *);
 
     canl_err_code (*close)
         (glb_ctx *, io_handler *, void *);
 
     canl_err_code (*read)
-        (glb_ctx *, io_handler *, void *, size_t, struct timeval *);
+        (glb_ctx *, io_handler *, void *, void *, size_t, struct timeval *);
 
     canl_err_code (*write)
-        (glb_ctx *, void *, io_handler *, void *, size_t, struct timeval *);
+        (glb_ctx *, io_handler *, void *, void *, size_t, struct timeval *);
 } canl_mech;
 
 struct canl_mech *
@@ -139,17 +139,5 @@ int update_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_ori
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);
-int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx);
-int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx);
-int ssl_free(glb_ctx *cc, void *ctx);
-int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx, struct timeval *timeout, const char * host);
-int ssl_accept(glb_ctx *cc, io_handler *io, void *conn_ctx,
-        struct timeval *timeout);
-int ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
-	void *buffer, size_t size, struct timeval *tout);
-int ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
-	void *buffer, size_t size, struct timeval *tout);
-int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx);
-int ssl_initialize();
 
 #endif
