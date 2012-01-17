@@ -80,7 +80,6 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
         int flags, struct timeval *timeout)
 {
     int err = 0;
-    CANL_ERROR_ORIGIN err_orig = unknown_error;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct _asyn_result ar;
@@ -99,8 +98,17 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
         return set_error(glb_cc, EINVAL, posix_error, 
                 "IO handler not initialized");
 
+    err = ssl_client_init(glb_cc, io_cc);
+    if (err)
+	return err;
+
     for (j = 0; j< sizeof(addr_types)/sizeof(*addr_types); j++) {
         ipver = addr_types[j];
+	if (ar.ent) {
+	    free_hostent(ar.ent);
+	    memset(&ar, 0, sizeof(ar));
+	}
+
         ar.ent = (struct hostent *) calloc (1, sizeof(struct hostent));
         if (ar.ent == NULL)
             return set_error(cc, ENOMEM, posix_error, "Not enough memory");
@@ -110,52 +118,44 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
                 err = 0;
                 break;
             case TRY_AGAIN:
-                err = set_error(glb_cc, ETIMEDOUT, posix_error,
+                update_error(glb_cc, ETIMEDOUT, posix_error,
                         "Cannot resolve the server hostname (%s)", host);
-                goto end;
+		err = set_error(glb_cc, ECONNREFUSED, posix_error,
+			"Failed to make network connection to server %s", host);
+		goto end;
             case NETDB_INTERNAL:
-                err = set_error(glb_cc, NETDB_INTERNAL, netdb_error,
+		err = update_error(glb_cc, errno, posix_error,
                         "Cannot resolve the server hostname (%s)", host);
-                goto end;
-            case HOST_NOT_FOUND:
-                err_orig = netdb_error;
                 continue;
-
             default:
-                err = set_error(glb_cc, err, netdb_error,
+                err = update_error(glb_cc, err, netdb_error,
                         "Cannot resolve the server hostname (%s)", host);
-                goto end; /* XXX continue */
+                continue;
         }
 
-        i = 0;
-        /* XXX can the list be empty? */
-        while (ar.ent->h_addr_list[i])
-        {
+	err = ECONNREFUSED;
+	for (i = 0; ar.ent->h_addr_list[i]; i++) {
             err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i], 
                     ar.ent->h_addrtype, port, timeout);//TODO timeout
-            if (!err){
-                err_orig = posix_error;
-                break;
-            }
-            i++;
+	    if (err)
+		continue;
+
+	    err = ssl_connect(glb_cc, io_cc, timeout, host); //TODO timeout
+	    if (err)
+		continue;
         }
+
         free_hostent(ar.ent);
         ar.ent = NULL;
 	if (!err)
 	    break;
     }
 
-    if (err)
-        return set_error(glb_cc, err, err_orig,
+    if (err) {
+        err = set_error(glb_cc, ECONNREFUSED, posix_error,
                 "Failed to make network connection to server %s", host);
-
-    err = ssl_client_init(glb_cc, io_cc);
-    if (err)
-        goto end;
-
-    err = ssl_connect(glb_cc, io_cc, timeout, host); //TODO timeout
-    if (err)
-        goto end;
+	goto end;
+    }
 
     err = 0;
 
