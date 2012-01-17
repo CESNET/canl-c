@@ -90,35 +90,39 @@ typedef struct _io_handler
     int sock;
     ossl_ctx *s_ctx;
     principal_int *princ_int;
+    struct authn_mech {
+	CANL_AUTH_MECHANISM type;
+	void *ctx;
+    } authn_mech;
 } io_handler;
 
 typedef struct canl_mech {
     CANL_AUTH_MECHANISM mech;
-    void *context;
+    void *global_context;
 
     canl_err_code (*initialize)
-        (void);
+        (void **);
 
     canl_err_code (*client_init)
-        (glb_ctx *);
+        (glb_ctx *, void *);
 
     canl_err_code (*server_init)
-        (glb_ctx *);
+        (glb_ctx *, void *);
 
     canl_err_code (*connect)
-        (glb_ctx *, io_handler *, struct timeval *, const char *);
+        (glb_ctx *, void *, io_handler *, struct timeval *, const char *);
 
     canl_err_code (*accept)
-        (glb_ctx *, io_handler *, struct timeval *);
+        (glb_ctx *, void *, io_handler *, struct timeval *);
 
     canl_err_code (*close)
-        (glb_ctx *, io_handler *);
+        (glb_ctx *, void *, io_handler *);
 
     canl_err_code (*read)
-        (glb_ctx *, io_handler *, void *, size_t, struct timeval *);
+        (glb_ctx *, void *, io_handler *, void *, size_t, struct timeval *);
 
     canl_err_code (*write)
-        (glb_ctx *, io_handler *, void *, size_t, struct timeval *);
+        (glb_ctx *, void *, io_handler *, void *, size_t, struct timeval *);
 } canl_mech;
 
 extern struct canl_mech canl_mech_ssl;
