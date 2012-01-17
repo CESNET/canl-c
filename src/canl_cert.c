@@ -121,7 +121,7 @@ static int set_key_file(glb_ctx *cc, char *key)
 end:
     if (fclose(key_file)){
         err = errno;
-        update_error(cc, "cannot close file with key");
+        update_error(cc, errno, posix_error, "cannot close file with key");
     }
     return 1;
 }
@@ -164,7 +164,7 @@ static int set_cert_file(glb_ctx *cc, char *cert)
 end:
     if (fclose(cert_file)){
         err = errno;
-        update_error(cc, "cannot close file with certificate");
+        update_error(cc, errno, posix_error, "cannot close file with certificate");
     }
     return 1;
 }

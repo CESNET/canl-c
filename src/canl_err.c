@@ -6,9 +6,11 @@ static CANL_ERROR resolve_error(glb_ctx *cc, unsigned long err_code,
         CANL_ERROR_ORIGIN err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 
+/* TODO: produce error messages immediately (to chain them) */
 /* Save error message into err_msg
  * use NULL for empty err_format */
-void update_error (glb_ctx *cc,  const char *err_format, ...)
+int update_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
+		   const char *err_format, ...)
 {
     unsigned int err_msg_len = 0;
     unsigned int err_msg_sum = 0; // sum of msg and format lengths
@@ -20,10 +22,10 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
     char *old_msg = NULL;
 
     if (!cc)
-        return;
+        return EINVAL;
 
     if (err_format == NULL) {
-        return;
+        return EINVAL;
     }
     separator_len = strlen(separator);
 
@@ -32,7 +34,7 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
     if (!(cc->err_msg)) {
         vasprintf(&cc->err_msg, err_format, ap);
         va_end(ap);
-        return;
+        return resolve_error(cc, err_code, err_orig);
     }
     err_format_len = vasprintf(&new_msg, err_format, ap);
 
@@ -43,7 +45,7 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
     err_msg_sum = err_format_len + err_msg_len + separator_len + 1;
     cc->err_msg = (char *) malloc ((err_msg_sum)*sizeof(char));
     if (cc->err_msg == NULL)
-        return;
+        return ENOMEM;
 
     strncpy(cc->err_msg, new_msg, err_format_len + 1);
     strncat (cc->err_msg, separator, separator_len + 1);
@@ -51,6 +53,8 @@ void update_error (glb_ctx *cc,  const char *err_format, ...)
 
     free(new_msg);
     free(old_msg);
+
+    return resolve_error(cc, err_code, err_orig);
 }
 
 /* If there was some error message in ctx, delete it and make new */

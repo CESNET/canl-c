@@ -765,7 +765,7 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
 
     err = do_set_ctx_own_cert_file(glb_cc, cert, key);
     if(err) {
-        update_error(glb_cc, "can't set cert or key to context");
+//        update_error(glb_cc, "can't set cert or key to context");
     }
     return err;
 }

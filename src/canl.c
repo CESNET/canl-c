@@ -118,10 +118,8 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
                 err = 0;
                 break;
             case TRY_AGAIN:
-                update_error(glb_cc, ETIMEDOUT, posix_error,
+                err = update_error(glb_cc, ETIMEDOUT, posix_error,
                         "Cannot resolve the server hostname (%s)", host);
-		err = set_error(glb_cc, ECONNREFUSED, posix_error,
-			"Failed to make network connection to server %s", host);
 		goto end;
             case NETDB_INTERNAL:
 		err = update_error(glb_cc, errno, posix_error,
@@ -151,15 +149,16 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 	    break;
     }
 
-    if (err) {
-        err = set_error(glb_cc, ECONNREFUSED, posix_error,
-                "Failed to make network connection to server %s", host);
+    if (err)
 	goto end;
-    }
 
     err = 0;
 
 end:
+    if (err) /* XXX: rather invent own error */
+	err = update_error(glb_cc, ECONNREFUSED, posix_error,
+		"Failed to make network connection to server %s", host);
+
     if (ar.ent != NULL)
         free_hostent(ar.ent);
 
@@ -315,6 +314,7 @@ canl_io_destroy(canl_ctx cc, canl_io_handler io)
     return err;
 }
 
+/* XXX: 0 returned returned by ssl_read() means error or EOF ? */
 size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, struct timeval *timeout)
 {
     io_handler *io_cc = (io_handler*) io;
@@ -335,9 +335,7 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
     }
 
     b_recvd = ssl_read(glb_cc, io_cc, buffer, size, timeout);
-    if (b_recvd <= 0) {
-	update_error(glb_cc, "Can't read from connection");
-    }
+
     return b_recvd;
 }
 
@@ -361,9 +359,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
     }
 
     b_written = ssl_write(glb_cc, io_cc, buffer, size, timeout);
-    if (b_written <= 0) {
-        update_error(glb_cc, "Can't write to connection");
-    }
+
     return b_written;
 }
 
