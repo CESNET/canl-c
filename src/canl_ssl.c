@@ -103,8 +103,8 @@ int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 		         "Failed to create SSL connection context");
 
     /* XXX: should be only defined on the SSL level: */
-    SSL_CTX_set_verify(ssl, SSL_VERIFY_NONE, proxy_verify_callback);
-    SSL_CTX_set_cert_verify_callback(ssl, proxy_app_verify_callback, 0);
+    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
+    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
 
     SSL_set_accept_state(ssl);
 
@@ -210,11 +210,11 @@ int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     return 0;
 }
 
-int ssl_connect(glb_ctx *cc, io_handler *io, void *mech_ctx, void *auth_ctx,
+int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx,
 	        struct timeval *timeout, const char * host)
 {
-    SSL_ctx *ctx = (SSL_ctx *) mech_ctx;
-    SSL *ssl = (SSL *) auth_ctx;
+    SSL_CTX *ctx;
+    SSL *ssl = (SSL *) conn_ctx;
     int err = 0, flags;
 
     if (!cc) {
@@ -224,6 +224,10 @@ int ssl_connect(glb_ctx *cc, io_handler *io, void *mech_ctx, void *auth_ctx,
         err = EINVAL;
         goto end;
     }
+    if (conn_ctx == NULL)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+
+    ctx = SSL_get_SSL_CTX(ssl);
 
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
@@ -321,10 +325,10 @@ end:
     }
 }
 
-int ssl_accept(glb_ctx *cc, io_handler *io, void *mech_ctx, void *auth_ctx,
+int ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx,
         struct timeval *timeout)
 {
-    SSL_ctx *ctx = (SSL_ctx *) mech_ctx;
+    SSL_CTX *ctx = NULL;
     SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
 
@@ -335,6 +339,10 @@ int ssl_accept(glb_ctx *cc, io_handler *io, void *mech_ctx, void *auth_ctx,
         err = EINVAL;
         goto end;
     }
+    if (auth_ctx == NULL)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+
+    ctx = SSL_get_SSL_CTX(ssl);
 
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
@@ -672,19 +680,27 @@ int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, struct time
  * ret = 0 connection closed successfully (one direction)
  * ret = 1 connection closed successfully (both directions)
  * ret < 0 error occured (e.g. timeout reached) */
-int ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
+int ssl_close(glb_ctx *cc, io_handler *io)
 {
-    SSL_ctx *ctx = (SSL_ctx *) mech_ctx;
-    SSL *ssl = (SSL *) auth_ctx;
+    SSL_CTX *ctx;
+    SSL *ssl = NULL;
     int timeout = DESTROY_TIMEOUT;
     time_t starttime, curtime;
     int expected = 0, error = 0, ret = 0, ret2 = 0;
     int fd;
     unsigned long ssl_err = 0;
 
-    if (!io->s_ctx->ssl_io) {
-        return 2;
-    }
+    if (!cc)
+        return EINVAL;
+    if (!io)
+        return set_error(cc, EINVAL, posix_error,
+			 "Connection not initialized");
+
+    ssl = io->s_ctx->ssl_io;
+    if (!ssl)
+	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+
+    ctx = SSL_get_SSL_CTX(ssl);
 
     fd = BIO_get_fd(SSL_get_rbio(io->s_ctx->ssl_io), NULL);
     curtime = starttime = time(NULL);

@@ -243,9 +243,11 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
         struct sockaddr s_addr, int flags, canl_principal *peer,
         struct timeval *timeout)
 {
-   int err = 0;
+    int err = 0;
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
+    struct canl_mech *mech = find_mech(GSS_C_NO_OID);
+    void *conn_ctx = NULL;
 
     if (!glb_cc) 
         return EINVAL; /* XXX Should rather be a CANL error */
@@ -255,19 +257,24 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->sock = new_fd;
 
-    err = ssl_server_init(glb_cc, glb_cc->ssl_ctx, (void **) &io_cc->s_ctx->ssl_io);
+    err = ssl_server_init(glb_cc, mech->global_context, &conn_ctx);
     if (err)
         goto end;
 
-    err = ssl_accept(glb_cc, io_cc, timeout); 
+    err = ssl_accept(glb_cc, io_cc, timeout, conn_ctx); 
     if (err)
 	goto end;
+
+    io_cc->authn_mech.ctx = conn_ctx;
+    io_cc->authn_mech.type = mech->mech;
 
     err = 0;
 
 end:
-    if (err)
+    if (err) {
         (io_cc)->sock = -1;
+	mech->free_ctx(glb_cc, conn_ctx);
+    }
 
     return err;
 }

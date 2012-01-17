@@ -67,7 +67,6 @@ typedef struct _glb_ctx
     unsigned long err_code;
     CANL_ERROR_ORIGIN err_orig;
     cert_key_store *cert_key;
-    SSL_CTX *ssl_ctx;
 } glb_ctx;
 
 typedef struct _ossl_ctx
@@ -148,8 +147,8 @@ int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name,
 int ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx);
 int ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx);
 int ssl_free(glb_ctx *cc, void *ctx);
-int ssl_connect(glb_ctx *cc, io_handler *io, struct timeval *timeout, const char * host);
-int ssl_accept(glb_ctx *cc, io_handler *io,
+int ssl_connect(glb_ctx *cc, io_handler *io, void *conn_ctx, struct timeval *timeout, const char * host);
+int ssl_accept(glb_ctx *cc, io_handler *io, void *conn_ctx,
         struct timeval *timeout);
 int ssl_read(glb_ctx *cc, io_handler *io, void *buffer, size_t size, 
         struct timeval *tout);
