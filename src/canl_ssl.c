@@ -18,7 +18,7 @@ int ssl_initialize()
     return 0;
 }
 
-int ssl_server_init(glb_ctx *cc)
+int ssl_server_init(glb_ctx *cc, void **ctx)
 {
     int err = 0;
     unsigned long ssl_err = 0;
@@ -26,6 +26,7 @@ int ssl_server_init(glb_ctx *cc)
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
     char *ca_cert_dirn = NULL;
     ca_cert_fn = user_cert_fn = user_key_fn = user_proxy_fn = NULL;
+    SSL_CTX *ssl_ctx = NULL;
 
     if (!cc) {
 	return EINVAL;
@@ -35,8 +36,8 @@ int ssl_server_init(glb_ctx *cc)
     //OpenSSL_add_all_ciphers();
     ERR_clear_error();
 
-    cc->ssl_ctx = SSL_CTX_new(SSL_SERVER_METH);
-    if (!cc->ssl_ctx){
+    ssl_ctx = SSL_CTX_new(SSL_SERVER_METH);
+    if (!ssl_ctx){
         err = ERR_get_error();
         e_orig = ssl_error;
         goto end;
@@ -61,14 +62,14 @@ int ssl_server_init(glb_ctx *cc)
     free(user_proxy_fn);
     user_proxy_fn = NULL;
 
-    SSL_CTX_load_verify_locations(cc->ssl_ctx, ca_cert_fn, ca_cert_dirn);
+    SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
     free(ca_cert_fn);
     ca_cert_fn = NULL;
     free(ca_cert_dirn);
     ca_cert_dirn = NULL;
 
-    //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
+    //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
     if (!err) {
         ssl_err = ERR_get_error();
         set_error(cc, ssl_err, e_orig, "no cipher to use");
@@ -76,15 +77,15 @@ int ssl_server_init(glb_ctx *cc)
     }
     err = 0;
 
-    //SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
-    //SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
+    //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
+    //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
     // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
-    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
+    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
     //SSL_CTX_set_verify_depth(ctx, 100);
-    SSL_CTX_set_cert_verify_callback(cc->ssl_ctx, proxy_app_verify_callback, 0);
+    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
     if (cc->cert_key) {
         if (cc->cert_key->cert) {
-            err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
+            err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
             if (err != 1) {
                 ssl_err = ERR_get_error();
                 e_orig = ssl_error;
@@ -94,7 +95,7 @@ int ssl_server_init(glb_ctx *cc)
                 err = 0;
         }
         if (cc->cert_key->key) {
-            err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
+            err = SSL_CTX_use_PrivateKey(ssl_ctx, cc->cert_key->key);
             if (err != 1) {
                 ssl_err = ERR_get_error();
                 e_orig = ssl_error;
@@ -109,15 +110,16 @@ int ssl_server_init(glb_ctx *cc)
         return 1;
     }
     /*Make sure the key and certificate file match*/
-    if ( (err = SSL_CTX_check_private_key(cc->ssl_ctx)) != 1) {
+    if ( (err = SSL_CTX_check_private_key(ssl_ctx)) != 1) {
         ssl_err = ERR_get_error();
         e_orig = ssl_error;
         set_error(cc, ssl_err, e_orig, "Private key does not match"
                 " the certificate public key"); 
         return 1;
     }
-    else
-        err = 0;
+
+    err = 0;
+    *ctx = ssl_ctx;
 
 end:
     if (ssl_err) {
@@ -131,7 +133,7 @@ end:
     return 0;
 }
 
-int ssl_client_init(glb_ctx *cc, io_handler *io)
+int ssl_client_init(glb_ctx *cc, void **ctx)
 {
     unsigned long ssl_err = 0;
     int err = 0;
@@ -139,22 +141,18 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
     char *ca_cert_dirn = NULL;
     ca_cert_fn = user_cert_fn = user_key_fn = user_proxy_fn = NULL;
+    SSL_CTX *ssl_ctx = NULL;
 
     if (!cc) {
         return EINVAL;
-    }
-    if (!io) {
-        err = EINVAL;
-        e_orig = posix_error;
-        goto end;
     }
 
     //OpenSSL_add_all_algorithms();
     //OpenSSL_add_all_ciphers();
     ERR_clear_error();
 
-    cc->ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
-    if (!cc->ssl_ctx){
+    ssl_ctx = SSL_CTX_new(SSL_CLIENT_METH);
+    if (!ssl_ctx){
         ssl_err = ERR_get_error();
         e_orig = ssl_error;
         goto end;
@@ -176,14 +174,14 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     free(user_proxy_fn);
     user_proxy_fn = NULL;
 
-    SSL_CTX_load_verify_locations(cc->ssl_ctx, ca_cert_fn, ca_cert_dirn);
+    SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
     free(ca_cert_fn);
     ca_cert_fn = NULL;
     free(ca_cert_dirn);
     ca_cert_dirn = NULL;
     
-    //err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    err = SSL_CTX_set_cipher_list(cc->ssl_ctx, "ALL");
+    //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
+    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
     if (!err) {
         ssl_err = ERR_get_error();
         set_error(cc, ssl_err, e_orig, "no cipher to use");
@@ -191,18 +189,18 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
     }
     err = 0;
 
-    //SSL_CTX_set_options(cc->ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
+    //SSL_CTX_set_options(ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS | SSL_OP_NO_SSLv2);
     //TODO testing 
-    SSL_CTX_set_verify(cc->ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
+    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
     //SSL_CTX_set_verify_depth(ctx, 100);
     //SSL_CTX_load_verify_locations(ctx, NULL, cacertdir);
-    //SSL_CTX_set_purpose(cc->ssl_ctx, X509_PURPOSE_ANY);
-    //SSL_CTX_set_mode(cc->ssl_ctx, SSL_MODE_AUTO_RETRY);
+    //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
+    //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
 
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
-            err = SSL_CTX_use_PrivateKey(cc->ssl_ctx, cc->cert_key->key);
+            err = SSL_CTX_use_PrivateKey(ssl_ctx, cc->cert_key->key);
             if (err != 1) {
                 ssl_err = ERR_get_error();
                 e_orig = ssl_error;
@@ -210,7 +208,7 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
             }
         }
         else if (cc->cert_key->cert) {
-            err = SSL_CTX_use_certificate(cc->ssl_ctx, cc->cert_key->cert);
+            err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
             if (err != 1) {
                 ssl_err = ERR_get_error();
                 e_orig = ssl_error;
@@ -218,6 +216,8 @@ int ssl_client_init(glb_ctx *cc, io_handler *io)
             }
         }
     }
+
+    *ctx = ssl_ctx;
 
 end:
     if (ssl_err) {

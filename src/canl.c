@@ -101,7 +101,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
         return set_error(glb_cc, EINVAL, posix_error, 
                 "IO handler not initialized");
 
-    err = ssl_client_init(glb_cc, io_cc);
+    err = ssl_client_init(glb_cc, (void **) &glb_cc->ssl_ctx);
     if (err)
 	return err;
 
@@ -235,7 +235,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->sock = new_fd;
 
-    err = ssl_server_init(glb_cc);
+    err = ssl_server_init(glb_cc, (void **) &glb_cc->ssl_ctx);
     if (err)
         goto end;
 
