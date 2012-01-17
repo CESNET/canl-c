@@ -12,13 +12,15 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
 canl_ctx canl_create_ctx()
 {
     glb_ctx *ctx = NULL;
+    int  i;
 
     /*create context*/
     ctx = (glb_ctx *) calloc(1, sizeof(*ctx));
     if (!ctx) 
         return NULL;
 
-    ssl_initialize();
+    for (i = 0; i < sizeof(mechs)/sizeof(mechs[0]); i++)
+	mechs[i]->initialize(&mechs[i]->global_context);
 
     return ctx;
 }
