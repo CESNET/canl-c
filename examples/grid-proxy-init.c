@@ -24,14 +24,6 @@ main(int argc, char *argv[])
 	return 1;
     }
 
-    ret = canl_req_gen_key(ctx, proxy_req, 1024);
-    if (ret) {
-	fprintf(stderr, "Failed to generate key-pair: %s\n",
-		canl_get_error_message(ctx));
-	ret = 1;
-	goto end;
-    }
-
 /* Create a new structure for the proxy certificate to be signed copying the key-pairs just created */
     ret = canl_cred_new(ctx, &proxy);
     ret = canl_cred_load_req(ctx, proxy, proxy_req);
