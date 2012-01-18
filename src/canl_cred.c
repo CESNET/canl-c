@@ -52,6 +52,10 @@ canl_cred_free(canl_ctx ctx, canl_cred cred)
         sk_X509_pop_free(crd->c_cert_chain, X509_free);
         crd->c_cert_chain = NULL;
     }
+    if (crd->c_req) {
+        X509_REQ_free(crd->c_req);
+        crd->c_req = NULL;
+    }
 
     free (crd);
     crd = NULL;
