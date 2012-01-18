@@ -24,12 +24,18 @@ typedef struct _creds {
     long c_lifetime;
     X509_EXTENSION * c_cert_ext;
     canl_cert_type c_type;
+    X509_REQ *c_req;
 } creds;
+
+typedef struct _request {
+    EVP_PKEY *c_key;
+    X509_REQ *c_req;
+} request;
 
 /* Routines to handle credentials */
 
 canl_err_code CANL_CALLCONV
-canl_cred_create(canl_ctx, canl_cred *);
+canl_cred_new(canl_ctx, canl_cred *);
 
 canl_err_code CANL_CALLCONV
 canl_cred_free(canl_ctx, canl_cred);

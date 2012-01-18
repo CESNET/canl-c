@@ -2,7 +2,7 @@
 #include "canl_cred.h"
 
 canl_err_code CANL_CALLCONV
-canl_cred_create(canl_ctx ctx, canl_cred * cred)
+canl_cred_new(canl_ctx ctx, canl_cred * cred)
 {
     glb_ctx *cc = ctx;
     creds *crd = NULL;
