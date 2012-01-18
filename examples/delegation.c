@@ -17,7 +17,7 @@ main(int argc, char *argv[])
     ctx = canl_create_ctx();
 
 /* Bob - after Alice has asked to delegate her credentials */
-    ret = canl_req_create(ctx, &proxy_req);
+    ret = canl_req_new(ctx, &proxy_req);
     ret = canl_req_gen_key(ctx, proxy_req, 1024);
     ret = canl_req_get_req(ctx, proxy_req, &req);
 
@@ -25,13 +25,13 @@ main(int argc, char *argv[])
 
 /* Alice - after receiving the CSR from Bob. (The private key stays with Bob.) */
     {
-	ret = canl_cred_create(ctx, &signer);
+	ret = canl_cred_new(ctx, &signer);
 	ret = canl_cred_load_cert_file(ctx, signer, "$HOME/.globus/usercert.pem");
 	ret = canl_cred_load_priv_key_file(ctx, signer, "$HOME/.globus/userkey.pem",
 			  		   NULL, NULL);
 
 	/* deserialize 'req' from Bob */
-	ret = canl_cred_create(ctx, &proxy_cert);
+	ret = canl_cred_new(ctx, &proxy_cert);
 	ret = canl_cred_load_req(ctx, proxy_cert, req);
 	ret = canl_cred_set_lifetime(ctx, proxy_cert, 60*10);
 	ret = canl_cred_set_cert_type(ctx, proxy_cert, CANL_RFC);
@@ -45,7 +45,7 @@ main(int argc, char *argv[])
 /* Bob - on receiving the final certificate and chain */
     /* deserialize the new proxy cert and chain from Alice */
 
-    ret = canl_cred_create(ctx, &proxy);
+    ret = canl_cred_new(ctx, &proxy);
     ret = canl_cred_load_req(ctx, proxy, proxy_req);
     ret = canl_cred_load_cert(ctx, proxy, x509_cert);
     ret = canl_cred_load_chain(ctx, proxy, x509_chain);

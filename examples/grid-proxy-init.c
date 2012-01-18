@@ -33,13 +33,13 @@ main(int argc, char *argv[])
     }
 
 /* Create a new structure for the proxy certificate to be signed copying the key-pairs just created */
-    ret = canl_cred_create(ctx, &proxy);
+    ret = canl_cred_new(ctx, &proxy);
     ret = canl_cred_load_req(ctx, proxy, proxy_req);
     ret = canl_cred_set_lifetime(ctx, proxy, 60*10);
     ret = canl_cred_set_cert_type(ctx, proxy, CANL_RFC);
 
 /* Load the signing credentials */
-    ret = canl_cred_create(ctx, &signer);
+    ret = canl_cred_new(ctx, &signer);
     ret = canl_cred_load_cert_file(ctx, signer, "$HOME/.globus/usercert.pem");
     ret = canl_cred_load_priv_key_file(ctx, signer, "$HOME/.globus/userkey.pem", NULL, NULL);
     /* export lookup routines ?? */
