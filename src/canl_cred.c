@@ -16,9 +16,10 @@ canl_cred_new(canl_ctx ctx, canl_cred * cred)
 
     /*create new cred. handler*/
     crd = (creds *) calloc(1, sizeof(*crd));
-    if (crd)
+    if (!crd)
         return set_error(cc, ENOMEM, posix_error, "Not enough memory");
 
+    *cred = crd;
     return 0;
 }
 
@@ -150,33 +151,81 @@ canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
 
 /* handle requests*/
 canl_err_code CANL_CALLCONV
-canl_req_create(canl_ctx ctx, canl_x509_req *c_req)
+canl_req_create(canl_ctx ctx, canl_x509_req *ret_req, unsigned int bits)
 {
-    return ENOSYS; 
-}
+    glb_ctx *cc = (glb_ctx*) ctx;
+    request *req = NULL;
+    int ret = 0;
 
-canl_err_code CANL_CALLCONV
-canl_req_create_req(canl_ctx ctx, canl_x509_req *c_req, X509_REQ *req)
-{
-    return ENOSYS; 
+    if (!ctx)
+        return EINVAL;
+
+    if (!ret_req)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+
+    /*create new cred. handler*/
+    req = (request *) calloc(1, sizeof(*req));
+    if (!req)
+        return set_error(cc, ENOMEM, posix_error, "Not enough memory");
+
+    /*TODO 1st NULL may invoke callback to ask user for new name*/
+    ret = proxy_genreq(NULL,&req->c_req, &req->c_key, bits, NULL, NULL);
+    if (ret)
+        
+    *ret_req = req;
+
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
 canl_req_free(canl_ctx ctx, canl_x509_req c_req)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    request *req = (request*) c_req;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!c_req)
+        return set_error(cc, EINVAL, posix_error, "Request handler"
+                " not initialized" );
+
+    /* Delete contents*/
+    if (req->c_key) {
+        EVP_PKEY_free(req->c_key);
+        req->c_key = NULL;
+    }
+    if (req->c_req) {
+        X509_REQ_free(req->c_req);
+        req->c_req = NULL;
+    }
+
+    free (req);
+    req = NULL;
+
+    return 0;
+
+
 }
 
 canl_err_code CANL_CALLCONV
-canl_req_gen_key(canl_ctx ctx, canl_x509_req c_req, unsigned int bits)
+canl_req_get_req(canl_ctx ctx, canl_x509_req req_in, X509_REQ ** req_ret)
 {
-    return ENOSYS; 
-}
+    glb_ctx *cc = (glb_ctx*) ctx;
+    request *req = (request*) req_in;
 
-canl_err_code CANL_CALLCONV
-canl_req_get_req(canl_ctx ctx, canl_x509_req c_req, X509_REQ ** req_stack)
-{
-    return ENOSYS; 
+    if (!ctx)
+        return EINVAL;
+    if (!req || !req->c_req)
+        return set_error(cc, EINVAL, posix_error, "Request handler"
+                " not initialized" );
+    if (!req_ret)
+        return set_error(cc, EINVAL, posix_error, "Request handler"
+                " not initialized" );
+    
+    *req_ret = X509_REQ_dup(req->c_req);
+    return 0;
 }
 
 #if 0
