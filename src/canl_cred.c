@@ -117,14 +117,28 @@ canl_cred_load_priv_key_file(canl_ctx ctx, canl_cred cred, const char *pkey_file
         return set_error(cc, EINVAL, posix_error, "Invalid filename");
 
     ret = set_key_file(cc, &crd->c_key, pkey_file);
-    
+
     return ret;
 }
 
 canl_err_code CANL_CALLCONV
 canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+  
+    if (!cert_stack)
+        return set_error(cc, EINVAL, posix_error, "Invalid stack value");
+
+    /*TODO is there ossl API for duplicate STACK_OF ?*/
+    return ENOSYS;
 }
 
 canl_err_code CANL_CALLCONV
@@ -135,14 +149,51 @@ canl_cred_load_chain_file(canl_ctx ctx, canl_cred cred, const char *chain_file)
 
 canl_err_code CANL_CALLCONV
 canl_cred_load_cert(canl_ctx ctx, canl_cred cred, X509 *cert)
-{
-    return ENOSYS; 
+{ 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+  
+    if (!cert)
+        return set_error(cc, EINVAL, posix_error, "Invalid cert. file name");
+
+    if (crd->c_cert) {
+        X509_free(crd->c_cert);
+        crd->c_cert = NULL;
+    }
+
+    crd->c_cert = X509_dup(cert);
+    if (crd->c_cert)
+        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+                " certificate" ); //TODO check ret val
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
-canl_cred_load_cert_file(canl_ctx ctx, canl_cred cred, const char * cert_file)
+canl_cred_load_cert_file(canl_ctx ctx, canl_cred cred, const char *cert_file)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    int ret = 0;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    if (!cert_file)
+        return set_error(cc, EINVAL, posix_error, "Invalid filename");
+
+    ret = set_cert_file(cc, &crd->c_cert, cert_file);
+
+    return ret;
 }
 
 canl_err_code CANL_CALLCONV
