@@ -140,4 +140,9 @@ void free_hostent(struct hostent *h); //TODO is there some standard funcion to f
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);
 
+/*TODO maybe move to another haeder file*/
+int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key);
+int set_key_file(glb_ctx *cc, EVP_PKEY **to, char *key);
+int set_cert_file(glb_ctx *cc, X509 **to, char *cert);
+
 #endif

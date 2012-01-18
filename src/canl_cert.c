@@ -1,8 +1,10 @@
 #include "canl_locl.h"
 
+#if 0
 static int set_cert(glb_ctx *cc, X509 *cert);
-static int set_key_file(glb_ctx *cc, char *key);
-static int set_cert_file(glb_ctx *cc, char *cert);
+#endif
+int set_key_file(glb_ctx *cc, EVP_PKEY **to, char *key);
+int set_cert_file(glb_ctx *cc, X509 **to, char *cert);
 
 #if 0
 //TODO just stub
@@ -34,7 +36,6 @@ int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain,
 */
     return 0;
 }
-#endif
 
 static int set_cert(glb_ctx *cc, X509 *cert)
 {
@@ -56,6 +57,7 @@ end:
         set_error(cc, err, err_orig, "cannot get certificate");
     return err;
 }
+#endif
 
 //TODO cert
 int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
@@ -72,28 +74,28 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
 
     /* otherwise the private key is in cert file*/
     if (key) {
-        err = set_key_file(cc, key);
+        err = set_key_file(cc, &cc->cert_key->key, key);
         if (err)
             return err;
     }
 
     if (cert) {
-        err = set_cert_file(cc, cert);
+        err = set_cert_file(cc, &cc->cert_key->cert, cert);
         if (err)
             return err;
     }
     return 0;
 }
 
-static int set_key_file(glb_ctx *cc, char *key)
+int set_key_file(glb_ctx *cc, EVP_PKEY **to, char *key)
 {
     unsigned long ssl_err = 0;
     int err = 0;
     FILE * key_file = NULL;
 
-    if (cc->cert_key->key) {
-        EVP_PKEY_free(cc->cert_key->key);
-        cc->cert_key->key = NULL;
+    if (*to) {
+        EVP_PKEY_free(*to);
+        *to = NULL;
     }
     key_file = fopen(key, "rb");
     if (!key_file) {
@@ -105,8 +107,8 @@ static int set_key_file(glb_ctx *cc, char *key)
     ERR_clear_error();
 
     /*TODO NULL NULL, callback and user data*/
-    cc->cert_key->key = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
-    if (!cc->cert_key->key) {
+    *to = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
+    if (!(*to)) {
         ssl_err = ERR_peek_error();
         set_error(cc, ssl_err, ssl_error, "error while writing key to context");
         goto end;
@@ -126,16 +128,16 @@ end:
     return 1;
 }
 
-static int set_cert_file(glb_ctx *cc, char *cert)
+int set_cert_file(glb_ctx *cc, X509 **to, char *cert)
 {
     unsigned long ssl_err = 0;
     int err = 0;
     FILE * cert_file = NULL;
 
 
-    if (cc->cert_key->cert) {
-        X509_free(cc->cert_key->cert);
-        cc->cert_key->cert = NULL;
+    if (*to) {
+        X509_free(*to);
+        *to = NULL;
     }
     cert_file = fopen(cert, "rb");
     if (!cert_file) {
@@ -146,8 +148,8 @@ static int set_cert_file(glb_ctx *cc, char *cert)
     
     ERR_clear_error();
     /*TODO NULL NULL, callback and user data*/
-    cc->cert_key->cert = PEM_read_X509(cert_file, NULL, NULL, NULL);
-    if (!cc->cert_key->cert) {
+    *to = PEM_read_X509(cert_file, NULL, NULL, NULL);
+    if (!(*to)) {
         ssl_err = ERR_get_error();
         set_error(cc, ssl_err, ssl_error, "error while writing certificate"
                 " to context"); 
