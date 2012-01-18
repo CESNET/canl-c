@@ -278,14 +278,66 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
 
 canl_err_code CANL_CALLCONV
 canl_cred_save_cert(canl_ctx ctx, canl_cred cred, X509 ** cert)
-{
-    return ENOSYS; 
+{ 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    if (!cert)
+        return set_error(cc, EINVAL, posix_error, "Invalid cert."
+                " handler");
+ 
+    if (*cert) {
+        X509_free(*cert);
+        *cert = NULL;
+    }
+
+    *cert = X509_dup(crd->c_cert);
+    if (*cert)
+        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+                " certificate" ); //TODO check ret val
+ 
+    return 0; 
 }
 
 canl_err_code CANL_CALLCONV
 canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    int count = 0;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+  
+    if (!cert_stack)
+        return set_error(cc, EINVAL, posix_error, "Invalid stack value");
+
+    if (!crd->c_cert_chain)
+        return 0; //TODO is empty cert_stack error?
+
+    count = sk_X509_num(crd->c_cert_chain);
+    if (!count)
+        return 0; //TODO is empty cert_stack error?
+    
+    if (*cert_stack) {
+        sk_X509_pop_free(*cert_stack, X509_free);
+        *cert_stack = NULL;
+    }
+    *cert_stack = sk_X509_dup(crd->c_cert_chain);
+    if (*cert_stack)
+        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+                " certificate chain" ); //TODO check ret val
+    return 0;
 }
 
 /* handle requests*/
