@@ -142,7 +142,7 @@ int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name,
 
 /*TODO maybe move to another haeder file*/
 int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key);
-int set_key_file(glb_ctx *cc, EVP_PKEY **to, char *key);
-int set_cert_file(glb_ctx *cc, X509 **to, char *cert);
+int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key);
+int set_cert_file(glb_ctx *cc, X509 **to, const char *cert);
 
 #endif

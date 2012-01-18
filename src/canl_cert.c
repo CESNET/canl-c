@@ -2,11 +2,6 @@
 
 #if 0
 static int set_cert(glb_ctx *cc, X509 *cert);
-#endif
-int set_key_file(glb_ctx *cc, EVP_PKEY **to, char *key);
-int set_cert_file(glb_ctx *cc, X509 **to, char *cert);
-
-#if 0
 //TODO just stub
 int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain, 
         canl_pkey key)
@@ -87,7 +82,7 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
     return 0;
 }
 
-int set_key_file(glb_ctx *cc, EVP_PKEY **to, char *key)
+int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key)
 {
     unsigned long ssl_err = 0;
     int err = 0;
@@ -128,7 +123,7 @@ end:
     return 1;
 }
 
-int set_cert_file(glb_ctx *cc, X509 **to, char *cert)
+int set_cert_file(glb_ctx *cc, X509 **to, const char *cert)
 {
     unsigned long ssl_err = 0;
     int err = 0;
