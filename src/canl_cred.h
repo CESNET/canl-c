@@ -70,13 +70,13 @@ canl_err_code CANL_CALLCONV
 canl_cred_load_cert_pkcs11(canl_ctx, canl_cred, const char *);
 
 canl_err_code CANL_CALLCONV
-canl_cred_set_lifetime(canl_ctx, canl_cred, long);
+canl_cred_set_lifetime(canl_ctx, canl_cred, const long);
 
 canl_err_code CANL_CALLCONV
 canl_cred_set_extension(canl_ctx, canl_cred, X509_EXTENSION *);
 
 canl_err_code CANL_CALLCONV
-canl_cred_set_cert_type(canl_ctx, canl_cred, enum canl_cert_type);
+canl_cred_set_cert_type(canl_ctx, canl_cred, const enum canl_cert_type);
 
 canl_err_code CANL_CALLCONV
 canl_cred_sign_proxy(canl_ctx, canl_cred, canl_cred);

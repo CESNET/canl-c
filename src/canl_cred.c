@@ -209,21 +209,59 @@ canl_cred_load_cert_file(canl_ctx ctx, canl_cred cred, const char *cert_file)
 }
 
 canl_err_code CANL_CALLCONV
-canl_cred_set_lifetime(canl_ctx ctx, canl_cred cred, long lifetime)
+canl_cred_set_lifetime(canl_ctx ctx, canl_cred cred, const long lifetime)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    crd->c_lifetime = lifetime;
+    return 0;
 }
 
+/*TODO rather use STACK_OF(X509_EXTENSION) ???*/
 canl_err_code CANL_CALLCONV
 canl_cred_set_extension(canl_ctx ctx, canl_cred cred, X509_EXTENSION *cert_ext)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    
+    if (crd->c_cert_ext) {
+        X509_EXTENSION_free(crd->c_cert_ext);
+        crd->c_cert_ext = NULL;
+    }
+    
+    crd->c_cert_ext = X509_EXTENSION_dup(cert_ext);
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
-canl_cred_set_cert_type(canl_ctx ctx, canl_cred cred, enum canl_cert_type cert_type)
-{
-    return ENOSYS; 
+canl_cred_set_cert_type(canl_ctx ctx, canl_cred cred, 
+        const enum canl_cert_type cert_type)
+{    
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    crd->c_type = cert_type;
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
