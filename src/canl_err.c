@@ -163,7 +163,7 @@ static void get_error_string(glb_ctx *cc, char *code_str)
                 code_str[ERR_CODE_LEN - 1] = '\0';
             }
         case netdb_error:
-            new_str = hstrerror(cc->err_code);
+            new_str = (char *) hstrerror(cc->err_code);
             if (new_str) {
                 strncpy(code_str, new_str,
                         ERR_CODE_LEN);

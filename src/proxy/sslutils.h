@@ -530,6 +530,10 @@ STACK_OF(X509) *load_chain(BIO *in, char*);
 
 int my_txt2nid(char *name);
 
+int
+hex2num(char c);
+
+
 EXTERN_C_END
 
 #endif /* _SSLUTILS_H */

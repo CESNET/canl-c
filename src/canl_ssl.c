@@ -261,10 +261,8 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
     X509_EXTENSION *ext = NULL;
     int i = 0;
     GENERAL_NAMES *ialt = NULL;
-    unsigned char *pBuffer = NULL;
+    char *pBuffer = NULL;
     int correspond = 0;
-    struct sockaddr *addr = NULL;
-    socklen_t addrlen = 0;
     X509_NAME *sn = NULL;
 
     /*if extensions are present, hostname has to correspond
@@ -732,11 +730,12 @@ ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
     
     /* check the shutdown state*/
     ret = SSL_get_shutdown(ssl);
-    if (ret & SSL_SENT_SHUTDOWN)
+    if (ret & SSL_SENT_SHUTDOWN) {
         if (ret & SSL_RECEIVED_SHUTDOWN)
             return 1;
         else
             return 0;
+    }
     /* TODO check the proper states, maybe also call SSL_shutdown
     if (ret & SSL_RECEIVED_SHUTDOWN) {
         return 0;
