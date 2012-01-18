@@ -126,6 +126,7 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd = (creds*) cred;
+    int count = 0;
 
     if (!ctx)
         return EINVAL;
@@ -137,8 +138,19 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
     if (!cert_stack)
         return set_error(cc, EINVAL, posix_error, "Invalid stack value");
 
-    /*TODO is there ossl API for duplicate STACK_OF ?*/
-    return ENOSYS;
+    count = sk_X509_num(cert_stack);
+    if (!count)
+        return 0; //TODO is empty cert_stack error?
+    
+    if (crd->c_cert_chain) {
+        sk_X509_pop_free(crd->c_cert_chain, X509_free);
+        crd->c_cert_chain = NULL;
+    }
+    crd->c_cert_chain = sk_X509_dup(cert_stack);
+    if (crd->c_cert_chain)
+        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+                " certificate chain" ); //TODO check ret val
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
