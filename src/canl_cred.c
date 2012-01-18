@@ -73,14 +73,52 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
 canl_err_code CANL_CALLCONV
 canl_cred_load_req(canl_ctx ctx, canl_cred cred, canl_x509_req req)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    request *rqst = (request *) req;
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    if (!rqst || rqst->c_req)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+
+    if (crd->c_req) {
+        X509_REQ_free(crd->c_req);
+        crd->c_req = NULL;
+    }
+
+    crd->c_req = X509_REQ_dup(rqst->c_req);
+    if (!crd->c_req)
+        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+                " X509 request handler" ); //TODO check ret val
+
+    return 0;    
 }
 
 canl_err_code CANL_CALLCONV
-canl_cred_load_priv_key_file(canl_ctx ctx, canl_cred cred, const char * pkey_file,
-			     canl_password_callback pass_clb, void * arg)
+canl_cred_load_priv_key_file(canl_ctx ctx, canl_cred cred, const char *pkey_file,
+        canl_password_callback pass_clb, void *arg)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    int ret = 0;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+                " not initialized" );
+    if (!pkey_file)
+        return set_error(cc, EINVAL, posix_error, "Invalid filename");
+
+    ret = set_key_file(cc, &crd->c_key, pkey_file);
+    
+    return ret;
 }
 
 canl_err_code CANL_CALLCONV
@@ -225,6 +263,9 @@ canl_req_get_req(canl_ctx ctx, canl_x509_req req_in, X509_REQ ** req_ret)
                 " not initialized" );
     
     *req_ret = X509_REQ_dup(req->c_req);
+    if (*req_ret)
+        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+                " X509 request handler" ); //TODO check ret val
     return 0;
 }
 
