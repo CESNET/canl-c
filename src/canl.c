@@ -151,6 +151,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 		if (err)
 		    continue;
 
+		/* XXX: "break" on success! */
 		err = mech->connect(glb_cc, io_cc, ctx, timeout, host); //TODO timeout
 		if (err) {
 		    mech->free_ctx(glb_cc, ctx);

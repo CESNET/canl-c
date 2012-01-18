@@ -283,7 +283,7 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
 #ifdef DEBUG
                     printf(" %s",pBuffer);
 #endif
-                    if (!strcmp(pBuffer, host)) { //TODO substr maybe
+                    if (!strcmp(pBuffer, host)) {
                         correspond = 1;
                         OPENSSL_free(pBuffer);
                         pBuffer = NULL;
