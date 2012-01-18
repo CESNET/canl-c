@@ -80,16 +80,10 @@ canl_cred_save_chain(canl_ctx, canl_cred, STACK_OF(X509) **);
 /* Routines to handle X.509 requests */
 
 canl_err_code CANL_CALLCONV
-canl_req_create(canl_ctx, canl_x509_req *);
-
-canl_err_code CANL_CALLCONV
-canl_req_create_req(canl_ctx, canl_x509_req *, X509_REQ *);
+canl_req_create(canl_ctx, canl_x509_req *, unsigned int);
 
 canl_err_code CANL_CALLCONV
 canl_req_free(canl_ctx, canl_x509_req);
-
-canl_err_code CANL_CALLCONV
-canl_req_gen_key(canl_ctx, canl_x509_req, unsigned int);
 
 canl_err_code CANL_CALLCONV
 canl_req_get_req(canl_ctx, canl_x509_req, X509_REQ **);
