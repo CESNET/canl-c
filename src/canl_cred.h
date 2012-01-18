@@ -51,6 +51,10 @@ canl_cred_load_priv_key_file(canl_ctx, canl_cred, const char *,
 			     canl_password_callback, void *);
 
 canl_err_code CANL_CALLCONV
+canl_cred_load_priv_key_pkcs11(canl_ctx, canl_cred, const char *,
+			       canl_password_callback, void *);
+
+canl_err_code CANL_CALLCONV
 canl_cred_load_chain(canl_ctx, canl_cred, STACK_OF(X509) *);
 
 canl_err_code CANL_CALLCONV
@@ -61,6 +65,9 @@ canl_cred_load_cert(canl_ctx, canl_cred, X509 *);
 
 canl_err_code CANL_CALLCONV
 canl_cred_load_cert_file(canl_ctx, canl_cred, const char *);
+
+canl_err_code CANL_CALLCONV
+canl_cred_load_cert_pkcs11(canl_ctx, canl_cred, const char *);
 
 canl_err_code CANL_CALLCONV
 canl_cred_set_lifetime(canl_ctx, canl_cred, long);
