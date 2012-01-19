@@ -8,7 +8,7 @@ print STDOUT qq (/*
  * Automatically generated file. Don't edit.
  */
 
-typedef enum _CANL_ERROR {);
+typedef enum canl_error {);
 
 while (<STDIN>) {
     chomp;
@@ -19,5 +19,5 @@ while (<STDIN>) {
 }
 
 print STDOUT qq (
-} CANL_ERROR;
+} canl_error;
 );

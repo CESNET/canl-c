@@ -18,7 +18,7 @@ typedef void *canl_io_handler;
 typedef void *canl_ctx;
 typedef void *canl_principal;
 
-typedef long canl_err_code;
+typedef unsigned long canl_err_code;
 
 typedef char (*canl_password_callback)(canl_ctx cc, void *userdata);
 

@@ -1,7 +1,6 @@
 #ifndef _CANL_LOCL_H
 #define _CANL_LOCL_H
 
-
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
@@ -21,31 +20,27 @@
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <string.h>
 
 #include "sslutils.h"
-
-
 #include "canl.h"
 
 typedef struct canl_err_desc {
-    CANL_ERROR code;
+    canl_error code;
     const char *desc;
     unsigned long openssl_lib;
     unsigned long openssl_reason;
 } canl_err_desc;
 
-typedef enum _CANL_ERROR_ORIGIN
-{
-    unknown_error = 0,
-    posix_error = 1,
-    ssl_error,
-    canl_error,
-    netdb_error,
-} CANL_ERROR_ORIGIN;
+typedef enum canl_error_origin {
+    UNKNOWN_ERROR = 0,
+    POSIX_ERROR,
+    SSL_ERROR,
+    CANL_ERROR,
+    NETDB_ERROR,
+} canl_error_origin;
 
 typedef enum _CANL_AUTH_MECHANISM
 {
@@ -65,7 +60,7 @@ typedef struct _glb_ctx
 {
     char * err_msg;
     unsigned long err_code;
-    CANL_ERROR_ORIGIN err_orig;
+    canl_error_origin err_orig;
     cert_key_store *cert_key;
 } glb_ctx;
 
@@ -132,10 +127,10 @@ find_mech(gss_OID oid);
 extern struct canl_mech canl_mech_ssl;
 
 void reset_error (glb_ctx *cc, unsigned long err_code);
-int set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
-        const char *err_format, ...);
-int update_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
-	const char *err_format, ...);
+canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
+	canl_error_origin err_orig, const char *err_format, ...);
+canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
+	canl_error_origin err_orig, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);

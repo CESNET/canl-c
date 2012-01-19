@@ -30,7 +30,7 @@ ssl_initialize(glb_ctx *cc, void **ctx)
 
     ssl_ctx = SSL_CTX_new(SSLv23_method());
     if (!ssl_ctx)
-	return set_error(cc, ERR_get_error(), ssl_error,
+	return set_error(cc, ERR_get_error(), SSL_ERROR,
 			 "Cannot initialize SSL context");
     SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2);
 
@@ -46,7 +46,7 @@ ssl_initialize(glb_ctx *cc, void **ctx)
     //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
     err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
     if (!err) {
-	err = set_error(cc, ERR_get_error(), ssl_error,
+	err = set_error(cc, ERR_get_error(), SSL_ERROR,
 			"No cipher to use");
 	goto end;
     }
@@ -77,7 +77,7 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 	return EINVAL;
 
     if (ssl_ctx == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
 #if 0
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
@@ -102,7 +102,7 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 
     ssl = SSL_new(ssl_ctx);
     if (ssl == NULL)
-	return set_error(cc, ERR_get_error(), ssl_error,
+	return set_error(cc, ERR_get_error(), SSL_ERROR,
 		         "Failed to create SSL connection context");
 
     /* XXX: should be only defined on the SSL level: */
@@ -120,7 +120,7 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
             err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
             if (err != 1) {
                 ssl_err = ERR_get_error();
-                e_orig = ssl_error;
+                e_orig = SSL_ERROR;
                 goto end;
             }
             else
@@ -130,7 +130,7 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
             err = SSL_CTX_use_PrivateKey(ssl_ctx, cc->cert_key->key);
             if (err != 1) {
                 ssl_err = ERR_get_error();
-                e_orig = ssl_error;
+                e_orig = SSL_ERROR;
                 goto end;
             }
             else
@@ -138,13 +138,13 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
         }
     }
     else {
-        set_error(cc, err, unknown_error, "server key or certificate missing");
+        set_error(cc, err, UNKNOWN_ERROR, "server key or certificate missing");
         return 1;
     }
     /*Make sure the key and certificate file match*/
     if ( (err = SSL_CTX_check_private_key(ssl_ctx)) != 1) {
         ssl_err = ERR_get_error();
-        e_orig = ssl_error;
+        e_orig = SSL_ERROR;
         set_error(cc, ssl_err, e_orig, "Private key does not match"
                 " the certificate public key"); 
         return 1;
@@ -166,11 +166,11 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 	return EINVAL;
 
     if (ssl_ctx == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
     ssl = SSL_new(ssl_ctx);
     if (ssl == NULL)
-	return set_error(cc, ERR_get_error(), ssl_error,
+	return set_error(cc, ERR_get_error(), SSL_ERROR,
 		         "Failed to create SSL connection context");
 
     SSL_set_connect_state(ssl);
@@ -198,7 +198,7 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
             err = SSL_CTX_use_PrivateKey(ssl_ctx, cc->cert_key->key);
             if (err != 1) {
                 ssl_err = ERR_get_error();
-                e_orig = ssl_error;
+                e_orig = SSL_ERROR;
                 goto end;
             }
         }
@@ -206,7 +206,7 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
             err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
             if (err != 1) {
                 ssl_err = ERR_get_error();
-                e_orig = ssl_error;
+                e_orig = SSL_ERROR;
                 goto end;
             }
         }
@@ -233,7 +233,7 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
         goto end;
     }
     if (ssl == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
     ctx = SSL_get_SSL_CTX(ssl);
 
@@ -317,7 +317,7 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
             }
         }
         else
-            return set_error(cc, CANL_ERR_unknownMsg, canl_error,
+            return set_error(cc, CANL_ERR_unknownMsg, CANL_ERROR,
                     "Common name entry does not exist"); //TODO check
     }
 
@@ -326,7 +326,7 @@ end:
     if (correspond)
         return 0;
     else {
-        return set_error(cc, CANL_ERR_unknownMsg, canl_error, 
+        return set_error(cc, CANL_ERR_unknownMsg, CANL_ERROR, 
                 "Cannot validate server hostname against its certificate" );
         //TODO check
     }
@@ -347,7 +347,7 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
         goto end;
     }
     if (auth_ctx == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
     ctx = SSL_get_SSL_CTX(ssl);
 
@@ -432,7 +432,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
     int err = 0;
-    CANL_ERROR_ORIGIN e_orig = unknown_error;
+    canl_error_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -451,7 +451,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
             ret2 = SSL_connect(ssl);
             if (ret2 < 0) {
                 ssl_err = ERR_get_error();
-                e_orig = ssl_error;
+                e_orig = SSL_ERROR;
             }
             expected = errorcode = SSL_get_error(ssl, ret2);
         }
@@ -464,16 +464,16 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
             timeout->tv_sec=0;
             timeout->tv_usec=0;
             err = ETIMEDOUT; 
-            set_error (cc, err, posix_error, "Connection stuck during"
+            set_error (cc, err, POSIX_ERROR, "Connection stuck during"
 		   " handshake: timeout reached");
         }
         else if (ret2 < 0)
             return set_error(cc, ssl_err, e_orig, "Error during SSL handshake");
         else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
-            set_error (cc, 0, ssl_error, "Connection closed"
+            set_error (cc, 0, SSL_ERROR, "Connection closed"
                     " by the other side");
         else
-            set_error (cc, err, unknown_error, "Error during SSL handshake");
+            set_error (cc, err, UNKNOWN_ERROR, "Error during SSL handshake");
         return 1;
     }
     return 0;
@@ -486,7 +486,7 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
     int err = 0;
-    CANL_ERROR_ORIGIN e_orig = unknown_error;
+    canl_error_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -505,7 +505,7 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
             ret2 = SSL_accept(ssl);
             if (ret2 < 0) {
                 ssl_err = ERR_peek_error();
-                e_orig = ssl_error;
+                e_orig = SSL_ERROR;
             }
             expected = errorcode = SSL_get_error(ssl, ret2);
         }
@@ -525,14 +525,14 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
             timeout->tv_sec=0;
             timeout->tv_usec=0;
             err = ETIMEDOUT;
-            set_error (cc, err, posix_error, "Connection stuck"
+            set_error (cc, err, POSIX_ERROR, "Connection stuck"
                     " during handshake: timeout reached"); 
         }
         else if (ret2 <= 0)
-            set_error (cc, ssl_err, ssl_error, "Connection closed by"
+            set_error (cc, ssl_err, SSL_ERROR, "Connection closed by"
 		    " the other side");
 	else
-	    set_error (cc, 0, unknown_error, "Error during SSL handshake");
+	    set_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake");
         return 1;
     }
     return 0;
@@ -559,11 +559,11 @@ ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	return EINVAL;
 
     if (io == NULL)
-	return set_error(cc, EINVAL, posix_error,
+	return set_error(cc, EINVAL, POSIX_ERROR,
 			 "Connection not established");
 
     if (ssl == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
     fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     str = buffer;//TODO !!!!!! text.c_str();
@@ -622,18 +622,18 @@ ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
 end:
     if (err) {
         errno = err;
-        set_error (cc, err, posix_error, "Error during SSL write"); 
+        set_error (cc, err, POSIX_ERROR, "Error during SSL write"); 
         return -1;
     }
     if (touted){
        err = ETIMEDOUT;
-       set_error(cc, err, posix_error, "Connection stuck during"
+       set_error(cc, err, POSIX_ERROR, "Connection stuck during"
                " write: timeout reached"); 
        return -1;
     }
     if (ret <=0){
         err = -1;//TODO what to assign??????
-        set_error (cc, err, unknown_error, "Error during SSL write");
+        set_error (cc, err, UNKNOWN_ERROR, "Error during SSL write");
     }
     return ret;
 }
@@ -655,11 +655,11 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	return EINVAL;
 
     if (io == NULL)
-	return set_error(cc, EINVAL, posix_error,
+	return set_error(cc, EINVAL, POSIX_ERROR,
 			 "Connection not established");
 
     if (ssl == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
     fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     str = buffer;//TODO !!!!!! text.c_str();
@@ -689,11 +689,11 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
     if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
         err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
-            set_error(cc, ETIMEDOUT, posix_error, "Connection stuck"
+            set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
                    " during read: timeout reached");
         }
         else
-            set_error(cc, err, unknown_error, "Error during SSL read");
+            set_error(cc, err, UNKNOWN_ERROR, "Error during SSL read");
     }
     else
         err = ret2;
@@ -718,10 +718,10 @@ ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
     if (!cc)
         return EINVAL;
     if (!io)
-        return set_error(cc, EINVAL, posix_error,
+        return set_error(cc, EINVAL, POSIX_ERROR,
 			 "Connection not initialized");
     if (ssl == NULL)
-	return set_error(cc, EINVAL, posix_error, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
     ctx = SSL_get_SSL_CTX(ssl);
 
@@ -755,20 +755,20 @@ ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
 
     if (timeout != -1 && (curtime - starttime >= timeout)){
-        set_error(cc, ETIMEDOUT, posix_error, "Connection stuck"
+        set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
                 " during ssl shutdown : timeout reached");
         return -1;
     }
     /* TODO set_error*/
     if (ret < 0) {
-        set_error(cc, 0, unknown_error, "Error during SSL shutdown");
+        set_error(cc, 0, UNKNOWN_ERROR, "Error during SSL shutdown");
         return -1;
     }
     /* successful shutdown (uni/bi directional)*/
     if (ret2 == 0 || ret2 == 1)
         return ret2;
     else {
-        set_error(cc, ssl_err, ssl_error, "Error during SSL shutdown");
+        set_error(cc, ssl_err, SSL_ERROR, "Error during SSL shutdown");
         return -1;
     }
 }
@@ -797,7 +797,7 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
     if (!cc)
         return EINVAL;
     if(!cert ) {
-        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value");
+        set_error(glb_cc, EINVAL, POSIX_ERROR, "invalid parameter value");
         return EINVAL;
     }
 

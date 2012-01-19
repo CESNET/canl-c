@@ -54,7 +54,7 @@ canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
     /*create io handler*/
     new_io_h = (io_handler *) calloc(1, sizeof(*new_io_h));
     if (!new_io_h)
-        return set_error(g_cc, ENOMEM, posix_error, "Not enough memory");
+        return set_error(g_cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     /* allocate memory and initialize io content*/
     if ((err = init_io_content(g_cc ,new_io_h))){
@@ -97,7 +97,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
     }
 
     if (!io_cc)
-        return set_error(glb_cc, EINVAL, posix_error, 
+        return set_error(glb_cc, EINVAL, POSIX_ERROR, 
                 "IO handler not initialized");
 
     done = 0;
@@ -110,22 +110,22 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 
         ar.ent = (struct hostent *) calloc (1, sizeof(struct hostent));
         if (ar.ent == NULL)
-            return set_error(cc, ENOMEM, posix_error, "Not enough memory");
+            return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
         switch (err = asyn_getservbyname(ipver, &ar, host, NULL)) {
             case NETDB_SUCCESS:
                 err = 0;
                 break;
             case TRY_AGAIN:
-                err = update_error(glb_cc, ETIMEDOUT, posix_error,
+                err = update_error(glb_cc, ETIMEDOUT, POSIX_ERROR,
                         "Cannot resolve the server hostname (%s)", host);
 		goto end;
             case NETDB_INTERNAL:
-		err = update_error(glb_cc, errno, posix_error,
+		err = update_error(glb_cc, errno, POSIX_ERROR,
                         "Cannot resolve the server hostname (%s)", host);
                 continue;
             default:
-                err = update_error(glb_cc, err, netdb_error,
+                err = update_error(glb_cc, err, NETDB_ERROR,
                         "Cannot resolve the server hostname (%s)", host);
                 continue;
         }
@@ -183,7 +183,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 
 end:
     if (err) /* XXX: rather invent own error */
-	err = update_error(glb_cc, ECONNREFUSED, posix_error,
+	err = update_error(glb_cc, ECONNREFUSED, POSIX_ERROR,
 		"Failed to make network connection to server %s", host);
 
     if (ar.ent != NULL)
@@ -222,20 +222,20 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
             a_len = sizeof (struct sockaddr_in6);
             break;
         default:
-            return set_error(glb_cc, EINVAL, posix_error,
+            return set_error(glb_cc, EINVAL, POSIX_ERROR,
 			    "Unsupported address type (%d)", addrtype);
             break;
     }
     
     sock = socket(a.ss_family, SOCK_STREAM, 0);
     if (sock == -1)
-        return set_error(glb_cc, errno, posix_error,
+        return set_error(glb_cc, errno, POSIX_ERROR,
 			 "Failed to create network socket");
 
     err = connect(sock,(struct sockaddr *) &a, a_len);
     /* XXX timeouts missing */
     if (err) {
-        return set_error(glb_cc, errno, posix_error,
+        return set_error(glb_cc, errno, POSIX_ERROR,
 			 "Failed to open network connection");
     }
 
@@ -259,7 +259,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
         return EINVAL; /* XXX Should rather be a CANL error */
 
     if (!io_cc)
-        return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+        return set_error(cc, EINVAL, POSIX_ERROR, "IO handler not initialized");
 
     io_cc->sock = new_fd;
 
@@ -301,7 +301,7 @@ canl_io_close(canl_ctx cc, canl_io_handler io)
     }
 
     if (!io)
-	return set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "IO handler not initialized");
 
     if (io_cc->authn_mech.ctx) {
 	mech = find_mech(io_cc->authn_mech.oid);
@@ -350,7 +350,7 @@ canl_io_destroy(canl_ctx cc, canl_io_handler io)
     }
 
     if (!io_cc)
-	return set_error(glb_cc, EINVAL, posix_error,  "Invalid io handler");
+	return set_error(glb_cc, EINVAL, POSIX_ERROR,  "Invalid io handler");
 
     canl_io_close(cc, io);
 
@@ -372,15 +372,15 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
         return -1;
 
     if (!io) {
-	 set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+	 set_error(cc, EINVAL, POSIX_ERROR, "IO handler not initialized");
 	 return -1;
     }
 
     if (io_cc->authn_mech.ctx == NULL)
-	return set_error(cc, EINVAL, posix_error, "Connection not secured");
+	return set_error(cc, EINVAL, POSIX_ERROR, "Connection not secured");
     
     if (!buffer || !size) {
-	set_error(cc, EINVAL, posix_error, "No memory to write into");
+	set_error(cc, EINVAL, POSIX_ERROR, "No memory to write into");
 	return -1;
     }
 
@@ -403,15 +403,15 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
         return -1;
 
     if (!io) {
-	set_error(cc, EINVAL, posix_error, "IO handler not initialized");
+	set_error(cc, EINVAL, POSIX_ERROR, "IO handler not initialized");
 	return -1;
     }
 
     if (io_cc->authn_mech.ctx == NULL)
-	return set_error(cc, EINVAL, posix_error, "Connection not secured");
+	return set_error(cc, EINVAL, POSIX_ERROR, "Connection not secured");
 
     if (!buffer || !size) {
-	set_error(cc, EINVAL, posix_error, "No memory to read from");
+	set_error(cc, EINVAL, POSIX_ERROR, "No memory to read from");
 	return -1;
     }
 
@@ -433,7 +433,7 @@ int canl_set_ctx_own_cert(canl_ctx cc, canl_x509 cert,
     if (!cc)
         return EINVAL;
     if(!cert)
-        return set_error(glb_cc, EINVAL, posix_error, "invalid"
+        return set_error(glb_cc, EINVAL, POSIX_ERROR, "invalid"
                 "parameter value");
 
     err = do_set_ctx_own_cert(glb_cc, cert, chain, key);
@@ -453,7 +453,7 @@ int canl_set_ctx_own_cert_file(canl_ctx cc, char *cert, char *key,
     if (!cc)
         return EINVAL;
     if(!cert ) {
-        set_error(glb_cc, EINVAL, posix_error, "invalid parameter value");
+        set_error(glb_cc, EINVAL, POSIX_ERROR, "invalid parameter value");
         return EINVAL;
     }
 

@@ -2,15 +2,16 @@
 
 #define ERR_CODE_LEN 512
 
-static CANL_ERROR resolve_error(glb_ctx *cc, unsigned long err_code, 
-        CANL_ERROR_ORIGIN err_orig);
+static canl_err_code resolve_error(glb_ctx *cc, unsigned long err_code, 
+        canl_error_origin err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 
 /* TODO: produce error messages immediately (to chain them) */
 /* Save error message into err_msg
  * use NULL for empty err_format */
-int update_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
-		   const char *err_format, ...)
+canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
+		  canl_error_origin err_orig,
+		  const char *err_format, ...)
 {
     unsigned int err_msg_len = 0;
     unsigned int err_msg_sum = 0; // sum of msg and format lengths
@@ -58,7 +59,8 @@ int update_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_ori
 }
 
 /* If there was some error message in ctx, delete it and make new */
-int set_error (glb_ctx *cc, unsigned long err_code, CANL_ERROR_ORIGIN err_orig,
+canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
+	canl_error_origin err_orig,
         const char *err_format, ...)
 {
     va_list ap;
@@ -90,7 +92,7 @@ void reset_error (glb_ctx *cc, unsigned long err_code)
         free(cc->err_msg);
     cc->err_msg = NULL;
     cc->err_code = 0;
-    cc->err_orig = unknown_error;
+    cc->err_orig = UNKNOWN_ERROR;
 }
 
 /* Provide human readable information about errors */
@@ -98,7 +100,7 @@ canl_err_code
 canl_get_error(canl_ctx cc, char  **reason)
 {
     int err = 0;
-    int e_orig = unknown_error;
+    int e_orig = UNKNOWN_ERROR;
     int error_length = 0;
     char *new_error = NULL;
     char code_str[ERR_CODE_LEN];
@@ -130,7 +132,7 @@ canl_get_error(canl_ctx cc, char  **reason)
     new_error = (char *) malloc ((error_length) * sizeof (char));
     if (!new_error) {
         err = ENOMEM;
-        e_orig = posix_error;
+        e_orig = POSIX_ERROR;
         goto end;
     }
 
@@ -151,18 +153,18 @@ static void get_error_string(glb_ctx *cc, char *code_str)
     char *new_str = NULL;
 
     switch (cc->err_orig) {
-        case ssl_error:
+        case SSL_ERROR:
             ERR_error_string_n(cc->err_code, code_str,
                     ERR_CODE_LEN);
             break;
-        case posix_error:
+        case POSIX_ERROR:
             new_str = strerror(cc->err_code);
             if (new_str) {
                 strncpy(code_str, new_str,
                         ERR_CODE_LEN);
                 code_str[ERR_CODE_LEN - 1] = '\0';
             }
-        case netdb_error:
+        case NETDB_ERROR:
             new_str = (char *) hstrerror(cc->err_code);
             if (new_str) {
                 strncpy(code_str, new_str,
@@ -172,13 +174,13 @@ static void get_error_string(glb_ctx *cc, char *code_str)
             break;
         default:
 	    snprintf(code_str, ERR_CODE_LEN,
-		     "Unknown error origin (%d) of error %d!",
-		     cc->err_orig, cc->err_code)
+		     "Unknown error origin (%u) of error %lu!",
+		     cc->err_orig, cc->err_code);
             break;
     }
 }
 
-long
+canl_err_code
 canl_get_error_code(canl_ctx cc)
 {
     glb_ctx *ctx = (glb_ctx*) cc;
@@ -211,27 +213,27 @@ canl_get_error_message(canl_ctx cc)
 /*if the error code is known to canl, assign appropriate canl code
   TODO go through ssl errors and assign appr. canl code
   ?preserve original one? */
-static CANL_ERROR resolve_error(glb_ctx *cc, unsigned long err_code, 
-        CANL_ERROR_ORIGIN err_orig)
+static canl_err_code resolve_error(glb_ctx *cc, unsigned long err_code, 
+        canl_error_origin err_orig)
 {
-    if (err_orig == canl_error) {
+    if (err_orig == CANL_ERROR) {
         cc->err_code = err_code;
-        cc->err_orig = canl_error;
+        cc->err_orig = CANL_ERROR;
         return (int)err_code;
     }
-    if (err_orig == posix_error) {
+    if (err_orig == POSIX_ERROR) {
         cc->err_code = err_code;
-        cc->err_orig = posix_error;
+        cc->err_orig = POSIX_ERROR;
         return (int)err_code;
     }
-    if (err_orig == netdb_error) {
+    if (err_orig == NETDB_ERROR) {
         cc->err_code = err_code;
-        cc->err_orig = netdb_error;
+        cc->err_orig = NETDB_ERROR;
         return (int)err_code;
     }
 
     switch (err_code) {
-	/*TODO map ssl_errors on canl errors*/
+	/*TODO map SSL_ERRORs on canl errors*/
         default:
             cc->err_code = err_code;
             cc->err_orig = err_orig;
