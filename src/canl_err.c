@@ -171,6 +171,9 @@ static void get_error_string(glb_ctx *cc, char *code_str)
             }
             break;
         default:
+	    snprintf(code_str, ERR_CODE_LEN,
+		     "Unknown error origin (%d) of error %d!",
+		     cc->err_orig, cc->err_code)
             break;
     }
 }
