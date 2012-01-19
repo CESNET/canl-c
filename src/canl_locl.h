@@ -60,7 +60,9 @@ typedef struct _glb_ctx
 {
     char * err_msg;
     canl_err_code err_code;
+    /* XXX Do we need to keep these two:? */
     canl_err_origin err_orig;
+    long original_err_code;
     cert_key_store *cert_key;
 } glb_ctx;
 

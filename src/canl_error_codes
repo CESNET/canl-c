@@ -100,3 +100,6 @@ totalPathLength
 trustAnchorIssuerError
 trustDNInvalid
 trustPubKeyError
+GeneralSSLError
+HostNotFound
+ResolverError
