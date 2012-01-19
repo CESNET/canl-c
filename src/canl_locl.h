@@ -59,7 +59,7 @@ typedef struct _cert_key_store {
 typedef struct _glb_ctx
 {
     char * err_msg;
-    canl_error_code err_code;
+    canl_err_code err_code;
     canl_error_origin err_orig;
     cert_key_store *cert_key;
 } glb_ctx;
