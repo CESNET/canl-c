@@ -195,7 +195,7 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
     struct sockaddr_storage a;
     struct sockaddr_storage *p_a=&a;
     socklen_t a_len;
-    //int  opt;
+    int sock;
     int err = 0;
 
     struct sockaddr_in *p4 = (struct sockaddr_in *)p_a;
@@ -215,23 +215,24 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
             a_len = sizeof (struct sockaddr_in6);
             break;
         default:
-            return EINVAL;
+            return set_error(glb_cc, EINVAL, posix_error,
+			    "Unsupported address type (%d)", addrtype);
             break;
     }
     
-    io_cc->sock = socket(a.ss_family, SOCK_STREAM, 0);
-    if (io_cc->sock == -1)
-        return errno;
+    sock = socket(a.ss_family, SOCK_STREAM, 0);
+    if (sock == -1)
+        return set_error(glb_cc, errno, posix_error,
+			 "Failed to create network socket");
 
-    err = connect(io_cc->sock,(struct sockaddr *) &a, a_len);
+    err = connect(sock,(struct sockaddr *) &a, a_len);
     /* XXX timeouts missing */
     if (err) {
-        close(io_cc->sock);
-        io_cc->sock = -1;
         return set_error(glb_cc, errno, posix_error,
 			 "Failed to open network connection");
     }
 
+    io_cc->sock = sock;
     return 0;
 }
 
