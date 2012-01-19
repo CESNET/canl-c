@@ -25,7 +25,7 @@ LFLAGS_CLI=-L. -lcanl
 CFLAGS_SER=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_SER=-L. -lcanl
 
-HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h
+HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h
 
 SRC_CLI=canl_sample_client.c
 HEAD_CLI=canl.h
@@ -54,7 +54,7 @@ major:=${shell \
 
 all: libcanl.la server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
+libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo canl_err_desc.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 %.lo: %.y
@@ -104,7 +104,7 @@ install: all
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 libcanl.la ${DESTDIR}${PREFIX}${prefix}/${libdir}
-	${INSTALL} -m 644 ${top_srcdir}/src/canl.h canl_err.h ${DESTDIR}${PREFIX}${prefix}/include
+	${INSTALL} -m 644 ${top_srcdir}/src/canl.h ${top_srcdir}/src/canl_ssl.h canl_err.h ${DESTDIR}${PREFIX}${prefix}/include
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
