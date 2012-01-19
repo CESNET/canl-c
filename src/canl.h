@@ -32,8 +32,9 @@ canl_err_code CANL_CALLCONV
 canl_create_io_handler(canl_ctx cc, canl_io_handler*);
 
 canl_err_code CANL_CALLCONV
-canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *service,
-                int port, gss_OID_set auth_mechs, int flags, struct timeval *timeout);
+canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
+		const char *service, int port, gss_OID_set auth_mechs,
+		int flags, struct timeval *timeout);
 
 canl_err_code CANL_CALLCONV
 canl_io_accept(canl_ctx cc, canl_io_handler io, int fd, struct sockaddr s_addr,
@@ -52,9 +53,6 @@ canl_get_error_code(canl_ctx cc);
 
 char * CANL_CALLCONV
 canl_get_error_message(canl_ctx);
-
-canl_err_code CANL_CALLCONV
-canl_get_error(canl_ctx cc, char ** reason);
 
 canl_err_code CANL_CALLCONV
 canl_io_close(canl_ctx cc, canl_io_handler io);
