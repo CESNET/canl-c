@@ -83,10 +83,10 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
     io_handler *io_cc = (io_handler*) io;
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct _asyn_result ar;
-    int i = 0;
+    int i = 0, k;
     int addr_types[] = {AF_INET, AF_INET6}; //TODO ip versions policy?
     int ipver = AF_INET6;
-    int j = 0;
+    int j = 0, done;
     struct canl_mech *mech;
     gss_OID oid;
 
@@ -100,8 +100,9 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
         return set_error(glb_cc, EINVAL, posix_error, 
                 "IO handler not initialized");
 
-    for (j = 0; j< sizeof(addr_types)/sizeof(*addr_types); j++) {
-        ipver = addr_types[j];
+    done = 0;
+    for (k = 0; k < sizeof(addr_types)/sizeof(*addr_types); k++) {
+        ipver = addr_types[k];
 	if (ar.ent) {
 	    free_hostent(ar.ent);
 	    memset(&ar, 0, sizeof(ar));
@@ -129,7 +130,6 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
                 continue;
         }
 
-	err = ECONNREFUSED;
 	j = 0;
 	do {
 	    if (auth_mechs == GSS_C_NO_OID_SET || auth_mechs->count == 0)
@@ -148,29 +148,36 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 		    continue;
 
 		err = mech->client_init(glb_cc, mech->global_context, &ctx);
-		if (err)
+		if (err) {
+		    canl_io_close(glb_cc, io_cc);
 		    continue;
+		}
 
-		/* XXX: "break" on success! */
 		err = mech->connect(glb_cc, io_cc, ctx, timeout, host); //TODO timeout
 		if (err) {
+		    canl_io_close(glb_cc, io_cc);
 		    mech->free_ctx(glb_cc, ctx);
+		    ctx = NULL;
 		    continue;
 		}
 		io_cc->authn_mech.ctx = ctx;
 		io_cc->authn_mech.type = mech->mech;
+		done = 1;
+		break;
 	    }
 	    j++;
-	} while (auth_mechs != GSS_C_NO_OID_SET && j < auth_mechs->count);
+	} while (auth_mechs != GSS_C_NO_OID_SET && j < auth_mechs->count && !done);
 
         free_hostent(ar.ent);
         ar.ent = NULL;
-	if (!err)
+	if (done)
 	    break;
     }
 
-    if (err)
+    if (!done) {
+	err = ECONNREFUSED;
 	goto end;
+    }
 
     err = 0;
 
