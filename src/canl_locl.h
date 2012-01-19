@@ -34,13 +34,13 @@ typedef struct canl_err_desc {
     unsigned long openssl_reason;
 } canl_err_desc;
 
-typedef enum canl_error_origin {
+typedef enum canl_err_origin {
     UNKNOWN_ERROR = 0,
     POSIX_ERROR,
     SSL_ERROR,
     CANL_ERROR,
     NETDB_ERROR,
-} canl_error_origin;
+} canl_err_origin;
 
 typedef enum _CANL_AUTH_MECHANISM
 {
@@ -60,7 +60,7 @@ typedef struct _glb_ctx
 {
     char * err_msg;
     canl_err_code err_code;
-    canl_error_origin err_orig;
+    canl_err_origin err_orig;
     cert_key_store *cert_key;
 } glb_ctx;
 
@@ -128,9 +128,9 @@ extern struct canl_mech canl_mech_ssl;
 
 void reset_error (glb_ctx *cc, unsigned long err_code);
 canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
-	canl_error_origin err_orig, const char *err_format, ...);
+	canl_err_origin err_orig, const char *err_format, ...);
 canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
-	canl_error_origin err_orig, const char *err_format, ...);
+	canl_err_origin err_orig, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);

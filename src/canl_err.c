@@ -3,14 +3,14 @@
 #define ERR_CODE_LEN 512
 
 static canl_err_code resolve_error(glb_ctx *cc, unsigned long err_code, 
-        canl_error_origin err_orig);
+        canl_err_origin err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 
 /* TODO: produce error messages immediately (to chain them) */
 /* Save error message into err_msg
  * use NULL for empty err_format */
 canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
-		  canl_error_origin err_orig,
+		  canl_err_origin err_orig,
 		  const char *err_format, ...)
 {
     unsigned int err_msg_len = 0;
@@ -60,7 +60,7 @@ canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
 
 /* If there was some error message in ctx, delete it and make new */
 canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
-	canl_error_origin err_orig,
+	canl_err_origin err_orig,
         const char *err_format, ...)
 {
     va_list ap;
@@ -214,7 +214,7 @@ canl_get_error_message(canl_ctx cc)
   TODO go through ssl errors and assign appr. canl code
   ?preserve original one? */
 static canl_err_code resolve_error(glb_ctx *cc, unsigned long err_code, 
-        canl_error_origin err_orig)
+        canl_err_origin err_orig)
 {
     if (err_orig == CANL_ERROR) {
         cc->err_code = err_code;

@@ -432,7 +432,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
     int err = 0;
-    canl_error_origin e_orig = UNKNOWN_ERROR;
+    canl_err_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -486,7 +486,7 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
     int err = 0;
-    canl_error_origin e_orig = UNKNOWN_ERROR;
+    canl_err_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
