@@ -11,13 +11,13 @@ canl_cred_new(canl_ctx ctx, canl_cred * cred)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
 
     /*create new cred. handler*/
     crd = (creds *) calloc(1, sizeof(*crd));
     if (!crd)
-        return set_error(cc, ENOMEM, posix_error, "Not enough memory");
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     *cred = crd;
     return 0;
@@ -33,7 +33,7 @@ canl_cred_free(canl_ctx ctx, canl_cred cred)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
 
     /* Delete contents*/
@@ -80,10 +80,10 @@ canl_cred_load_req(canl_ctx ctx, canl_cred cred, canl_x509_req req)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     if (!rqst || rqst->c_req)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
 
     if (crd->c_req) {
@@ -93,7 +93,7 @@ canl_cred_load_req(canl_ctx ctx, canl_cred cred, canl_x509_req req)
 
     crd->c_req = X509_REQ_dup(rqst->c_req);
     if (!crd->c_req)
-        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " X509 request handler" ); //TODO check ret val
 
     return 0;    
@@ -111,10 +111,10 @@ canl_cred_load_priv_key_file(canl_ctx ctx, canl_cred cred, const char *pkey_file
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     if (!pkey_file)
-        return set_error(cc, EINVAL, posix_error, "Invalid filename");
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid filename");
 
     ret = set_key_file(cc, &crd->c_key, pkey_file);
 
@@ -132,11 +132,11 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
   
     if (!cert_stack)
-        return set_error(cc, EINVAL, posix_error, "Invalid stack value");
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid stack value");
 
     count = sk_X509_num(cert_stack);
     if (!count)
@@ -148,7 +148,7 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
     }
     crd->c_cert_chain = sk_X509_dup(cert_stack);
     if (crd->c_cert_chain)
-        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate chain" ); //TODO check ret val
     return 0;
 }
@@ -169,11 +169,11 @@ canl_cred_load_cert(canl_ctx ctx, canl_cred cred, X509 *cert)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
   
     if (!cert)
-        return set_error(cc, EINVAL, posix_error, "Invalid cert. file name");
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid cert. file name");
 
     if (crd->c_cert) {
         X509_free(crd->c_cert);
@@ -182,7 +182,7 @@ canl_cred_load_cert(canl_ctx ctx, canl_cred cred, X509 *cert)
 
     crd->c_cert = X509_dup(cert);
     if (crd->c_cert)
-        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate" ); //TODO check ret val
     return 0;
 }
@@ -198,10 +198,10 @@ canl_cred_load_cert_file(canl_ctx ctx, canl_cred cred, const char *cert_file)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     if (!cert_file)
-        return set_error(cc, EINVAL, posix_error, "Invalid filename");
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid filename");
 
     ret = set_cert_file(cc, &crd->c_cert, cert_file);
 
@@ -218,7 +218,7 @@ canl_cred_set_lifetime(canl_ctx ctx, canl_cred cred, const long lifetime)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     crd->c_lifetime = lifetime;
     return 0;
@@ -235,7 +235,7 @@ canl_cred_set_extension(canl_ctx ctx, canl_cred cred, X509_EXTENSION *cert_ext)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     
     if (crd->c_cert_ext) {
@@ -258,7 +258,7 @@ canl_cred_set_cert_type(canl_ctx ctx, canl_cred cred,
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     crd->c_type = cert_type;
     return 0;
@@ -286,10 +286,10 @@ canl_cred_save_cert(canl_ctx ctx, canl_cred cred, X509 ** cert)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     if (!cert)
-        return set_error(cc, EINVAL, posix_error, "Invalid cert."
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid cert."
                 " handler");
  
     if (*cert) {
@@ -299,7 +299,7 @@ canl_cred_save_cert(canl_ctx ctx, canl_cred cred, X509 ** cert)
 
     *cert = X509_dup(crd->c_cert);
     if (*cert)
-        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate" ); //TODO check ret val
  
     return 0; 
@@ -316,11 +316,11 @@ canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
         return EINVAL;
 
     if (!cred)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
   
     if (!cert_stack)
-        return set_error(cc, EINVAL, posix_error, "Invalid stack value");
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid stack value");
 
     if (!crd->c_cert_chain)
         return 0; //TODO is empty cert_stack error?
@@ -335,7 +335,7 @@ canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
     }
     *cert_stack = sk_X509_dup(crd->c_cert_chain);
     if (*cert_stack)
-        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate chain" ); //TODO check ret val
     return 0;
 }
@@ -352,13 +352,13 @@ canl_req_create(canl_ctx ctx, canl_x509_req *ret_req, unsigned int bits)
         return EINVAL;
 
     if (!ret_req)
-        return set_error(cc, EINVAL, posix_error, "Cred. handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
 
     /*create new cred. handler*/
     req = (request *) calloc(1, sizeof(*req));
     if (!req)
-        return set_error(cc, ENOMEM, posix_error, "Not enough memory");
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     /*TODO 1st NULL may invoke callback to ask user for new name*/
     ret = proxy_genreq(NULL,&req->c_req, &req->c_key, bits, NULL, NULL);
@@ -379,7 +379,7 @@ canl_req_free(canl_ctx ctx, canl_x509_req c_req)
         return EINVAL;
 
     if (!c_req)
-        return set_error(cc, EINVAL, posix_error, "Request handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
                 " not initialized" );
 
     /* Delete contents*/
@@ -409,15 +409,15 @@ canl_req_get_req(canl_ctx ctx, canl_x509_req req_in, X509_REQ ** req_ret)
     if (!ctx)
         return EINVAL;
     if (!req || !req->c_req)
-        return set_error(cc, EINVAL, posix_error, "Request handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
                 " not initialized" );
     if (!req_ret)
-        return set_error(cc, EINVAL, posix_error, "Request handler"
+        return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
                 " not initialized" );
     
     *req_ret = X509_REQ_dup(req->c_req);
     if (*req_ret)
-        return set_error(cc, ENOMEM, posix_error, "Cannot copy"
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " X509 request handler" ); //TODO check ret val
     return 0;
 }
