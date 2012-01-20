@@ -1,5 +1,5 @@
 top_srcdir=.
-stagedir=.
+stagedir=$(pwd)
 PREFIX=
 prefix=/usr
 libdir=lib
@@ -16,14 +16,14 @@ COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
 INSTALL=libtool --mode=install install
 
-CFLAGS_LIB=-Wall -fPIC -c -g -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -I.
+CFLAGS_LIB=-fPIC -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -I.
 LFLAGS_LIB=-shared ${LIBCARES_LIBS} ${LIBSSL_LIBS}
 
-CFLAGS_CLI=-Wall -g -I${top_srcdir}/src -I.
-LFLAGS_CLI=-L. -lcanl
+CFLAGS_CLI=-I${top_srcdir}/src -I.
+LFLAGS_CLI=-L. -lcanl_c
 
 CFLAGS_SER=-Wall -g -I${top_srcdir}/src -I.
-LFLAGS_SER=-L. -lcanl
+LFLAGS_SER=-L. -lcanl_c
 
 HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h
 
@@ -36,7 +36,7 @@ HEAD_SER=canl.h
 OBJ_SER=canl_sample_server.lo
 
 YACC=bison -y
-CFLAGS=-Wall -fPIC -I${top_srcdir}/src/proxy -I.
+CFLAGS:=-Wall -g -I${top_srcdir}/src/proxy -I. ${CFLAGS}
 
 LIBCANL=libcanl_c.la
 
