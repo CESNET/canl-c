@@ -38,6 +38,8 @@ OBJ_SER=canl_sample_server.lo
 YACC=bison -y
 CFLAGS=-Wall -fPIC -I${top_srcdir}/src/proxy -I.
 
+LIBCANL=libcanl_c.la
+
 # In order to use libtool versioning correcty, we must have:
 #
 # current = major + minor + offset
@@ -52,9 +54,9 @@ version_info:=-version-info ${shell \
 major:=${shell \
 	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset}' }
 
-all: libcanl.la server client
+all: ${LIBCANL} server client
 
-libcanl.la: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo canl_err_desc.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
+${LIBCANL}: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo canl_err_desc.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 %.lo: %.y
@@ -77,13 +79,13 @@ lex.namespaces.lo: lex.namespaces.c
 client: ${OBJ_CLI}
 	${LINK} $< ${LFLAGS_CLI} -o $@
 
-${OBJ_CLI}: ${SRC_CLI} ${HEAD_CLI} libcanl.la
+${OBJ_CLI}: ${SRC_CLI} ${HEAD_CLI} ${LIBCANL}
 	${COMPILE} -c ${top_srcdir}/examples/${SRC_CLI} ${CFLAGS_CLI} -o $@
 
 server: ${OBJ_SER}
 	${LINK} $< ${LFLAGS_SER} -o $@
 
-${OBJ_SER}: ${SRC_SER} ${HEAD_SER} libcanl.la
+${OBJ_SER}: ${SRC_SER} ${HEAD_SER} ${LIBCANL}
 	${COMPILE} -c ${top_srcdir}/examples/${SRC_SER} ${CFLAGS_SER} -o $@
 
 canl_err.h: canl_error_codes 
@@ -103,14 +105,14 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
-	${INSTALL} -m 755 libcanl.la ${DESTDIR}${PREFIX}${prefix}/${libdir}
+	${INSTALL} -m 755 ${LIBCANL} ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	${INSTALL} -m 644 ${top_srcdir}/src/canl.h ${top_srcdir}/src/canl_ssl.h canl_err.h ${DESTDIR}${PREFIX}${prefix}/include
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo libcanl.la .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup
+	rm -rfv *.o *.lo ${LIBCANL} .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup
 
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/

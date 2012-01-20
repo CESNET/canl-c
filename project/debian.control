@@ -9,17 +9,17 @@ Homepage: @URL@
 DM-Upload-Allowed: yes
 @DEBIAN_VCS@
 
-Package: libcanl1
+Package: libcanl-c1
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: @SUMMARY@
 @DEBIAN_DESCRIPTION@
 
-Package: libcanl-dev
+Package: libcanl-c-dev
 Section: libdevel
 Architecture: any
-Depends: libcanl1 (= ${binary:Version}), ${misc:Depends}
+Depends: libcanl-c1 (= ${binary:Version}), ${misc:Depends}
 Description: Development files for EMI caNl
  This package contains development libraries and header files for EMI caNL.
 
@@ -34,6 +34,6 @@ Package: emi-canl-c-dbg
 Section: debug
 Architecture: any
 Priority: extra
-Depends: libcanl1 (= ${binary:Version}), ${misc:Depends}
+Depends: libcanl-c1 (= ${binary:Version}), ${misc:Depends}
 Description: EMI caNl debugging symbols
  This package contains debugging symbols for EMI caNl.

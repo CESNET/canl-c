@@ -74,14 +74,14 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-/usr/%{_lib}/libcanl.so.@MAJOR@.@MINOR@.@REVISION@
-/usr/%{_lib}/libcanl.so.@MAJOR@
+/usr/%{_lib}/libcanl_c.so.@MAJOR@.@MINOR@.@REVISION@
+/usr/%{_lib}/libcanl_c.so.@MAJOR@
 
 
 %files devel
 %defattr(-,root,root)
 /usr/include/*.h
-/usr/%{_lib}/libcanl.so
+/usr/%{_lib}/libcanl_c.so
 
 
 %files examples
