@@ -217,7 +217,10 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
 	    break;
 	case SSL_ERROR:
 	    /* XXX Add mapping based on canl_err_desc.c */
-	    cc->err_code = CANL_ERR_GeneralSSLError;
+	    /* TODO use err_code until mechanism mapping ssl_codes to 
+             * canl_code is implemented 
+             * cc->err_code = CANL_ERR_GeneralSSLError; */
+            cc->err_code = err_code;
 	    break;
 	case CANL_ERROR:
 	    cc->err_code = err_code;
