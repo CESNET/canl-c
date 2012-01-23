@@ -464,16 +464,16 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
             timeout->tv_sec=0;
             timeout->tv_usec=0;
             err = ETIMEDOUT; 
-            set_error (cc, err, POSIX_ERROR, "Connection stuck during"
+            update_error (cc, err, POSIX_ERROR, "Connection stuck during"
 		   " handshake: timeout reached");
         }
         else if (ret2 < 0)
-            return set_error(cc, ssl_err, e_orig, "Error during SSL handshake");
+            return update_error(cc, ssl_err, e_orig, "Error during SSL handshake");
         else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
-            set_error (cc, 0, SSL_ERROR, "Connection closed"
+            update_error (cc, 0, SSL_ERROR, "Connection closed"
                     " by the other side");
         else
-            set_error (cc, err, UNKNOWN_ERROR, "Error during SSL handshake");
+            update_error (cc, err, UNKNOWN_ERROR, "Error during SSL handshake");
         return 1;
     }
     return 0;

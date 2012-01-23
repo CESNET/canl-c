@@ -222,20 +222,20 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
             a_len = sizeof (struct sockaddr_in6);
             break;
         default:
-            return set_error(glb_cc, EINVAL, POSIX_ERROR,
+            return update_error(glb_cc, EINVAL, POSIX_ERROR,
 			    "Unsupported address type (%d)", addrtype);
             break;
     }
     
     sock = socket(a.ss_family, SOCK_STREAM, 0);
     if (sock == -1)
-        return set_error(glb_cc, errno, POSIX_ERROR,
+        return update_error(glb_cc, errno, POSIX_ERROR,
 			 "Failed to create network socket");
 
     err = connect(sock,(struct sockaddr *) &a, a_len);
     /* XXX timeouts missing */
     if (err) {
-        return set_error(glb_cc, errno, POSIX_ERROR,
+        return update_error(glb_cc, errno, POSIX_ERROR,
 			 "Failed to open network connection");
     }
 
