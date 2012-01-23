@@ -470,7 +470,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
         else if (ret2 < 0)
             return update_error(cc, ssl_err, e_orig, "Error during SSL handshake");
         else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
-            update_error (cc, 0, SSL_ERROR, "Connection closed"
+            update_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed"
                     " by the other side");
         else
             update_error (cc, err, UNKNOWN_ERROR, "Error during SSL handshake");
@@ -528,9 +528,11 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
             set_error (cc, err, POSIX_ERROR, "Connection stuck"
                     " during handshake: timeout reached"); 
         }
-        else if (ret2 <= 0)
-            set_error (cc, ssl_err, SSL_ERROR, "Connection closed by"
+        else if (ret2 == 0)
+            set_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed by"
 		    " the other side");
+        else if (ret2 < 0)
+            set_error (cc, ssl_err, SSL_ERROR, "Error during SSL handshake");
 	else
 	    set_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake");
         return 1;
