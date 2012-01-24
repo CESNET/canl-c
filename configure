@@ -59,6 +59,14 @@ my %enable_nodes;
 my %disable_nodes;
 my %default_nodes; @default_nodes{@default_nodes} = (1) x ($#default_nodes + 1);
 
+my %package = (
+	'maintainer' => 'CESNET Product Teams <emi-lb@metacentrum.cz>',
+	'uploaders' => 'František Dvořák <valtri@civ.zcu.cz>',
+	'url' => 'http://glite.cern.ch',
+	'debian_vcs' => 'Vcs-Cvs: :pserver:anonymous@jra1mw.cvs.cern.ch:/cvs/jra1mw
+Vcs-Browser: http://jra1mw.cvs.cern.ch/cgi-bin/jra1mw.cgi',
+);
+
 # key:      internal package name (arguments, ...)
 # 'pkg':    pkg-config name
 # 'prefix': used when pkg-config fails
@@ -138,7 +146,7 @@ my %externs = (
 	},
 	jdk => {
 		prefix=> '/usr/java/latest',
-		locations => [ '/usr/java/latest', '/usr/lib/jvm/java' ],
+		locations => [ '/usr/lib/jvm/java', '/usr/lib/jvm/default-java', '/usr/java/latest' ],
 	},
 	libtar => {
 		prefix=> '/usr'
@@ -289,8 +297,8 @@ if ($listmodules) {
 	exit 0;
 }
 
-warn "$0: --version, --branch and --output make sense only in --mode=etics\n"
-	if ($version || $output || $branch) && $mode ne 'etics';
+warn "$0: --branch and --output make sense only in --mode=etics\n"
+	if ($output || $branch) && $mode ne 'etics';
 
 my $en;
 for (keys %enable_nodes) { $en = 1 if $enable_nodes{$_}; }
@@ -428,7 +436,7 @@ sub mode_build {
 	print "\t$_: $jar{$_}\n" for @myjars;
 	for (@ext) { if (defined($externs{$_}{flags})) { print "$externs{$_}{flags}"; } };
 	print "\nThis is a poor-man configure, it's up to you to have sources and externals there\n\n";
-	
+
 	mkinc($_) for @modules;
 
 	if ($module) {
@@ -553,7 +561,7 @@ BEGIN{
 	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql:R mysql-server:R mysql-devel:B cppunit:B gsoap:B classads voms lcas gridsite bison:B libtool:B libxml2 flex:B/ ],
 	'lb.state-machine' => [ qw/classads libtool:B libxslt:B expat:B/ ],
 	'lb.utils' => [ qw/cppunit:B libtool:B/ ],
-	'lb.ws-interface' => [ qw/libxslt:B/ ],
+	'lb.ws-interface' => [ qw/libxslt:B tidy:B/ ],
 	'lb.ws-test' => [ qw/gsoap:B libtool:B/ ],
 	'lb.types' => [ qw// ],
 	'lb.harvester' => [ qw/docbook-utils:B libtool:B/ ],
@@ -586,7 +594,7 @@ BEGIN{
 	'gridsite.1.5-compat' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B build_common_cpp:B doxygen:B/ ],
 	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B myproxy-libs:R voms libtool:B/ ],
 	'px.myproxy-config' => [ qw/myproxy-admin:R/ ], # in myproxy-config.spec
-	'canl.c' => [ qw/cares:B/ ],
+	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B/ ],
 );
 
 %need_jars = (
@@ -674,7 +682,7 @@ for my $jar (keys %need_jars) {
 	'jobid.api-cpp' =>  [ qw/jobid.api-c/ ],
 	'jobid.api-java' =>  [ qw// ],
 
-	'lbjp-common.jp-interface' => [ qw/lbjp-common.db jobid.api-c/ ],
+	'lbjp-common.jp-interface' => [ qw/lbjp-common.trio lbjp-common.db jobid.api-c/ ],
 
 	'jp.client' => [ qw/
                 jp.ws-interface
@@ -896,23 +904,25 @@ for my $ext (keys %deps_aux) {
 				'myproxy-devel' => 'myproxy-devel.x86_64',
 			},
 			deb6_x86_64_gcc445 => {
-				globus_essentials => 'libglobus-gssapi-gsi4',
-				globus => 'libglobus-gssapi-gsi-dev',
-				axis => 'libaxis-java',
-				cares => 'libc-ares2',
-				cppunit => 'libcppunit',
-				expat => 'libexpat1',
-				log4c => 'liblog4c3',
-				curl => 'libcurl3',
-				'mysql' => 'libmysqlclient6',
-				'mysql-devel' => 'libmysqlclient-dev',
-				libxslt => 'xsltproc',
-				'jakarta-commons-codec' => 'libcommons-codec-java',
-				'jakarta-commons-lang' => 'libcommons-lang-java',
-				'tetex-latex' => 'texlive-latex-extra',
-				'perl-LDAP' => 'libnet-ldap-perl',
-				'fuse-lib' => 'libfuse2',
-				'fuse' => 'fuse-utils',
+				axis => 'axis1.4',
+				# mappings in ETICS project configuration
+				#globus_essentials => 'libglobus-gssapi-gsi4',
+				#globus => 'libglobus-gssapi-gsi-dev',
+				#axis => 'libaxis-java',
+				#cares => 'libc-ares2',
+				#cppunit => 'libcppunit',
+				#expat => 'libexpat1',
+				#log4c => 'liblog4c3',
+				#curl => 'libcurl3',
+				#'mysql' => 'libmysqlclient16',
+				#'mysql-devel' => 'libmysqlclient-dev',
+				#libxslt => 'xsltproc',
+				#'jakarta-commons-codec' => 'libcommons-codec-java',
+				#'jakarta-commons-lang' => 'libcommons-lang-java',
+				#'tetex-latex' => 'texlive-latex-extra',
+				#'perl-LDAP' => 'libnet-ldap-perl',
+				#'fuse-lib' => 'libfuse2',
+				#'fuse' => 'fuse-utils',
 			},
 		},
 		etics_externs_devel => {
@@ -933,20 +943,21 @@ for my $ext (keys %deps_aux) {
 				jdk=>'java-devel',
 			},
 			deb6_x86_64_gcc445 => {
-				cares => 'libc-ares-dev',
-				cppunit => 'libcppunit-dev',
-				expat => 'libexpat1-dev',
-				libtar => 'libtar-dev',
-				log4c => 'liblog4c-dev',
-				postgresql => 'libpq-dev',
-				curl => 'libcurl4-openssl-dev',
-				libxml2 => 'libxml2-dev',
-				openssl => 'libssl-dev',
-				'tetex-latex' => 'texlive-latex-extra',
-				libxslt=>'xsltproc',
-				'httpd-devel' => 'apache2-prefork-dev',
-				'fuse-devel' => 'libfuse-dev',
-				gsoap => 'gsoap',
+				# mappings in ETICS project configuration
+				#cares => 'libc-ares-dev',
+				#cppunit => 'libcppunit-dev',
+				#expat => 'libexpat1-dev',
+				#libtar => 'libtar-dev',
+				#log4c => 'liblog4c-dev',
+				#postgresql => 'libpq-dev',
+				#curl => 'libcurl4-openssl-dev',
+				#libxml2 => 'libxml2-dev',
+				#openssl => 'libssl-dev',
+				#'tetex-latex' => 'texlive-latex-extra',
+				#libxslt=>'xsltproc',
+				#'httpd-devel' => 'apache2-prefork-dev',
+				#'fuse-devel' => 'libfuse-dev',
+				#gsoap => 'gsoap',
 			},
 		},
 		etics_projects => {
@@ -966,7 +977,7 @@ for my $ext (keys %deps_aux) {
 			sl5_x86_64_gcc412EPEL => 1,
 			sl5_ia32_gcc412EPEL => 1,
 			sl6_x86_64_gcc445EPEL => 1,
-#			deb6_x86_64_gcc445 => 1,
+			deb6_x86_64_gcc445 => 1,
 		},
 		modules => {
 			'lb' => [ qw/emi-lb/ ],
@@ -1029,7 +1040,7 @@ $buildroot{'gridsite.core'} = 'src';
 
 sub full
 {
-	my $short = shift;
+	my ($short) = @_;
 	my $subsys = $short;
 	$subsys =~ s/\..*//;
 
@@ -1037,10 +1048,74 @@ sub full
 	return $extrafull{$short} ? $extrafull{$short} : "$cvs_prefix.$short";
 }
 
+sub get_version
+{
+	my ($fmod, $top_srcdir) = @_;
+
+	my ($subsys,$mod) = split /\./,$fmod,2;
+	my ($major,$minor,$rev,$age);
+	my $old_;
+
+	if ($version) {
+		$version =~ /([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-(.+)/;
+		($major,$minor,$rev,$age) = ($1,$2,$3,$4);
+	}
+	else {
+		my $path = "$top_srcdir/project";
+		if ($subsys eq 'gridsite') {
+			$path = "$cvs_prefix{$subsys}.$subsys.core/project";
+		}
+		open V,"$path/version.properties"
+			or die "$path/version.properties: $!\n";
+
+		$old_ = $_;
+		while (<V>) {
+			chomp;
+			($major,$minor,$rev) = ($1,$2,$3) if /module\.version\s*=\s*([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)/;
+			$age = $1 if /module\.age\s*=\s*([[:digit:]]+)/;
+		}
+		close V;
+		$_ = $old_;
+
+		$version = "$major.$minor.$rev-$age";
+	}
+
+	return ($major, $minor, $rev, $age);
+}
+
+sub get_description
+{
+	my ($top_srcdir) = @_;
+
+	my $cvs_module = $top_srcdir;
+	my $package_description = "";
+	my $package_summary = "";
+
+	if (-e "$cvs_module/project/package.description") {
+		open V, "$cvs_module/project/package.description";
+		$package_description = join ("", <V>);
+		close V;
+		chomp $package_description;
+	}
+	else {
+		print STDERR "package.description not found for $subsys.$module!\n"; }
+
+	if (-e "$cvs_module/project/package.summary") {
+		open V, "$cvs_module/project/package.summary";
+		$package_summary = join ("", <V>);
+		close V;
+		chomp $package_summary;
+		$package_summary =~ s/\n/\\n/g;
+	}
+	else {
+		print STDERR "package.summary not found for $subsys.$module!\n"; }
+
+	return ($package_summary, $package_description);
+}
+
 sub mkinc
 {
 	my %aux;
-	my ($old_locale, $date);
 	undef %aux;
 	my @m=qw/
 lb.client lb.doc lb.state-machine lb.ws-interface lb.logger lb.logger-msg lb.nagios lb.types lb.common lb.server lb.utils lb.ws-test lb.client-java lb.harvester lb.yaim lb.glite-LB lb.emi-lb
@@ -1053,8 +1128,10 @@ canl.c
 /;
 	@aux{@m} = (1) x ($#m+1);
 
-	my $short = shift;
+	my ($short) = @_;
 	my $full = full $short;
+	my ($subsys,$mod) = split /\./,$short,2;
+	my $packageName = "$project{tag_prefix}{$subsys}$subsys-${mod}";
 
 	unless ($aux{$short}) {
 		print "Makefile.inc not needed in $full\n";
@@ -1062,14 +1139,17 @@ canl.c
 	}
 
 	my $top_srcdir = '.';
+	my $abs_srcdir = '';
 	my $build = '';
 
 	if ($module) {
 		$top_srcdir = $0;
 		$top_srcdir =~ s,/?[^/]*$,,;
+		$abs_srcdir = $top_srcdir;
 		$top_srcdir =~ s,^$,\.,;
 	} else {
 		$build = "$full/";
+		$abs_srcdir = "$full/";
 		unless ($buildroot{$_} eq '') {
 			$top_srcdir = '..';
 			$build .= "$buildroot{$_}/";
@@ -1079,14 +1159,24 @@ canl.c
 		}
 	}
 
-	mkdir $build."project" unless (-d $build."project");
-	open PKGCHL,">".$build."project/changelog"
-		or die $build."project/changelog: $!\n";
+	my ($major, $minor, $rev, $age) = get_version $short, $abs_srcdir;
+	my ($package_summary, $package_description) = get_description $abs_srcdir;
+	if ($package_description) { $package_description =~ s/(.{1,78}\S|\S+)\s+/$1\n/mg; }
+	my $package_description_debian = $package_description;
+	$package_description_debian =~ s/^/ /mg;
+
+	my ($old_locale, $specdate, $debdate);
+
+	# files for ETICS always in root source directory
+	mkdir $abs_srcdir."project" unless (-d $abs_srcdir."project");
+	open PKGCHL,">".$abs_srcdir."project/changelog"
+		or die $abs_srcdir."project/changelog: $!\n";
 	$old_locale = setlocale(LC_TIME);
 	setlocale(LC_TIME, "C");
-	$date = strftime("%a %b %d %Y", gmtime());
+	$specdate = strftime("%a %b %d %Y", gmtime());
+	$debdate = strftime("%a, %d %b %Y %H:%M:%S %z", gmtime());
 	setlocale(LC_TIME, $old_locale);
-	print PKGCHL qq{* $date CESNET team <emi-lb\@metacentrum.cz>
+	print PKGCHL qq{* $specdate CESNET team <emi-lb\@metacentrum.cz>
 - automatically generated package
 };
 	close PKGCHL;
@@ -1094,14 +1184,6 @@ canl.c
 	unless ($top_srcdir eq '.') {
 		unlink $build."Makefile";
 		symlink "$top_srcdir/Makefile",$build."Makefile" or die "symlink $top_srcdir/Makefile ".$build."Makefile: $!\n";
-		for my $file ('.pre', '.post', '.preun', '.postun') {
-			my $pfile = "project/$file";
-			if (-f "$full/$pfile") {
-				mkdir "$build/project" unless (-d "$build/project");
-				unlink $build.$pfile;
-				symlink "../$top_srcdir/$pfile", $build.$pfile or die "symlink ../$top_srcdir/$pfile ".$build."$pfile: $!\n";
-			}
-		}
 	}
 
 	open MKINC,">".$build."Makefile.inc"
@@ -1138,6 +1220,90 @@ top_srcdir = $top_srcdir
 	print MKINC "gsoap_default_version=".gsoap_version()."\n"  if $need_gsoap;
 
 	close MKINC;
+
+	my $dh;
+	my $debian = 0;
+
+	opendir $dh, "$abs_srcdir/project" || die "Can't open $abs_srcdir/project: $!";
+	for my $dir (readdir $dh) {
+		if ($dir=~/^(.*)\.spec$/) {
+			if ($1 ne $packageName) {
+				printf STDERR "Changed RPM name: $packageName --> $1\n";
+				$packageName=$1;
+			}
+			last;
+		}
+	}
+	closedir $dh;
+
+	for my $file ("$packageName.spec", "debian.rules", "debian.control", "debian.changelog", "debian.copyright") {
+		if (-f "$abs_srcdir/project/$file") {
+			my $old_ = $_;
+			printf STDERR "Creating $build$file\n";
+			open DST, ">$build$file";
+			open SRC, "<$abs_srcdir/project/$file";
+			while (<SRC>) {
+				if (/\@MODULE\@/) { s/\@MODULE\@/$full/g; }
+				if (/\@URL\@/) { s/\@URL\@/$package{url}/g; }
+				if (/\@SUMMARY\@/) { s/\@SUMMARY\@/$package_summary/g; }
+				if (/\@DESCRIPTION\@/) { s/\@DESCRIPTION\@/$package_description/g; }
+				if (/\@DEBIAN_DESCRIPTION\@/) { s/\@DEBIAN_DESCRIPTION\@/$package_description_debian/g; }
+				if (/\@VERSION\@/) { s/\@VERSION\@/$version/g; }
+				if (/\@MAJOR\@/) { s/\@MAJOR\@/$major/g; }
+				if (/\@MINOR\@/) { s/\@MINOR\@/$minor/g; }
+				if (/\@REVISION\@/) { s/\@REVISION\@/$rev/g; }
+				if (/\@AGE\@/) { s/\@AGE\@/$age/g; }
+				if (/\@MAINTAINER\@/) { s/\@MAINTAINER\@/$package{maintainer}/g; }
+				if (/\@UPLOADERS\@/) { s/\@UPLOADERS\@/$package{uploaders}/g; }
+				if (/\@DEBIAN_VCS\@/) { s/\@DEBIAN_VCS\@/$package{debian_vcs}/g; }
+				if (/\@DEBIAN_DATE\@/) { s/\@DEBIAN_DATE\@/$debdate/g; }
+				if (/\@SPEC_DATE\@/) { s/\@SPEC_DATE\@/$specdate/g; }
+				printf DST "%s", "$_";
+			}
+			close SRC;
+			close DST;
+			$_ = $old_;
+		}
+	}
+
+	print "Creating ${build}debian/\n";
+
+	`rm -rfv  ${build}debian`;
+	mkdir $build."debian" or die $!;
+	`cp $abs_srcdir/project/debian.* ${build}debian/ 2>/dev/null`;
+	`mv ${build}debian.* ${build}debian/ 2>/dev/null`;
+	`rm -f ${build}debian/*.orig`;
+	opendir $dh, "${build}debian" || die "Can't open ${build}debian: $!";
+	for $_ (readdir $dh) {
+		if (/^debian\.(.*)/) {
+			`mv ${build}debian/$_ ${build}debian/$1`;
+			$debian = 1;
+		}
+	}
+	closedir $dh;
+
+	if ($debian) {
+		my ($dir, $file);
+
+		chmod 0755, "${build}debian/rules";
+		$file="${build}debian/docs"; if (not -f $file) { `touch $file`; }
+		$dir="${build}debian/source"; if (not -d $dir) { mkdir $dir; }
+		$file="${build}debian/source/format"; if (not -f $file) { `echo "3.0 (quilt)" > $file` }
+		$file="${build}debian/compat"; if (not -f $file) { `echo "7" > $file` }
+		$file="${build}debian/changelog"; if (not -f $file) {
+			open FH, ">$file" or die $!;
+			print FH qq{$packageName ($major.$minor.$rev-$age) unstable; urgency=low
+
+  * Automatically generated package
+
+ -- $package{maintainer}  $debdate
+};
+			close FH;
+		}
+
+	} else {
+		`rm -rf ${build}debian`;
+	}
 }
 
 BEGIN{
@@ -1149,29 +1315,9 @@ sub mode_etics {
 	die "$0: --module required with --etics\n" unless $fmod;
 	
 	my ($subsys,$module) = split /\./,$fmod,2;
+	my $full = full "$subsys.$module";
 
-	my ($major,$minor,$rev,$age);
-
-	if ($version) {
-		$version =~ /([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-(.+)/;
-		($major,$minor,$rev,$age) = ($1,$2,$3,$4);
-	}
-	else { 
-		my $full = full "$subsys.$module";
-		my $path = "$full/project";
-		if ($subsys eq 'gridsite') {
-			$path = "$cvs_prefix{$subsys}.$subsys.core/project";
-		}
-		open V,"$path/version.properties"
-			or die "$path/version.properties: $!\n";
-	
-		while ($_ = <V>) {
-			chomp;
-			($major,$minor,$rev) = ($1,$2,$3) if /module\.version\s*=\s*([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)/;
-			$age = $1 if /module\.age\s*=\s*([[:digit:]]+)/;
-		}
-		close V;
-	}
+	my ($major,$minor,$rev,$age) = get_version $fmod, $full;
 
 	# XXX: --with ignored for platform-dependend packages
 	my @copts = ();
@@ -1201,7 +1347,7 @@ sub mode_etics {
 
 	my $conf;
 	my $conftag;
-	my ($confprefix, $nameprefix);
+	my ($confprefix, $nameprefix, $packageName);
 
 	$dwpath = "path = \${projectName}/\${moduleName}/\${version}/\${platformName}/\${packageName}-\${version}-\${age}.tar.gz\n";
 
@@ -1209,12 +1355,15 @@ sub mode_etics {
 	$nameprefix = $confprefix;
 	$nameprefix =~ s/-$//;
 	$nameprefix =~ s/-/\./g;
+	$packageName = "$project{tag_prefix}{$subsys}$subsys-${module}";
 
 	if ($branch) {
 		$conf = "$confprefix${subsys}-${module}_$branch"; 
 		$conftag = $branch;
 		# forced low age number
-		$age = $branch eq 'HEAD' ? '0head' : '0dev'; }
+		$age = $branch eq 'HEAD' ? '0head' : '0dev';
+		push @copts, '--version ${version}-${age}';
+	}
 	else {
 		$conf = "$confprefix$subsys-${module}_R_${major}_${minor}_${rev}_${age}"; 
 
@@ -1229,38 +1378,22 @@ sub mode_etics {
 
 	my $confdir = $buildroot{"$subsys.$module"} eq '' ? '.' : '..';
 
-	my $package_description = "";
-	my $package_summary = "";
-
 	my $cvs_module = full "$subsys.$module";
-
-	if (-e "$cvs_module/project/package.description") {
-		open V, "$cvs_module/project/package.description";
-		$package_description = join ("", <V>);
-		close V;
-		chomp $package_description;
-		$package_description =~ s/\n/\\n/g; 
+	my ($package_summary, $package_description) = get_description $cvs_module;
+	if ($package_description) {
+		$package_description =~ s/\n/\\n/g;
 		$package_description = "package.description = $package_description\n";
-	} 
-	else { 
-		print STDERR "package.description not found for $subsys.$module!\n"; }
-
-	if (-e "$cvs_module/project/package.summary") {
-		open V, "$cvs_module/project/package.summary";
-		$package_summary = join ("", <V>);
-		close V;
-		chomp $package_summary;
-		$package_summary =~ s/\n/\\n/g; 
+	}
+	if ($package_summary) {
 		$package_summary = "package.summary = $package_summary\n";
-	} 
-	else { 
-		print STDERR "package.summary not found for $subsys.$module!\n"; }
+	}
 
 	my %cmd;
 	$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_module 2>/dev/null";
-	#$cmd_vcs{checkout} = "(test -d jra1mw/.git && (cd jra1mw; git pull) || git clone http://scientific.zcu.cz/git/jra1mw.git)";
-	#$cmd_vcs{checkout} .= " && (cd jra1mw; git checkout \${tag})" unless ($conftag =~ /HEAD/);
-	#$cmd_vcs{checkout} .= " && ln -s jra1mw/$cvs_module \${moduleName}";
+	#$cmd_vcs{checkout} = "((test -d jra1mw/.git && (cd jra1mw; git pull)) || (git clone -q http://scientific.zcu.cz/git/jra1mw.git";
+	#$cmd_vcs{checkout} .= " && (cd jra1mw; git checkout -b \${tag} --track origin/epel)" unless ($conftag =~ /HEAD/);
+	#$cmd_vcs{checkout} .= ")) && (test -d \${moduleName} || ln -s jra1mw/$cvs_module \${moduleName})";
+	$cmd_vcs{checkout} .= "\n\ttest -f \${packageName}-\${version}-\${age}.src.tar.gz || (ln -s \${moduleName} \${packageName}-\${version}; tar -chf - \${packageName}-\${version} --exclude CVS --exclude .git --exclude .etics | gzip --best > \${packageName}-\${version}-\${age}.src.tar.gz; rm \${packageName}-\${version})";
 	$cmd_vcs{tag} = "cvs -d \${vcsroot} tag -R \${tag} ${moduleName}";
 
 	$cmd{default}{init} = 'None';
@@ -1346,6 +1479,8 @@ sub mode_etics {
 		$cmd{default}{packaging} = "make rpm package=".$confprefix."$subsys-myproxy-config";
 	}
 	else {
+		$cmd{clean} = 'make clean
+	rm -rfv ${package.tgzLocation} ${package.SRPMSLocation}';
 		$cmd{default}{configure} = "/usr/bin/perl $confdir/configure $project{flavours} --root=\${prefix} --prefix=$project{local_prefix} --stage=\${stageDir} --sysroot=\${package.prefix} --libdir=\${libdir} --project=\${projectName} --module $subsys.$module @copts";
 		$cmd{default}{compile} = 'make';
 		$cmd{default}{test} = 'make check';
@@ -1353,6 +1488,29 @@ sub mode_etics {
 		if ($subsys eq 'lb' and $module eq 'client') {
 			$cmd{default}{compile} = "make rpath=$project{local_prefix}/\${libdir}";
 			$cmd{default}{install} = "make install post-install rpath=$project{local_prefix}/\${libdir}";
+		}
+		$cmd{default}{packaging} = 'dir=${workspaceDir}/rpm_build_src_$$
+	mkdir -p ${package.tgzLocation} ${package.SRPMSLocation} $dir/{BUILD,RPMS,SOURCES,SRPMS} 2>/dev/null || true
+	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz ${package.tgzLocation}/
+	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz $dir/SOURCES/
+	rpmbuild -bs --nodeps --define "_topdir $dir" ${packageName}.spec
+	cp -v $dir/SRPMS/*.src.rpm ${package.SRPMSLocation}/
+	rm -rf $dir';
+		for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
+			for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
+			$cmd{$p}{clean} = 'make clean
+	rm -rfv ${package.tgzLocation} ${package.SDEBSLocation}';
+			$cmd{$p}{packaging} = 'dir=${workspaceDir}/dpkg_build_src_$$
+	mkdir -p ${package.tgzLocation} ${package.SDEBSLocation} $dir 2>/dev/null || true
+	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz ${package.tgzLocation}/
+	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz $dir/${packageName}_${version}.orig.tar.gz
+	tar xzf $dir/${packageName}_${version}.orig.tar.gz -C $dir
+	cp -rf debian/ $dir/${packageName}-${version}/
+	cd $dir/${packageName}-${version}
+	dpkg-buildpackage -S -d -nc
+	cd -
+	cp -v $dir/*.tar.gz $dir/*.dsc ${package.SDEBSLocation}/
+	rm -rf $dir';
 		}
 	}
 
@@ -1499,6 +1657,47 @@ $output};
 	}
 
 	close C;
+
+	for $file ("$cvs_module/project/debian.rules", "$cvs_module/project/$packageName.spec") {
+		my $lib;
+		@copts = ();
+
+		if ($file =~ /debian\.rules$/) { $lib = 'lib'; }
+		else { $lib = '%{_lib}'; }
+
+		# locations hacks
+		if ($file =~ /$packageName\.spec$/) {
+			if ($fmod eq 'lb.client-java') {
+				push @copts, '';
+				push @copts, '--with-axis=/usr/local/axis1.4';
+			}
+		}
+
+		if (-f $file) {
+			open DST,">$file.new" or die "$file.new: $!\n";
+			open SRC,"<$file" or die "$file: $!\n";
+			while (<SRC>) {
+				if (/^(\s*).+\/configure\s/) {
+					printf DST "%s", "$1";
+					printf DST "/usr/bin/perl $confdir/configure $project{flavours} --root=/ --prefix=$project{local_prefix} --libdir=$lib --project=$project --module $subsys.$module@copts\n";
+				} else {
+					printf DST "%s", "$_";
+				}
+			}
+			close SRC;
+			close DST;
+
+			`diff -b "$file" "$file.new"`;
+			if ($? == 0) {
+				print STDERR "($file not changed)\n";
+				unlink "$file.new";
+			} else {
+				print STDERR "Writing $file\n";
+				rename "$file", "$file.orig" unless -f "$file.orig";
+				rename "$file.new", "$file";
+			}
+		}
+	}
 }
 
 sub gsoap_version {

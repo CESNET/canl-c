@@ -23,14 +23,14 @@ Depends: libcanl-c1 (= ${binary:Version}), ${misc:Depends}
 Description: Development files for EMI caNl
  This package contains development libraries and header files for EMI caNL.
 
-Package: emi-canl-c-examples
+Package: libcanl-c-examples
 Section: misc
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Example programs of EMI caNl
  This package contains client and server examples of EMI caNL.
 
-Package: emi-canl-c-dbg
+Package: canl-c-dbg
 Section: debug
 Architecture: any
 Priority: extra

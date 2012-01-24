@@ -1,5 +1,5 @@
 Summary: @SUMMARY@
-Name: emi-canl-c
+Name: canl-c
 Version: @MAJOR@.@MINOR@.@REVISION@
 Release: @AGE@%{?dist}
 Url: @URL@

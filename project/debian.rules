@@ -53,7 +53,7 @@ binary-arch: install
 	dh_installcron
 	dh_install --fail-missing
 	dh_link
-	dh_strip --dbg-package=emi-canl-c-dbg
+	dh_strip --dbg-package=canl-c-dbg
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs
