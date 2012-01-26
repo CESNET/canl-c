@@ -54,6 +54,7 @@ typedef enum _CANL_AUTH_MECHANISM
 typedef struct _cert_key_store {
     X509 *cert;
     EVP_PKEY *key;
+    STACK_OF(X509) *chain;
 } cert_key_store;
 
 typedef struct _glb_ctx

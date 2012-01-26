@@ -37,6 +37,7 @@ void canl_free_ctx(canl_ctx cc)
         free(ctx->err_msg);
         ctx->err_msg = NULL;
     }
+    /*TODO delete ctx content for real*/
 
     free(ctx);
 }
