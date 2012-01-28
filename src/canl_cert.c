@@ -165,3 +165,62 @@ end:
     }
     return 1;
 }
+
+int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *file)
+{
+    unsigned long ssl_err = 0;
+    FILE * cert_file = NULL;
+    int count = 0;
+    int ret = -1;
+    X509 *x = NULL;
+
+    if (file == NULL)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cert. chain file"
+                "does not exist");
+
+    if (*to) {
+        sk_X509_pop_free(*to, X509_free);
+        *to = NULL;
+    }
+
+    cert_file = fopen(file, "rb");
+    if (!cert_file)
+        return set_error(cc, errno, POSIX_ERROR, "Cannot "
+                "open file with cert. chain");
+
+    for (;;)
+    {
+        /* TODO maybe callback can be specified*/
+        x = PEM_read_X509(cert_file,NULL, NULL, NULL);
+        if (x == NULL)
+        {
+            ssl_err = ERR_peek_error();
+            if ((ERR_GET_REASON(ssl_err) ==
+                        PEM_R_NO_START_LINE)) {
+                /*everything OK*/
+                if ((count > 0)) {
+                    ERR_clear_error();
+                    break;
+                }
+                else {
+                    ret = set_error(cc, ssl_err, SSL_ERROR, "Cannot get"
+                            "certificate out of file");
+                    goto end;
+                }
+            }
+        }
+
+        (void)sk_X509_insert(*to, x, sk_X509_num(*to));
+        x = NULL;
+        count++;
+    }
+    return 0;
+
+end:
+    if (fclose(cert_file)){
+        ret = errno;
+        return update_error(cc, errno, POSIX_ERROR, "cannot close file with"
+                " the certificate");
+    }
+    return ret;
+}

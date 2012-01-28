@@ -195,10 +195,30 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
 canl_err_code CANL_CALLCONV
 canl_cred_load_chain_file(canl_ctx ctx, canl_cred cred, const char *chain_file)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
+                " not initialized" );
+  
+    if (!chain_file)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid chain filename");
+
+    if (crd->c_cert_chain) {
+        sk_X509_pop_free(crd->c_cert_chain, X509_free);
+        crd->c_cert_chain = NULL;
+    }
+    else
+        crd->c_cert_chain = sk_X509_new_null();
+
+    return set_cert_chain_file(cc, &crd->c_cert_chain, chain_file);
 }
 
-canl_err_code CANL_CALLCONV
+    canl_err_code CANL_CALLCONV
 canl_cred_load_cert(canl_ctx ctx, canl_cred cred, X509 *cert)
 { 
     glb_ctx *cc = (glb_ctx*) ctx;
