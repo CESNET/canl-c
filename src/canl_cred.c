@@ -67,7 +67,46 @@ canl_cred_free(canl_ctx ctx, canl_cred cred)
 canl_err_code CANL_CALLCONV
 canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+
+    if (!ctx)
+        return EINVAL;
+    if (!crd || !cc->cert_key)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
+                " not initialized" );
+    
+    if (!cc->cert_key){
+        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
+        if (!cc->cert_key) {
+            return set_error(cc, ENOMEM, POSIX_ERROR, "not enought memory"
+                    " for the certificate storage");
+        }
+    }
+
+    if (crd->c_key) {
+        /* TODO Support for other key types could be here*/
+        switch (EVP_PKEY_type(crd->c_key->type)) {
+            case EVP_PKEY_RSA:
+                {
+                    RSA *rsa = NULL;
+                    RSA *dup_rsa = NULL;
+                    rsa = EVP_PKEY_get1_RSA(crd->c_key);
+                    if (!rsa )
+                        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot "
+                                "get rsa key out of credential handler");
+                    dup_rsa = RSAPrivateKey_dup(rsa);
+                    RSA_free(rsa);
+                    EVP_PKEY_set1_RSA(cc->cert_key->key, dup_rsa);
+                    break;
+                }
+        }
+    }
+    if (crd->c_cert)
+        cc->cert_key->cert = X509_dup(crd->c_cert);
+    if (crd->c_cert_chain)
+        cc->cert_key->chain = sk_X509_dup(crd->c_cert_chain);
+    return 0;
 }
 
 canl_err_code CANL_CALLCONV
