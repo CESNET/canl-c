@@ -323,16 +323,36 @@ canl_cred_set_cert_type(canl_ctx ctx, canl_cred cred,
     return 0;
 }
 
+/*TODO use flags*/
 canl_err_code CANL_CALLCONV
 canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
 {
-    return ENOSYS; 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *signer_crd = (creds*) signer_cred;
+    creds *proxy_crd = (creds*) proxy_cred;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!signer_crd)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Signer cred. handler"
+                " not initialized" );
+    if (!proxy_crd)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Proxy cred. handler"
+                " not initialized" );
+    /*TODO flags - limited,version*/
+    proxy_sign(signer_crd->c_cert, signer_crd->c_key, proxy_crd->c_req,
+            &proxy_crd->c_cert, proxy_crd->c_lifetime, 
+            proxy_crd->c_cert_ext, 0, 2, NULL, NULL, 0, NULL, 0);
+    
+    return 0;
+       
 }
 
 canl_err_code CANL_CALLCONV
 canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
 {
-    return ENOSYS; 
+    return ENOSYS;
 }
 
 canl_err_code CANL_CALLCONV
@@ -420,9 +440,14 @@ canl_req_create(canl_ctx ctx, canl_x509_req *ret_req, unsigned int bits)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     /*TODO 1st NULL may invoke callback to ask user for new name*/
-    ret = proxy_genreq(NULL,&req->c_req, &req->c_key, bits, NULL, NULL);
+    ret = proxy_genreq(NULL, &req->c_req, &req->c_key, bits, NULL, NULL);
     if (ret)
-        
+        return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Cannot make new"
+                "proxy certificate");
+
+    if (*ret_req)
+        canl_req_free(cc, *ret_req);
+
     *ret_req = req;
 
     return 0;
