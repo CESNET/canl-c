@@ -1,6 +1,8 @@
 #include "canl_locl.h"
 #include "canl_cred.h"
 
+static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from);
+
 canl_err_code CANL_CALLCONV
 canl_cred_new(canl_ctx ctx, canl_cred * cred)
 {
@@ -69,6 +71,7 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd = (creds*) cred;
+    int ret = 0;
 
     if (!ctx)
         return EINVAL;
@@ -85,23 +88,11 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     }
 
     if (crd->c_key) {
-        /* TODO Support for other key types could be here*/
-        switch (EVP_PKEY_type(crd->c_key->type)) {
-            case EVP_PKEY_RSA:
-                {
-                    RSA *rsa = NULL;
-                    RSA *dup_rsa = NULL;
-                    rsa = EVP_PKEY_get1_RSA(crd->c_key);
-                    if (!rsa )
-                        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot "
-                                "get rsa key out of credential handler");
-                    dup_rsa = RSAPrivateKey_dup(rsa);
-                    RSA_free(rsa);
-                    EVP_PKEY_set1_RSA(cc->cert_key->key, dup_rsa);
-                    break;
-                }
+        if ((ret = pkey_dup(cc, &cc->cert_key->key, crd->c_key))) {
+            return ret;
         }
     }
+
     if (crd->c_cert)
         cc->cert_key->cert = X509_dup(crd->c_cert);
     if (crd->c_cert_chain)
@@ -109,31 +100,59 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     return 0;
 }
 
+static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from)
+{
+    /* TODO Support for other key types could be here*/
+    switch (EVP_PKEY_type(from->type)) {
+        case EVP_PKEY_RSA:
+            {
+                RSA *rsa = NULL;
+                RSA *dup_rsa = NULL;
+                rsa = EVP_PKEY_get1_RSA(from);
+                if (!rsa )
+                    return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot "
+                            "get rsa key out of credential handler");
+                dup_rsa = RSAPrivateKey_dup(rsa);
+                RSA_free(rsa);
+                EVP_PKEY_set1_RSA(*to, dup_rsa);
+                break;
+            }
+    }
+    return 0;
+}
+
+
 canl_err_code CANL_CALLCONV
 canl_cred_load_req(canl_ctx ctx, canl_cred cred, canl_x509_req req)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd = (creds*) cred;
     request *rqst = (request *) req;
+    int ret = 0;
+
     if (!ctx)
         return EINVAL;
 
     if (!cred)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
-    if (!rqst || rqst->c_req)
+    if (!rqst)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
-
-    if (crd->c_req) {
-        X509_REQ_free(crd->c_req);
-        crd->c_req = NULL;
-    }
+    if (rqst->c_req)
+        if (crd->c_req) {
+            X509_REQ_free(crd->c_req);
+            crd->c_req = NULL;
+        }
 
     crd->c_req = X509_REQ_dup(rqst->c_req);
     if (!crd->c_req)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " X509 request handler" ); //TODO check ret val
+    if (rqst->c_key) {
+        if ((ret = pkey_dup(cc, &crd->c_key, rqst->c_key)))
+            return ret;
+    }
 
     return 0;    
 }
