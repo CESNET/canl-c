@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
     char buf[BUF_LEN];
     int buf_len = 0;
     struct timeval timeout;
+    canl_principal princ = NULL;
+    char *name = NULL;
 
     while ((opt = getopt(argc, argv, "hp:c:k:")) != -1) {
         switch (opt) {
@@ -136,13 +138,17 @@ int main(int argc, char *argv[])
 
     /* canl_create_io_handler has to be called for my_io_h*/
     /* TODO timeout in this function? and select around it*/
-    err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 0, NULL, &timeout);
+    err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 0, &princ, &timeout);
     if (err) {
         printf("[SERVER] connection cannot be established: %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
     }
-    printf("[SERVER] connection established\n");
+
+    err = canl_princ_name(my_ctx, princ, &name);
+    printf("[SERVER] connection established with %s\n", name);
+    free(name);
+    canl_princ_free(my_ctx, princ);
 
     strncpy(buf, "This is a testing message to send", sizeof(buf));
     buf_len = strlen(buf) + 1;
