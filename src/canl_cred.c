@@ -48,7 +48,7 @@ canl_cred_free(canl_ctx ctx, canl_cred cred)
         crd->c_cert = NULL;
     }
     if (crd->c_cert_ext) {
-        X509_EXTENSION_free(crd->c_cert_ext);
+        sk_X509_EXTENSION_pop_free(crd->c_cert_ext, X509_EXTENSION_free);
         crd->c_cert_ext = NULL;
     }
     if (crd->c_cert_chain) {
@@ -264,14 +264,11 @@ canl_cred_set_extension(canl_ctx ctx, canl_cred cred, X509_EXTENSION *cert_ext)
 
     if (!cred)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
-                " not initialized" );
-    
-    if (crd->c_cert_ext) {
-        X509_EXTENSION_free(crd->c_cert_ext);
-        crd->c_cert_ext = NULL;
-    }
-    
-    crd->c_cert_ext = X509_EXTENSION_dup(cert_ext);
+                " not initialized" ); 
+
+    if (!crd->c_cert_ext)
+       crd->c_cert_ext = sk_X509_EXTENSION_new_null();
+    sk_X509_EXTENSION_push(crd->c_cert_ext, cert_ext);
     return 0;
 }
 
