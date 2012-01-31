@@ -360,8 +360,76 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
 
 canl_err_code CANL_CALLCONV
 canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
-{
-    return ENOSYS;
+{ 
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    FILE *cert_file  = NULL;
+    int ret = 0;
+    unsigned long ssl_err = 0;
+    X509 *cert_from_chain = NULL;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
+                " not initialized" );
+    if (!proxy_file)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid proxy file name");
+
+    cert_file = fopen(proxy_file, "wb");
+    if (!cert_file) {
+        ret = errno;
+        set_error(cc, ret, POSIX_ERROR, "cannot open file with cert");
+        return ret;
+    }
+    
+    ERR_clear_error();
+
+    /*new cert + priv key + chain*/
+    ret = PEM_write_X509(cert_file, crd->c_cert);
+    if (!ret) {
+        ssl_err = ERR_get_error();
+        ret = set_error(cc, ssl_err, SSL_ERROR, "Error while writing"
+               " the certificate to the file");
+        goto end;
+    }
+    ret = PEM_write_PrivateKey(cert_file, crd->c_key, NULL, NULL, 0, 0, NULL);
+    if (!ret) {
+        ssl_err = ERR_get_error();
+        ret = set_error(cc, ssl_err, SSL_ERROR, "Error while writing"
+                " the key to the file");
+        goto end;
+    }
+
+    while ((cert_from_chain = sk_X509_pop(crd->c_cert_chain)) != NULL) {
+        ret = PEM_write_X509(cert_file, cert_from_chain);
+        if (!ret) {
+            ssl_err = ERR_get_error();
+            ret = set_error(cc, ssl_err, SSL_ERROR, "Error while writing"
+                    " the certificate to the file");
+            goto end;
+        }
+    }
+
+
+    if (fclose(cert_file)){
+        ret = errno;
+        set_error(cc, ret, POSIX_ERROR, "cannot close file with certificate");
+        return errno;
+    }
+
+    return 0;
+
+end:
+    if (fclose(cert_file)){
+        ret = errno;
+        update_error(cc, ret, POSIX_ERROR, "cannot close file with certificate");
+        return errno;
+    }
+
+    return ret;
+
 }
 
 canl_err_code CANL_CALLCONV

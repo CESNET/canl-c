@@ -105,7 +105,7 @@ int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key)
     *to = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
     if (!(*to)) {
         ssl_err = ERR_peek_error();
-        set_error(cc, ssl_err, SSL_ERROR, "error while writing key to context");
+        err = set_error(cc, ssl_err, SSL_ERROR, "error while writing key to context");
         goto end;
     }
     if (fclose(key_file)){
@@ -120,7 +120,7 @@ end:
         err = errno;
         update_error(cc, errno, POSIX_ERROR, "cannot close file with key");
     }
-    return 1;
+    return err;
 }
 
 int set_cert_file(glb_ctx *cc, X509 **to, const char *cert)
@@ -146,7 +146,7 @@ int set_cert_file(glb_ctx *cc, X509 **to, const char *cert)
     *to = PEM_read_X509(cert_file, NULL, NULL, NULL);
     if (!(*to)) {
         ssl_err = ERR_get_error();
-        set_error(cc, ssl_err, SSL_ERROR, "error while writing certificate"
+        err = set_error(cc, ssl_err, SSL_ERROR, "error while writing certificate"
                 " to context"); 
         goto end;
     }
@@ -163,7 +163,7 @@ end:
         err = errno;
         update_error(cc, errno, POSIX_ERROR, "cannot close file with certificate");
     }
-    return 1;
+    return err;
 }
 
 int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *file)
