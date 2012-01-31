@@ -277,8 +277,8 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 	err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
 	if (err)
 	    goto end;
-    }*/
-
+    }
+*/
     io_cc->authn_mech.ctx = conn_ctx;
     io_cc->authn_mech.type = mech->mech;
     io_cc->authn_mech.oid = GSS_C_NO_OID;

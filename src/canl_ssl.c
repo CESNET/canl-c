@@ -142,11 +142,9 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
         return 1;
     }
     /*Make sure the key and certificate file match*/
-    if ( (err = SSL_check_private_key(ssl)) != 1) {
-        set_error(cc, ERR_get_error(), SSL_ERROR, "Private key does not match"
-                " the certificate public key"); 
-        return 1;
-    }
+    if ( (err = SSL_check_private_key(ssl)) != 1)
+        return set_error(cc, ERR_get_error(), SSL_ERROR, "Private key"
+               " does not match the certificate public key"); 
 
     *ctx = ssl;
 
@@ -183,6 +181,18 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
             if (err)
                 return err;
         }
+        else {
+            if (user_cert_fn && !access(user_cert_fn, R_OK)) {
+                err = do_set_ctx_own_cert_file(cc, user_cert_fn, NULL);
+                if (err)
+                    return err;
+            }
+            if (user_key_fn && !access(user_key_fn, R_OK)) {
+                err = do_set_ctx_own_cert_file(cc, NULL, user_key_fn);
+                if (err)
+                    return err;
+            }
+        }
     }
 
     free(user_cert_fn);
@@ -200,7 +210,7 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
                         "use private key");
             }
         }
-        else if (cc->cert_key->cert) {
+        if (cc->cert_key->cert) {
             err = SSL_use_certificate(ssl, cc->cert_key->cert);
             if (err != 1) {
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
@@ -208,6 +218,12 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
             }
         }
     }
+    /*Make sure the key and certificate file match
+     * not mandatory on client side*/
+    if (cc->cert_key->cert && cc->cert_key->key)
+    if ( (err = SSL_check_private_key(ssl)) != 1)
+        return set_error(cc, ERR_get_error(), SSL_ERROR, "Private key"
+                " does not match the certificate public key"); 
 
     *ctx = ssl;
     return 0;
