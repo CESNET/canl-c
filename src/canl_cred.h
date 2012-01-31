@@ -27,11 +27,6 @@ typedef struct _creds {
     X509_REQ *c_req;
 } creds;
 
-typedef struct _request {
-    EVP_PKEY *c_key;
-    X509_REQ *c_req;
-} request;
-
 /* Routines to handle credentials */
 
 canl_err_code CANL_CALLCONV
@@ -42,9 +37,6 @@ canl_cred_free(canl_ctx, canl_cred);
 
 canl_err_code CANL_CALLCONV
 canl_ctx_set_cred(canl_ctx, canl_cred);
-
-canl_err_code CANL_CALLCONV
-canl_cred_load_req(canl_ctx, canl_cred, canl_x509_req);
 
 canl_err_code CANL_CALLCONV
 canl_cred_load_priv_key_file(canl_ctx, canl_cred, const char *,
@@ -93,13 +85,10 @@ canl_cred_save_chain(canl_ctx, canl_cred, STACK_OF(X509) **);
 /* Routines to handle X.509 requests */
 
 canl_err_code CANL_CALLCONV
-canl_req_create(canl_ctx, canl_x509_req *, unsigned int);
+canl_cred_new_req(canl_ctx, canl_cred, unsigned int);
 
 canl_err_code CANL_CALLCONV
-canl_req_free(canl_ctx, canl_x509_req);
-
-canl_err_code CANL_CALLCONV
-canl_req_get_req(canl_ctx, canl_x509_req, X509_REQ **);
+canl_req_get_req(canl_ctx, canl_cred, X509_REQ **);
 
 #if 0
 canl_err_code CANL_CALLCONV

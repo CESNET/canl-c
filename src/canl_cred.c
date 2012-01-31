@@ -107,42 +107,6 @@ static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from)
     return 0;
 }
 
-
-canl_err_code CANL_CALLCONV
-canl_cred_load_req(canl_ctx ctx, canl_cred cred, canl_x509_req req)
-{
-    glb_ctx *cc = (glb_ctx*) ctx;
-    creds *crd = (creds*) cred;
-    request *rqst = (request *) req;
-    int ret = 0;
-
-    if (!ctx)
-        return EINVAL;
-
-    if (!cred)
-        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
-                " not initialized" );
-    if (!rqst)
-        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
-                " not initialized" );
-    if (rqst->c_req)
-        if (crd->c_req) {
-            X509_REQ_free(crd->c_req);
-            crd->c_req = NULL;
-        }
-
-    crd->c_req = X509_REQ_dup(rqst->c_req);
-    if (!crd->c_req)
-        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
-                " X509 request handler" ); //TODO check ret val
-    if (rqst->c_key) {
-        if ((ret = pkey_dup(cc, &crd->c_key, rqst->c_key)))
-            return ret;
-    }
-
-    return 0;    
-}
-
 canl_err_code CANL_CALLCONV
 canl_cred_load_priv_key_file(canl_ctx ctx, canl_cred cred, const char *pkey_file,
         canl_password_callback pass_clb, void *arg)
@@ -498,10 +462,10 @@ canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
 
 /* handle requests*/
 canl_err_code CANL_CALLCONV
-canl_req_create(canl_ctx ctx, canl_x509_req *ret_req, unsigned int bits)
+canl_cred_new_req(canl_ctx ctx, canl_cred ret_req, unsigned int bits)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
-    request *req = NULL;
+    creds *crd_req = (creds*) ret_req;
     int ret = 0;
 
     if (!ctx)
@@ -510,62 +474,26 @@ canl_req_create(canl_ctx ctx, canl_x509_req *ret_req, unsigned int bits)
     if (!ret_req)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
-
-    /*create new cred. handler*/
-    req = (request *) calloc(1, sizeof(*req));
-    if (!req)
-        return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
+    
+    if (crd_req->c_req) {
+        X509_REQ_free(crd_req->c_req);
+        crd_req->c_req = NULL;
+    }
 
     /*TODO 1st NULL may invoke callback to ask user for new name*/
-    ret = proxy_genreq(NULL, &req->c_req, &req->c_key, bits, NULL, NULL);
+    ret = proxy_genreq(NULL, &crd_req->c_req, &crd_req->c_key, bits, NULL, NULL);
     if (ret)
         return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Cannot make new"
                 "proxy certificate");
 
-    if (*ret_req)
-        canl_req_free(cc, *ret_req);
-
-    *ret_req = req;
-
     return 0;
 }
 
 canl_err_code CANL_CALLCONV
-canl_req_free(canl_ctx ctx, canl_x509_req c_req)
+canl_req_get_req(canl_ctx ctx, canl_cred req_in, X509_REQ ** req_ret)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
-    request *req = (request*) c_req;
-
-    if (!ctx)
-        return EINVAL;
-
-    if (!c_req)
-        return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
-                " not initialized" );
-
-    /* Delete contents*/
-    if (req->c_key) {
-        EVP_PKEY_free(req->c_key);
-        req->c_key = NULL;
-    }
-    if (req->c_req) {
-        X509_REQ_free(req->c_req);
-        req->c_req = NULL;
-    }
-
-    free (req);
-    req = NULL;
-
-    return 0;
-
-
-}
-
-canl_err_code CANL_CALLCONV
-canl_req_get_req(canl_ctx ctx, canl_x509_req req_in, X509_REQ ** req_ret)
-{
-    glb_ctx *cc = (glb_ctx*) ctx;
-    request *req = (request*) req_in;
+    creds *req = (creds*) req_in;
 
     if (!ctx)
         return EINVAL;
@@ -575,7 +503,8 @@ canl_req_get_req(canl_ctx ctx, canl_x509_req req_in, X509_REQ ** req_ret)
     if (!req_ret)
         return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
                 " not initialized" );
-    
+
+    /*TODO free REQ if req_ret full*/
     *req_ret = X509_REQ_dup(req->c_req);
     if (*req_ret)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
