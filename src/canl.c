@@ -272,11 +272,12 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
     if (err)
 	goto end;
 
-    if (peer) {
+    /*TODO Not mandatory peer certificate for now*/
+/*    if (peer) {
 	err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
 	if (err)
 	    goto end;
-    }
+    }*/
 
     io_cc->authn_mech.ctx = conn_ctx;
     io_cc->authn_mech.type = mech->mech;

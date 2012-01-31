@@ -31,7 +31,9 @@ ssl_initialize(glb_ctx *cc, void **ctx)
     ssl_ctx = SSL_CTX_new(SSLv23_method());
     if (!ssl_ctx)
 	return set_error(cc, ERR_get_error(), SSL_ERROR,
-			 "Cannot initialize SSL context");
+                "Cannot initialize SSL context");
+
+    /* TODO what is this? */
     SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2);
 
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, NULL, NULL, NULL);
@@ -72,15 +74,17 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 {
     SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
     SSL *ssl = NULL;
-
+    char *user_cert_fn, *user_key_fn, *user_proxy_fn;
+    int err = 0;
+    user_cert_fn = user_key_fn = user_proxy_fn = NULL;
+ 
     if (cc == NULL)
 	return EINVAL;
 
     if (ssl_ctx == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
-#if 0
-    err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
+    err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
         if (user_cert_fn && user_key_fn && !access(user_cert_fn, R_OK) && 
@@ -98,7 +102,6 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     //TODO where to use proxy on server side
     free(user_proxy_fn);
     user_proxy_fn = NULL;
-#endif
 
     ssl = SSL_new(ssl_ctx);
     if (ssl == NULL)
@@ -109,29 +112,26 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
 
-    SSL_use_certificate_file(ssl, "/etc/grid-security/hostcert.pem", SSL_FILETYPE_PEM);
-    SSL_use_PrivateKey_file(ssl, "/etc/grid-security/hostkey.pem", SSL_FILETYPE_PEM);
+//    SSL_use_certificate_file(ssl, "/etc/grid-security/hostcert.pem", SSL_FILETYPE_PEM);
+//    SSL_use_PrivateKey_file(ssl, "/etc/grid-security/hostkey.pem", SSL_FILETYPE_PEM);
 
     SSL_set_accept_state(ssl);
 
-#if 0
     if (cc->cert_key) {
         if (cc->cert_key->cert) {
-            err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
+            err = SSL_use_certificate(ssl, cc->cert_key->cert);
             if (err != 1) {
-                ssl_err = ERR_get_error();
-                e_orig = SSL_ERROR;
-                goto end;
+                return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
+                        "use certificate");
             }
             else
                 err = 0;
         }
         if (cc->cert_key->key) {
-            err = SSL_CTX_use_PrivateKey(ssl_ctx, cc->cert_key->key);
+            err = SSL_use_PrivateKey(ssl, cc->cert_key->key);
             if (err != 1) {
-                ssl_err = ERR_get_error();
-                e_orig = SSL_ERROR;
-                goto end;
+                return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
+                        "use private key");
             }
             else
                 err = 0;
@@ -142,14 +142,11 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
         return 1;
     }
     /*Make sure the key and certificate file match*/
-    if ( (err = SSL_CTX_check_private_key(ssl_ctx)) != 1) {
-        ssl_err = ERR_get_error();
-        e_orig = SSL_ERROR;
-        set_error(cc, ssl_err, e_orig, "Private key does not match"
+    if ( (err = SSL_check_private_key(ssl)) != 1) {
+        set_error(cc, ERR_get_error(), SSL_ERROR, "Private key does not match"
                 " the certificate public key"); 
         return 1;
     }
-#endif
 
     *ctx = ssl;
 
@@ -161,6 +158,9 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 {
     SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
     SSL *ssl = NULL;
+    int err = 0;
+    char *user_cert_fn, *user_key_fn, *user_proxy_fn;
+    user_cert_fn = user_key_fn = user_proxy_fn = NULL;
 
     if (cc == NULL)
 	return EINVAL;
@@ -175,8 +175,7 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 
     SSL_set_connect_state(ssl);
 
-#if 0
-    err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, &user_proxy_fn,
+    err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
         if (user_proxy_fn && !access(user_proxy_fn, R_OK)) {
@@ -195,23 +194,20 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
-            err = SSL_CTX_use_PrivateKey(ssl_ctx, cc->cert_key->key);
+            err = SSL_use_PrivateKey(ssl, cc->cert_key->key);
             if (err != 1) {
-                ssl_err = ERR_get_error();
-                e_orig = SSL_ERROR;
-                goto end;
+                return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
+                        "use private key");
             }
         }
         else if (cc->cert_key->cert) {
-            err = SSL_CTX_use_certificate(ssl_ctx, cc->cert_key->cert);
+            err = SSL_use_certificate(ssl, cc->cert_key->cert);
             if (err != 1) {
-                ssl_err = ERR_get_error();
-                e_orig = SSL_ERROR;
-                goto end;
+                return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
+                        "use certificate");
             }
         }
     }
-#endif
 
     *ctx = ssl;
     return 0;
