@@ -74,8 +74,8 @@ typedef struct _asyn_result {
 
 typedef struct _principal_int {
     char *name;
-    CANL_AUTH_MECHANISM mech_oid;
-    char *raw;  /* e.g. the PEM encoded cert/chain */
+//    CANL_AUTH_MECHANISM mech_oid;
+//    char *raw;  /* e.g. the PEM encoded cert/chain */
 } principal_int;
 
 typedef struct _io_handler
@@ -122,6 +122,10 @@ typedef struct canl_mech {
 
     canl_err_code (*write)
         (glb_ctx *, io_handler *, void *, void *, size_t, struct timeval *);
+
+    canl_err_code (*get_peer)
+        (glb_ctx *, io_handler *, void *, canl_principal *);
+
 } canl_mech;
 
 struct canl_mech *

@@ -66,6 +66,9 @@ canl_princ_name(canl_ctx, const canl_principal, char **);
 canl_err_code CANL_CALLCONV
 canl_princ_mech(canl_ctx, const canl_principal, gss_OID *);
 
+void CANL_CALLCONV
+canl_princ_free(canl_ctx, canl_principal);
+
 char * CANL_CALLCONV
 canl_mech2str(canl_ctx, gss_OID);
 

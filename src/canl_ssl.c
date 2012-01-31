@@ -810,6 +810,44 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
     return err;
 }
 
+static canl_err_code
+ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
+{
+    struct _principal_int *princ;
+    SSL *ssl = (SSL *) auth_ctx;
+    X509 *cert = NULL;
+    X509_NAME *subject = NULL;
+    int ret;
+
+    if (peer == NULL)
+	return set_error(cc, EINVAL, POSIX_ERROR, "invalid parameter value");
+
+    cert = SSL_get_peer_certificate(ssl);
+    if (cert == NULL)
+	return set_error(cc, CANL_ERR_NoClientCertificate, CANL_ERROR, "No peer certificate");
+
+    princ = calloc(1, sizeof(*princ));
+    if (princ == NULL)
+	return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
+
+    subject = X509_get_subject_name(cert);
+    princ->name = strdup(X509_NAME_oneline(subject, NULL, 0));
+    if (princ->name == NULL) {
+	ret = set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
+	goto end;
+    }
+
+    *peer = princ;
+    princ = NULL;
+    ret = 0;
+
+end:
+    if (princ)
+	free(princ);
+
+    return ret;
+}
+
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode)
 {
@@ -861,5 +899,6 @@ struct canl_mech canl_mech_ssl = {
     ssl_accept,
     ssl_close,
     ssl_read,
-    ssl_write
+    ssl_write,
+    ssl_get_peer,
 };

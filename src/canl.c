@@ -272,6 +272,12 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
     if (err)
 	goto end;
 
+    if (peer) {
+	err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
+	if (err)
+	    goto end;
+    }
+
     io_cc->authn_mech.ctx = conn_ctx;
     io_cc->authn_mech.type = mech->mech;
     io_cc->authn_mech.oid = GSS_C_NO_OID;
@@ -471,4 +477,41 @@ find_mech(gss_OID oid)
 {
     /* XXX */
     return &canl_mech_ssl;
+}
+
+canl_err_code 
+canl_princ_name(canl_ctx cc, const canl_principal princ, char **name)
+{
+    struct _principal_int *p = (struct _principal_int *) princ;
+
+    if (cc == NULL)
+	return -1;
+    if (princ == NULL)
+	return set_error(cc, EINVAL, POSIX_ERROR, "Principal not initialized");
+
+    if (name == NULL)
+	return set_error(cc, EINVAL, POSIX_ERROR, "invalid parameter value");
+
+    *name = strdup(p->name);
+    if (*name == NULL)
+	return set_error(cc, ENOMEM, POSIX_ERROR, "not enough memory");
+
+    return 0;
+}
+
+void
+canl_princ_free(canl_ctx cc, canl_principal princ)
+{
+    struct _principal_int *p = (struct _principal_int *) princ;
+
+    if (cc == NULL)
+	return;
+    if (princ == NULL)
+	return;
+
+    if (p->name)
+	free(p->name);
+    free(princ);
+
+    return;
 }

@@ -103,3 +103,4 @@ trustPubKeyError
 GeneralSSLError
 HostNotFound
 ResolverError
+NoClientCertificate
