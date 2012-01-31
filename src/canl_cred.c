@@ -349,6 +349,10 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
     proxy_sign(signer_crd->c_cert, signer_crd->c_key, proxy_crd->c_req,
             &proxy_crd->c_cert, proxy_crd->c_lifetime, 
             proxy_crd->c_cert_ext, 0, 2, NULL, NULL, 0, NULL, 0);
+
+    /*concatenate new chain*/
+    proxy_crd->c_cert_chain = sk_X509_dup(signer_crd->c_cert_chain);
+    sk_X509_push(proxy_crd->c_cert_chain, signer_crd->c_cert);
     
     return 0;
        
