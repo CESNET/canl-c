@@ -52,6 +52,8 @@ ssl_initialize(glb_ctx *cc, void **ctx)
 			"No cipher to use");
 	goto end;
     }
+    /* XXX: should be only defined on the SSL level: */
+    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
 
     //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
     //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
@@ -108,9 +110,10 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 	return set_error(cc, ERR_get_error(), SSL_ERROR,
 		         "Failed to create SSL connection context");
 
-    /* XXX: should be only defined on the SSL level: */
-    SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_NONE, proxy_verify_callback);
-    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
+    /* TODO !!!!!!!!!!
+     *  if SSL_VERIFY_NONE, then we cannot extract peer cert. of ssl
+     *  if SSL_VERIFY_PEER, then client cert verification is mandatory!!!*/
+    SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
 
 //    SSL_use_certificate_file(ssl, "/etc/grid-security/hostcert.pem", SSL_FILETYPE_PEM);
 //    SSL_use_PrivateKey_file(ssl, "/etc/grid-security/hostkey.pem", SSL_FILETYPE_PEM);
@@ -201,6 +204,8 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     user_key_fn = NULL;
     free(user_proxy_fn);
     user_proxy_fn = NULL;
+
+    SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
