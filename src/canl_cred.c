@@ -102,22 +102,8 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
 
 static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from)
 {
-    /* TODO Support for other key types could be here*/
-    switch (EVP_PKEY_type(from->type)) {
-        case EVP_PKEY_RSA:
-            {
-                RSA *rsa = NULL;
-                RSA *dup_rsa = NULL;
-                rsa = EVP_PKEY_get1_RSA(from);
-                if (!rsa )
-                    return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot "
-                            "get rsa key out of credential handler");
-                dup_rsa = RSAPrivateKey_dup(rsa);
-                RSA_free(rsa);
-                EVP_PKEY_set1_RSA(*to, dup_rsa);
-                break;
-            }
-    }
+    CRYPTO_add(&from->references,1,CRYPTO_LOCK_EVP_PKEY);
+    *to = from;
     return 0;
 }
 
