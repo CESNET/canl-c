@@ -72,7 +72,7 @@ canl_princ_free(canl_ctx, canl_principal);
 char * CANL_CALLCONV
 canl_mech2str(canl_ctx, gss_OID);
 
-const gss_OID CANL_CALLCONV
+const gss_OID_desc * CANL_CALLCONV
 canl_str2mech(canl_ctx, const char mech);
 
 #ifdef __cplusplus
