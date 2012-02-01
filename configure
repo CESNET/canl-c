@@ -189,15 +189,40 @@ my (%etics_externs, %etics_projects);
 # additional modules from $project{modules} are automatically added
 #
 my %lbmodules = (
-	'lb' => [ qw/client client-java common doc logger server state-machine types utils ws-interface ws-test harvester yaim logger-msg nagios/], 
-	'lbjp-common' => [qw/db log maildir server-bones trio jp-interface gss gsoap-plugin/],
-	'jobid' => [qw/api-c api-cpp api-java/],
+	'lb' => [ qw/client client-java common doc logger server state-machine types utils ws-interface ws-test harvester yaim logger-msg nagios client-devel client-progs common-devel logger-devel state-machine-devel/], 
+	'lbjp-common' => [qw/db log maildir server-bones trio jp-interface gss gsoap-plugin db-devel log-devel maildir-devel server-bones-devel trio-devel jp-interface-devel gss-devel gsoap-plugin-devel/],
+	'jobid' => [qw/api-c api-c-devel api-cpp api-cpp-devel api-java/],
 	'jp' => [ qw/client doc index primary server-common ws-interface/ ],
 	'gridsite' => [ qw/apache shared commands core devel slashgrid services service-clients gsexec/ ],
-	'px' => [ qw/proxyrenewal myproxy-yaim/ ],
-	'canl' => [ qw/c/ ],
+	'px' => [ qw/proxyrenewal myproxy-yaim proxyrenewal-devel proxyrenewal-progs/ ],
+	'canl' => [ qw/c c-devel/ ],
 	);
 
+#
+# sub-packages
+#
+# modify %lbmodules, %deps_aux, %extrafull, and %properties accodingly
+#
+my %subpackages = (
+	'jobid.api-c-devel' => 'jobid.api-c',
+	'jobid.api-cpp-devel' => 'jobid.api-cpp',
+	'lbjp-common.db-devel' => 'lbjp-common.db',
+	'lbjp-common.gsoap-plugin-devel' => 'lbjp-common.gsoap-plugin',
+	'lbjp-common.gss-devel' => 'lbjp-common.gss',
+	'lbjp-common.jp-interface-devel' => 'lbjp-common.jp-interface',
+	'lbjp-common.log-devel' => 'lbjp-common.log',
+	'lbjp-common.maildir-devel' => 'lbjp-common.maildir',
+	'lbjp-common.server-bones-devel' => 'lbjp-common.server-bones',
+	'lbjp-common.trio-devel' => 'lbjp-common.trio',
+	'lb.client-progs' => 'lb.client',
+	'lb.client-devel' => 'lb.client',
+	'lb.common-devel' => 'lb.common',
+	'lb.logger-devel' => 'lb.logger',
+	'lb.state-machine-devel' => 'lb.state-machine',
+	'px.proxyrenewal-devel' => 'px.proxyrenewal',
+	'px.proxyrenewal-progs' => 'px.proxyrenewal',
+	'canl.c-devel' => 'canl.c',
+);
 
 my @opts = (
 	'prefix:s' => \$prefix,
@@ -292,8 +317,17 @@ if ($help) { usage(); exit 0; }
 
 if ($listmodules) {
 	my $name_prefix = ($listmodules eq 'gridsite' and $project eq 'glite') ? 'org' : $project{etics_name};
-	my @m = map "$name_prefix.$listmodules.$_",@{$lbmodules{$listmodules}};
-	print "@m\n";
+	my @m;
+
+	if (exists $lbmodules{$listmodules}) {
+		@m = map exists $subpackages{$listmodules . '.' . $_} ? "" : "$name_prefix.$listmodules.$_",@{$lbmodules{$listmodules}};
+	} else {
+		for my $sub (keys %subpackages) {
+			push @m, $sub if ($subpackages{$sub} eq $listmodules);
+		}
+	}
+	print map $_ eq "" ? "" : "$_ ", @m;
+	print "\n";
 	exit 0;
 }
 
@@ -540,7 +574,6 @@ BEGIN{
 		'myproxy-server'=>'myproxy-server',
 		'myproxy-admin'=>'myproxy-admin',
 		cares=>'c-ares',
-		voms=>'org.glite.security.voms-api-cpp',
 		utiljava=>'org.glite.security.util-java',
 		gpt=>'gpt',
 		fetchcrl=>'fetch-crl',
@@ -558,7 +591,7 @@ BEGIN{
 	'lb.logger' => [ qw/cppunit:B libtool:B/ ],
 	'lb.logger-msg' => [ qw/cppunit:B activemq libtool:B/ ],
 	'lb.nagios' => [ qw/globus_proxy_utils:R/ ],
-	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql:R mysql-server:R mysql-devel:B cppunit:B gsoap:B classads voms lcas gridsite bison:B libtool:B libxml2 flex:B/ ],
+	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql:R mysql-server:R mysql-devel:B cppunit:B gsoap:B classads voms:B lcas gridsite bison:B libtool:B libxml2 flex:B/ ],
 	'lb.state-machine' => [ qw/classads libtool:B libxslt:B expat:B/ ],
 	'lb.utils' => [ qw/cppunit:B libtool:B/ ],
 	'lb.ws-interface' => [ qw/libxslt:B tidy:B/ ],
@@ -592,7 +625,7 @@ BEGIN{
 	'gridsite.service-clients' => [ qw/curl:R gsoap:R gsoapxx:R/ ],
 	'gridsite.gsexec' => [ qw// ],
 	'gridsite.1.5-compat' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B build_common_cpp:B doxygen:B/ ],
-	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B myproxy-libs:R voms libtool:B/ ],
+	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B myproxy-libs:R voms:B libtool:B/ ],
 	'px.myproxy-config' => [ qw/myproxy-admin:R/ ], # in myproxy-config.spec
 	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B/ ],
 );
@@ -633,7 +666,7 @@ for my $jar (keys %need_jars) {
 		lbjp-common.gss
 	/ ],
 	'lb.logger-msg' => [ qw/
-		lb.logger
+		lb.logger-devel:B
 	/ ],
 	'lb.nagios' => [ qw/
 		lb.client:R
@@ -664,12 +697,12 @@ for my $jar (keys %need_jars) {
 	'lb.glite-LB' => [ qw/
 		lb.logger:R lb.server:R lb.utils:R lb.doc:R
 		lb.ws-test:R lb.harvester:R lb.yaim:R lb.client-java:R
-		lb.logger-msg:R
+		lb.logger-msg:R lb.client-progs:R
 	/ ],
 	'lb.emi-lb' => [ qw/
 		lb.logger:R lb.server:R lb.utils:R lb.doc:R
 		lb.ws-test:R lb.harvester:R lb.yaim:R lb.client-java:R
-		lb.logger-msg:R
+		lb.logger-msg:R lb.client-progs:R
 	/ ],
 	'lbjp-common.db' => [ qw/lbjp-common.trio lbjp-common.log/ ],
 	'lbjp-common.maildir' => [ qw// ],
@@ -725,6 +758,26 @@ for my $jar (keys %need_jars) {
 	'px.myproxy-config' => [],
 
 	'canl.c' => [],
+
+	# sub-packages (virtual ETICS components depending on the main)
+	'jobid.api-c-devel' => [ qw/jobid.api-c:B/ ],
+	'jobid.api-cpp-devel' => [ qw/jobid.api-cpp:B/ ],
+	'lbjp-common.db-devel' => [ qw/lbjp-common.db:B/ ],
+	'lbjp-common.gsoap-plugin-devel' => [ qw/lbjp-common.gsoap-plugin:B/ ],
+	'lbjp-common.gss-devel' => [ qw/lbjp-common.gss:B/ ],
+	'lbjp-common.jp-interface-devel' => [ qw/lbjp-common.jp-interface:B/ ],
+	'lbjp-common.log-devel' => [ qw/lbjp-common.log:B/ ],
+	'lbjp-common.maildir-devel' => [ qw/lbjp-common.maildir:B/ ],
+	'lbjp-common.server-bones-devel' => [ qw/lbjp-common.server-bones:B/ ],
+	'lbjp-common.trio-devel' => [ qw/lbjp-common.trio:B/ ],
+	'lb.client-progs' => [ qw/lb.client:B/ ],
+	'lb.client-devel' => [ qw/lb.client:B/ ],
+	'lb.common-devel' => [ qw/lb.common:B/ ],
+	'lb.logger-devel' => [ qw/lb.logger:B/ ],
+	'lb.state-machine-devel' => [ qw/lb.state-machine:B/ ],
+	'px.proxyrenewal-devel' => [ qw/px.proxyrenewal:B/ ],
+	'px.proxyrenewal-progs' => [ qw/px.proxyrenewal:B/ ],
+	'canl.c-devel' => [ qw/canl.c:B/ ],
 );
 
 for my $ext (keys %deps_aux) {
@@ -737,7 +790,28 @@ for my $ext (keys %deps_aux) {
 }
 
 
-%extrafull = ( gridsite=>'org.gridsite.core', 'canl.c' => 'emi.canl.canl-c');
+%extrafull = (
+	gridsite=>'org.gridsite.core',
+	'canl.c' => 'emi.canl.canl-c',
+	'canl.c-devel' => 'emi.canl.canl-c',
+	'jobid.api-c-devel' => 'org.glite.jobid.api-c',
+	'jobid.api-cpp-devel' => 'org.glite.jobid.api-cpp',
+	'lbjp-common.db-devel' => 'org.glite.lbjp-common.db',
+	'lbjp-common.gsoap-plugin-devel' => 'org.glite.lbjp-common.gsoap-plugin',
+	'lbjp-common.gss-devel' => 'org.glite.lbjp-common.gss',
+	'lbjp-common.jp-interface-devel' => 'org.glite.lbjp-common.jp-interface',
+	'lbjp-common.log-devel' => 'org.glite.lbjp-common.log',
+	'lbjp-common.maildir-devel' => 'org.glite.lbjp-common.maildir',
+	'lbjp-common.server-bones-devel' => 'org.glite.lbjp-common.server-bones',
+	'lbjp-common.trio-devel' => 'org.glite.lbjp-common.trio',
+	'lb.client-devel' => 'org.glite.lb.client',
+	'lb.client-progs' => 'org.glite.lb.client',
+	'lb.common-devel' => 'org.glite.lb.common',
+	'lb.logger-devel' => 'org.glite.lb.logger',
+	'lb.state-machine-devel' => 'org.glite.lb.state-machine',
+	'px.proxyrenewal-devel' => 'org.glite.px.proxyrenewal',
+	'px.proxyrenewal-progs' => 'org.glite.px.proxyrenewal',
+);
 
 #( java => 'client-java' );
 %extranodmod = (
@@ -828,11 +902,13 @@ for my $ext (keys %deps_aux) {
 				gsoapxx=>'-',
 				build_common_cpp=>'org.glite.build.common-cpp',
 				jdk=>'jdk',
+				voms=>'org.glite.security.voms-api-cpp',
 			},
 		},
 		etics_externs_devel => {
 			default => {
 				gridsite=>'org.gridsite.devel',
+				voms=>'org.glite.security.voms-api',
 			},
 		},
 		etics_projects => {
@@ -896,6 +972,7 @@ for my $ext (keys %deps_aux) {
 				gsoapxx=>'-',
 				build_common_cpp=>'emi.misc.glite.build-common-cpp',
 				jdk=>'java',
+				voms => 'emi.voms.voms-api',
 			},
 			sl5_x86_64_gcc412EPEL => {
 				'myproxy-devel' => 'myproxy-devel.x86_64',
@@ -932,7 +1009,7 @@ for my $ext (keys %deps_aux) {
 				cppunit => 'cppunit-devel',
 				expat => 'expat-devel',
 				gsoap => 'gsoap-devel',
-				voms => 'org.glite.security.voms-api',
+				voms => 'emi.voms.voms-api-devel',
 				libtar => 'libtar-devel',
 				log4c => 'log4c-devel',
 				postgresql => 'postgresql-devel',
@@ -1029,6 +1106,78 @@ my %gridsite_deb = (
 	},
 	'px.myproxy-config' => {
 		default => { 'package.buildarch' => 'noarch' },
+	},
+	'gridsite.devel' => {
+		default => { 'packageName' => 'gridsite-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libgridsite-dev' },
+	},
+	'canl.c-devel' => {
+		default => { 'packageName' => 'canl-c-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libcanl-dev' },
+	},
+	'jobid.api-c-devel' => {
+		default => { 'packageName' => 'glite-jobid-api-c-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-jobid-dev' },
+	},
+	'jobid.api-cpp-devel' => {
+		default => { 'packageName' => 'glite-jobid-api-cpp-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-jobid-cpp-dev' },
+	},
+	'lbjp-common.db-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-db-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-db-dev' },
+	},
+	'lbjp-common.gsoap-plugin-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-gsoap-plugin-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-gsoap-plugin-dev' },
+	},
+	'lbjp-common.gss-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-gss-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-gss-dev' },
+	},
+	'lbjp-common.jp-interface-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-jp-interface-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-jp-interface-dev' },
+	},
+	'lbjp-common.log-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-log-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-log-dev' },
+	},
+	'lbjp-common.maildir-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-maildir-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-maildir-dev' },
+	},
+	'lbjp-common.server-bones-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-server-bones-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-server-bones-dev' },
+	},
+	'lbjp-common.trio-devel' => {
+		default => { 'packageName' => 'glite-lbjp-common-trio-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lbjp-common-trio-dev' },
+	},
+	'lb.client-devel' => {
+		default => { 'packageName' => 'glite-lb-client-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lb-client-dev' },
+	},
+	'lb.common-devel' => {
+		default => { 'packageName' => 'glite-lb-common-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lb-common-dev' },
+	},
+	'lb.state-machine-devel' => {
+		default => { 'packageName' => 'glite-lb-state-machine-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lb-state-machine-dev' },
+	},
+	'lb.logger-devel' => {
+		default => { 'packageName' => 'glite-lb-logger-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-lb-logger-dev' },
+	},
+	'px.proxyrenewal-devel' => {
+		default => { 'packageName' => 'glite-px-proxyrenewal-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libglite-security-proxyrenewal-dev' },
+	},
+	'canl.c-devel' => {
+		default => { 'packageName' => 'canl-c-devel' },
+		deb6_x86_64_gcc445 => { 'packageName' => 'libcanl-c-dev' },
 	},
 );
 
@@ -1404,7 +1553,11 @@ sub mode_etics {
 	$cmd{default}{packaging} = 'None';
 	$cmd{default}{clean} = 'make clean';
 
-	if ($subsys eq 'gridsite') {
+	if (exists $subpackages{$fmod}) {
+		$cmd{default}{clean} = 'None';
+		$cmd{default}{packaging} = "echo building nothing, $subpackages{$fmod} will build this package";
+		$cmd_vcs{checkout} = "mkdir -v \${moduleName} 2>/dev/null || true";
+	} elsif ($subsys eq 'gridsite') {
 		$cmd_vcs{tag} = 'None';
 
 		if ($module eq 'core') {
@@ -1660,10 +1813,14 @@ $output};
 
 	for $file ("$cvs_module/project/debian.rules", "$cvs_module/project/$packageName.spec") {
 		my $lib;
+		my $main_module;
 		@copts = ();
 
 		if ($file =~ /debian\.rules$/) { $lib = 'lib'; }
 		else { $lib = '%{_lib}'; }
+
+		my $main_module = "$subsys.$module";
+		if (exists $subpackages{$main_module}) { $main_module = $subpackages{$main_module}; }
 
 		# locations hacks
 		if ($file =~ /$packageName\.spec$/) {
@@ -1679,7 +1836,7 @@ $output};
 			while (<SRC>) {
 				if (/^(\s*).+\/configure\s/) {
 					printf DST "%s", "$1";
-					printf DST "/usr/bin/perl $confdir/configure $project{flavours} --root=/ --prefix=$project{local_prefix} --libdir=$lib --project=$project --module $subsys.$module@copts\n";
+					printf DST "/usr/bin/perl $confdir/configure $project{flavours} --root=/ --prefix=$project{local_prefix} --libdir=$lib --project=$project --module $main_module@copts\n";
 				} else {
 					printf DST "%s", "$_";
 				}
@@ -1838,6 +1995,7 @@ General options (defaults in []):
   --thrflavour=flavour
   --nothrflavour=flavour	threaded and non-treaded flavours [gcc64dbgpthr,gcc64dbg]
   --listmodules=subsys          list modules of a subsystem
+  --listmodules=module          list subpackages of a module
   --version=maj.min.rev-age	specify version here instead of reading version.properties
   --branch=branch		CVS branch/etics name suffix (HEAD, branch_2_1, ...)
   --libdir=libdir		typically [lib,lib64] postfix
