@@ -72,7 +72,8 @@ ${LIBCANL}:\
 	${COMPILE} -c ${CFLAGS_LIB} $*.c
 
 %.c: %.l
-	${LEX} -t $< > $@
+#	${LEX} -t $< > $@
+	cp `echo $< | sed -e 's/\.l$$/.c.in/'` $@
 
 %.lo: %.c ${HEAD_CANL} 
 	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
