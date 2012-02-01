@@ -82,28 +82,40 @@ typedef struct _io_handler
 {
     int sock;
     principal_int *princ_int;
-    struct authn_mech {
-	CANL_AUTH_MECHANISM type;
-	gss_OID oid;
-	void *ctx;
-    } authn_mech;
+    void *conn_ctx; //like SSL *
+    gss_OID oid;
 } io_handler;
+
+typedef struct _mech_glb_ctx
+{
+    void *mech_ctx; //like SSL_CTX *
+    unsigned int flags;
+} mech_glb_ctx;
 
 typedef struct canl_mech {
     CANL_AUTH_MECHANISM mech;
-    void *global_context;
+    mech_glb_ctx *glb_ctx;
 
     canl_err_code (*initialize)
-        (glb_ctx *, void **);
+        (glb_ctx *, mech_glb_ctx **);
+
+    canl_err_code (*set_flags)
+        (glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags);
+
+    canl_err_code (*set_ca_dir)
+        (glb_ctx *, const char *);
+    
+    canl_err_code (*set_crl_dir)
+        (glb_ctx *, const char *);
 
     canl_err_code (*finish)
 	(glb_ctx *, void *);
 
     canl_err_code (*client_init)
-        (glb_ctx *, void *, void **);
+        (glb_ctx *, mech_glb_ctx *, void **);
 
     canl_err_code (*server_init)
-        (glb_ctx *, void *, void **);
+        (glb_ctx *, mech_glb_ctx *, void **);
 
     canl_err_code (*free_ctx)
 	(glb_ctx *, void *);

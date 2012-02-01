@@ -13,7 +13,7 @@ static void dbg_print_ssl_error(int errorcode);
 #endif
 
 static canl_err_code
-ssl_initialize(glb_ctx *cc, void **ctx)
+ssl_initialize(glb_ctx *cc, mech_glb_ctx **m_glb_ctx)
 {
     int err = 0;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
@@ -30,8 +30,13 @@ ssl_initialize(glb_ctx *cc, void **ctx)
 
     ssl_ctx = SSL_CTX_new(SSLv23_method());
     if (!ssl_ctx)
-	return set_error(cc, ERR_get_error(), SSL_ERROR,
+        return set_error(cc, ERR_get_error(), SSL_ERROR,
                 "Cannot initialize SSL context");
+
+    if (!*m_glb_ctx)
+        *m_glb_ctx = (mech_glb_ctx *) calloc(1, sizeof(**m_glb_ctx));
+    if (!*m_glb_ctx)
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     /* TODO what is this? */
     SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2);
@@ -60,7 +65,7 @@ ssl_initialize(glb_ctx *cc, void **ctx)
     // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
     //SSL_CTX_set_verify_depth(ctx, 100);
 
-    *ctx = ssl_ctx;
+    (*m_glb_ctx)->mech_ctx = ssl_ctx;
     ssl_ctx = NULL;
     err = 0;
 
@@ -71,10 +76,33 @@ end:
     return err;
 }
 
-static canl_err_code
-ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
+static canl_err_code 
+ssl_set_flags(glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags)
 {
-    SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
+    if (cc == NULL)
+        return EINVAL;
+
+
+    *mech_flags = (flags | *mech_flags);
+
+    return 0;
+}
+
+static canl_err_code
+ssl_set_ca_dir(glb_ctx *cc, const char *ca_dir)
+{
+    return ENOSYS;
+}
+static canl_err_code
+ssl_set_crl_dir(glb_ctx *cc, const char *crl_dir)
+{
+    return ENOSYS;
+}
+
+static canl_err_code
+ssl_server_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
+{
+    SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
     SSL *ssl = NULL;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
     int err = 0;
@@ -114,6 +142,10 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
      *  if SSL_VERIFY_NONE, then we cannot extract peer cert. of ssl
      *  if SSL_VERIFY_PEER, then client cert verification is mandatory!!!*/
     SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
+    
+    if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
+        SSL_set_options(ssl, SSL_OP_NO_SSLv2);
+
 
 //    SSL_use_certificate_file(ssl, "/etc/grid-security/hostcert.pem", SSL_FILETYPE_PEM);
 //    SSL_use_PrivateKey_file(ssl, "/etc/grid-security/hostkey.pem", SSL_FILETYPE_PEM);
@@ -155,9 +187,9 @@ ssl_server_init(glb_ctx *cc, void *mech_ctx, void **ctx)
 }
 
 static canl_err_code
-ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
+ssl_client_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
 {
-    SSL_CTX *ssl_ctx = (SSL_CTX *) mech_ctx;
+    SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
     SSL *ssl = NULL;
     int err = 0;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
@@ -206,6 +238,8 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
     user_proxy_fn = NULL;
 
     SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
+    if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
+        SSL_set_options(ssl, SSL_OP_NO_SSLv2);
 
     if (cc->cert_key) {
         if (cc->cert_key->key) {
@@ -222,13 +256,13 @@ ssl_client_init(glb_ctx *cc, void *mech_ctx, void **ctx)
                         "use certificate");
             }
         }
+        /*Make sure the key and certificate file match
+         * not mandatory on client side*/
+        if (cc->cert_key->cert && cc->cert_key->key)
+            if ( (err = SSL_check_private_key(ssl)) != 1)
+                return set_error(cc, ERR_get_error(), SSL_ERROR, "Private key"
+                        " does not match the certificate public key"); 
     }
-    /*Make sure the key and certificate file match
-     * not mandatory on client side*/
-    if (cc->cert_key->cert && cc->cert_key->key)
-    if ( (err = SSL_check_private_key(ssl)) != 1)
-        return set_error(cc, ERR_get_error(), SSL_ERROR, "Private key"
-                " does not match the certificate public key"); 
 
     *ctx = ssl;
     return 0;
@@ -285,6 +319,8 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
     /*if extensions are present, hostname has to correspond
      *  to subj. alt. name*/
     serv_cert = SSL_get_peer_certificate(ssl);
+    if (!serv_cert)
+        return 0; //TODO is missing certificate 
     i = X509_get_ext_by_NID(serv_cert, NID_subject_alt_name, -1);
     if (i != -1) {
         /* subj. alt. name extention present */
@@ -484,7 +520,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
             update_error (cc, err, POSIX_ERROR, "Connection stuck during"
 		   " handshake: timeout reached");
         }
-        else if (ret2 < 0)
+        else if (ret2 < 0 && ssl_err)
             return update_error(cc, ssl_err, e_orig, "Error during SSL handshake");
         else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
             update_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed"
@@ -548,7 +584,7 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
         else if (ret2 == 0)
             set_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed by"
 		    " the other side");
-        else if (ret2 < 0)
+        else if (ret2 < 0 && ssl_err)
             set_error (cc, ssl_err, SSL_ERROR, "Error during SSL handshake");
 	else
 	    set_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake");
@@ -908,6 +944,9 @@ struct canl_mech canl_mech_ssl = {
     TLS,
     NULL,
     ssl_initialize,
+    ssl_set_flags,
+    ssl_set_ca_dir,
+    ssl_set_crl_dir,
     ssl_finish,
     ssl_client_init,
     ssl_server_init,

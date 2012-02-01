@@ -67,7 +67,6 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
         }
     }
 
-    /* otherwise the private key is in cert file*/
     if (key) {
         err = set_key_file(cc, &cc->cert_key->key, key);
         if (err)

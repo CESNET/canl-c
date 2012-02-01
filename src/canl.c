@@ -20,7 +20,7 @@ canl_ctx canl_create_ctx()
         return NULL;
 
     for (i = 0; i < sizeof(mechs)/sizeof(mechs[0]); i++)
-	mechs[i]->initialize(ctx, &mechs[i]->global_context);
+	mechs[i]->initialize(ctx, &mechs[i]->glb_ctx);
 
     return ctx;
 }
@@ -69,8 +69,7 @@ canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
 
 static int init_io_content(glb_ctx *cc, io_handler *io)
 {
-    io->authn_mech.type = AUTH_UNDEF;
-    io->authn_mech.oid = GSS_C_NO_OID;
+    io->oid = GSS_C_NO_OID;
     io->sock = -1;
     return 0;
 }
@@ -148,7 +147,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 		if (err)
 		    continue;
 
-		err = mech->client_init(glb_cc, mech->global_context, &ctx);
+		err = mech->client_init(glb_cc, mech->glb_ctx, &ctx);
 		if (err) {
 		    canl_io_close(glb_cc, io_cc);
 		    continue;
@@ -161,8 +160,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 		    ctx = NULL;
 		    continue;
 		}
-		io_cc->authn_mech.ctx = ctx;
-		io_cc->authn_mech.type = mech->mech;
+		io_cc->conn_ctx = ctx;
 		done = 1;
 		break;
 	    }
@@ -264,7 +262,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->sock = new_fd;
 
-    err = mech->server_init(glb_cc, mech->global_context, &conn_ctx);
+    err = mech->server_init(glb_cc, mech->glb_ctx, &conn_ctx);
     if (err)
         goto end;
 
@@ -279,9 +277,8 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 	    goto end;
     }
 */
-    io_cc->authn_mech.ctx = conn_ctx;
-    io_cc->authn_mech.type = mech->mech;
-    io_cc->authn_mech.oid = GSS_C_NO_OID;
+    io_cc->conn_ctx = conn_ctx;
+    io_cc->oid = GSS_C_NO_OID;
 
     err = 0;
 
@@ -311,9 +308,9 @@ canl_io_close(canl_ctx cc, canl_io_handler io)
     if (!io)
 	return set_error(cc, EINVAL, POSIX_ERROR, "IO handler not initialized");
 
-    if (io_cc->authn_mech.ctx) {
-	mech = find_mech(io_cc->authn_mech.oid);
-	mech->close(glb_cc, io, io_cc->authn_mech.ctx);
+    if (io_cc->conn_ctx) {
+	mech = find_mech(io_cc->oid);
+	mech->close(glb_cc, io, io_cc->conn_ctx);
 	/* XXX can it be safely reopened ?*/
     }
 
@@ -333,12 +330,11 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
     if (io == NULL)
 	return;
 
-    if (io_cc->authn_mech.ctx) {
-	mech = find_mech(io->authn_mech.oid);
-	mech->free_ctx(cc, io_cc->authn_mech.ctx);
-	io_cc->authn_mech.ctx = NULL;
-	io_cc->authn_mech.type = AUTH_UNDEF;
-	io_cc->authn_mech.oid = GSS_C_NO_OID;
+    if (io_cc->conn_ctx) {
+	mech = find_mech(io->oid);
+	mech->free_ctx(cc, io_cc->conn_ctx);
+	io_cc->conn_ctx = NULL;
+	io_cc->oid = GSS_C_NO_OID;
     }
 
     return;
@@ -384,7 +380,7 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
 	 return -1;
     }
 
-    if (io_cc->authn_mech.ctx == NULL)
+    if (io_cc->conn_ctx == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "Connection not secured");
     
     if (!buffer || !size) {
@@ -392,9 +388,9 @@ size_t canl_io_read(canl_ctx cc, canl_io_handler io, void *buffer, size_t size, 
 	return -1;
     }
 
-    mech = find_mech(io_cc->authn_mech.oid);
+    mech = find_mech(io_cc->oid);
 
-    b_recvd = mech->read(glb_cc, io_cc, io_cc->authn_mech.ctx,
+    b_recvd = mech->read(glb_cc, io_cc, io_cc->conn_ctx,
 		         buffer, size, timeout);
 
     return b_recvd;
@@ -415,7 +411,7 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 	return -1;
     }
 
-    if (io_cc->authn_mech.ctx == NULL)
+    if (io_cc->conn_ctx == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "Connection not secured");
 
     if (!buffer || !size) {
@@ -423,9 +419,9 @@ size_t canl_io_write(canl_ctx cc, canl_io_handler io, void *buffer, size_t size,
 	return -1;
     }
 
-    mech = find_mech(io_cc->authn_mech.oid);
+    mech = find_mech(io_cc->oid);
 
-    b_written = mech->write(glb_cc, io_cc, io_cc->authn_mech.ctx,
+    b_written = mech->write(glb_cc, io_cc, io_cc->conn_ctx,
 			    buffer, size, timeout);
 
     return b_written;
