@@ -30,7 +30,7 @@
 #include <stdlib.h>
 
 #include "parsertypes.h"
-#include "namespaces.h"
+#include "namespaces_parse.h"
 extern char *strndup(const char*, size_t);
 %}
 

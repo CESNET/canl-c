@@ -30,7 +30,7 @@
 #include <stdlib.h>
 
 #include "parsertypes.h"
-#include "signing_policy.h"
+#include "signing_policy_parse.h"
 extern char *strndup(const char*, size_t);
 %}
 

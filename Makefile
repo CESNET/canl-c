@@ -12,6 +12,9 @@ LIBCARES_LIBS?=-lcares
 LIBSSL_LIBS?=-lssl
 
 CC=gcc
+YACC=bison -y
+LEX=flex
+
 COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
 INSTALL=libtool --mode=install install
@@ -35,7 +38,6 @@ SRC_SER=canl_sample_server.c
 HEAD_SER=canl.h
 OBJ_SER=canl_sample_server.lo
 
-YACC=bison -y
 CFLAGS:=-Wall -g -I${top_srcdir}/src/proxy -I. ${CFLAGS}
 
 LIBCANL=libcanl_c.la
@@ -56,7 +58,11 @@ major:=${shell \
 
 all: ${LIBCANL} server client
 
-${LIBCANL}: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo canl_err_desc.lo signing_policy.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo scutils.lo sslutils.lo namespaces.lo data.lo lex.signing.lo lex.namespaces.lo
+${LIBCANL}:\
+	canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo			\
+	canl_err_desc.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo		\
+	scutils.lo sslutils.lo data.lo namespaces_parse.lo namespaces_lex.lo			\
+	signing_policy_parse.lo signing_policy_lex.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 %.lo: %.y
@@ -64,16 +70,11 @@ ${LIBCANL}: canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.l
 	mv y.tab.c $*.c
 	mv y.tab.h $*.h
 	${COMPILE} -c ${CFLAGS_LIB} $*.c
-	flex -b -f -d ${top_srcdir}/src/proxy/namespaces.l
-	flex -b -f -d ${top_srcdir}/src/proxy/signing_policy.l
+
+%.c: %.l
+	${LEX} -t $< > $@
 
 %.lo: %.c ${HEAD_CANL} 
-	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
-
-lex.signing.lo: lex.signing.c
-	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
-
-lex.namespaces.lo: lex.namespaces.c
 	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
 
 client: ${OBJ_CLI}
@@ -90,9 +91,6 @@ ${OBJ_SER}: ${SRC_SER} ${HEAD_SER} ${LIBCANL}
 
 canl_err.h: canl_error_codes 
 	${top_srcdir}/src/gen_err_codes.pl < $^ > $@
-
-canl_err_desc.lo: canl_err_desc.c ${HEAD_CANL}
-	${COMPILE} -c canl_err_desc.c ${CFLAGS_LIB} -o $@
 
 canl_err_desc.c: canl_error_codes canl_error_desc
 	${top_srcdir}/src/gen_err_desc.pl $^ > $@
