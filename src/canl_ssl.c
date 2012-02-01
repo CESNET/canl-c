@@ -38,9 +38,6 @@ ssl_initialize(glb_ctx *cc, mech_glb_ctx **m_glb_ctx)
     if (!*m_glb_ctx)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
-    /* TODO what is this? */
-    SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2);
-
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, NULL, NULL, NULL);
     if (!err && (ca_cert_fn || ca_cert_dirn))
 	SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
@@ -322,7 +319,6 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
     if (!serv_cert)
         return set_error(cc, CANL_ERR_unknownMsg, CANL_ERROR,
                 "Server certificate missing");
-    return 2; //TODO is missing certificate error?, sure.
     i = X509_get_ext_by_NID(serv_cert, NID_subject_alt_name, -1);
     if (i != -1) {
         /* subj. alt. name extention present */
