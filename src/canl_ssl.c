@@ -320,7 +320,9 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
      *  to subj. alt. name*/
     serv_cert = SSL_get_peer_certificate(ssl);
     if (!serv_cert)
-        return 0; //TODO is missing certificate 
+        return set_error(cc, CANL_ERR_unknownMsg, CANL_ERROR,
+                "Server certificate missing");
+    return 2; //TODO is missing certificate error?, sure.
     i = X509_get_ext_by_NID(serv_cert, NID_subject_alt_name, -1);
     if (i != -1) {
         /* subj. alt. name extention present */
