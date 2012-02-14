@@ -21,8 +21,8 @@ canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
     if (!cc)
         return EINVAL;
 
-    if (err_format == NULL) {
-        return EINVAL;
+    if (err_format == NULL || err_format[0] == '\0') {
+        goto wo_msg;
     }
 
     va_start(ap, err_format);
@@ -33,13 +33,15 @@ canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
         va_end(ap);
         return EINVAL;
     }
-
-    ret = resolve_error_code(cc, err_code, err_orig);
-    update_error_msg(cc, new_msg);
-    free(new_msg);
     va_end(ap);
 
-    return ret; 
+    ret = resolve_error_code(cc, err_code, err_orig);
+wo_msg:
+    update_error_msg(cc, new_msg);
+    if (new_msg)
+        free(new_msg);
+
+    return ret;
 }
 
 /* If there was some error message in ctx, delete it and make new */
@@ -128,8 +130,10 @@ update_error_msg(canl_ctx cc, const char *new_msg)
     }
     
     new_error[0] = '\0';
-    strncpy(new_error, new_msg, err_new_msg_len + 1);
-    strncat(new_error, separ, separ_len + 1);
+    if (new_msg) {
+        strncpy(new_error, new_msg, err_new_msg_len + 1);
+        strncat(new_error, separ, separ_len + 1);
+    }
     strncat(new_error, code_str, code_len + 1);
     strncat(new_error, separ, separ_len + 1);
     if (ctx->err_msg) {
