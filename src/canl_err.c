@@ -35,8 +35,8 @@ canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
     }
     va_end(ap);
 
-    ret = resolve_error_code(cc, err_code, err_orig);
 wo_msg:
+    ret = resolve_error_code(cc, err_code, err_orig);
     update_error_msg(cc, new_msg);
     if (new_msg)
         free(new_msg);
@@ -59,6 +59,10 @@ canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
     if (cc->err_msg)
         reset_error(cc, err_code);
 
+    if (err_format == NULL || err_format[0] == '\0') {
+        goto wo_msg;
+    }
+
     /* make new message */
     va_start(ap, err_format);
     err_format_len = vasprintf(&new_msg, err_format, ap);
@@ -66,13 +70,15 @@ canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
         va_end(ap);
         return EINVAL;
     }
-
-    ret = resolve_error_code(cc, err_code, err_orig);
-    update_error_msg(cc, new_msg);
-    free(new_msg);
     va_end(ap);
 
-    if (!err_code)
+wo_msg:
+    ret = resolve_error_code(cc, err_code, err_orig);
+    update_error_msg(cc, new_msg);
+    if (new_msg)
+        free(new_msg);
+
+    if (!err_code) //TODO ???
         return 0;
     return ret;
 }
