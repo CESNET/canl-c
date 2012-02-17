@@ -111,7 +111,7 @@ stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo ${LIBCANL} .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup
+	rm -rfv *.o *.lo ${LIBCANL} .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage
 
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/
