@@ -139,8 +139,12 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 
 	    mech = find_mech(oid);
 
+	    err = 0;
 	    for (i = 0; ar.ent->h_addr_list[i]; i++) {
 		void *ctx = NULL;
+
+		if (err == ETIMEDOUT)
+		    goto end;
 
 		err = try_connect(glb_cc, io_cc, ar.ent->h_addr_list[i], 
 			ar.ent->h_addrtype, port, timeout);//TODO timeout
@@ -164,6 +168,8 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *s
 		done = 1;
 		break;
 	    }
+	    if (err == ETIMEDOUT)
+		goto end;
 	    j++;
 	} while (auth_mechs != GSS_C_NO_OID_SET && j < auth_mechs->count && !done);
 
