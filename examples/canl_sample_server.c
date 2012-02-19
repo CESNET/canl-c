@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 
 end:
     if (my_io_h)
-        err = canl_io_destroy(my_ctx, my_io_h);
+        canl_io_destroy(my_ctx, my_io_h);
 
     canl_free_ctx(my_ctx);
 
