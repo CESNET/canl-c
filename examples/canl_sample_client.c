@@ -18,12 +18,14 @@ int main(int argc, char *argv[])
     char *def_server = "www.linuxfoundation.org";
     int opt, port = 80;
     struct timeval timeout;
+    char *serv_cert = NULL;
+    char *serv_key = NULL;
 
-    while ((opt = getopt(argc, argv, "hp:s:")) != -1) {
+    while ((opt = getopt(argc, argv, "hp:s:c:k:")) != -1) {
         switch (opt) {
             case 'h':
-                fprintf(stderr, "Usage: %s [-p port]" 
-                        "[-s server] [-h] \n", argv[0]);
+                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                        " [-k private key] [-s server] [-h] \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -31,9 +33,15 @@ int main(int argc, char *argv[])
             case 's':
                 p_server = optarg;
                 break;
+            case 'c':
+                serv_cert = optarg;
+                break;
+            case 'k':
+                serv_key = optarg;
+                break;
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-p port]" 
-                        "[-s server] [-h] \n", argv[0]);
+                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                        " [-k private key] [-s server] [-h] \n", argv[0]);
                 exit(-1);
         }
     }
@@ -49,9 +57,18 @@ int main(int argc, char *argv[])
 
     err = canl_create_io_handler(my_ctx, &my_io_h);
     if (err) {
-	printf("io handler cannot be created: %s\n",
-	       canl_get_error_message(my_ctx));
+        printf("io handler cannot be created: %s\n",
+                canl_get_error_message(my_ctx));
         goto end;
+    }
+    
+    if (serv_cert || serv_key){
+        err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, NULL, NULL);
+        if (err) {
+            printf("[CLIENT] cannot set certificate or key to context: %s\n",
+                    canl_get_error_message(my_ctx));
+            goto end;
+        }
     }
 
    timeout.tv_sec = 150;
