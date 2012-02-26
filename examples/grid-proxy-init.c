@@ -5,6 +5,7 @@
 
 #define BITS 1024
 #define LIFETIME 43200 /*12 hours*/
+#define OUTPUT "/tmp/x509_u99999" 
 
 int main(int argc, char *argv[])
 {
@@ -13,16 +14,18 @@ int main(int argc, char *argv[])
     canl_ctx ctx = NULL;
     canl_err_code ret = 0;
     char *user_cert = NULL;
+    char *output = NULL;
     char *user_key = NULL;
     long int lifetime = 0;
     unsigned int bits = 0;
     int opt = 0;
 
-    while ((opt = getopt(argc, argv, "hc:k:l:b:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:k:l:b:o:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-h] [-l lifetime] [-b bits]"
+                        " [-o output]"
                        "\n", argv[0]);
                 exit(0);
             case 'c':
@@ -37,9 +40,13 @@ int main(int argc, char *argv[])
             case 'b':
                 bits = atoi(optarg);
                 break;
+            case 'o':
+                output = optarg;
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-h] [-l lifetime] [-b bits]"
+                        " [-o output]"
                        "\n", argv[0]);
                 exit(-1);
         }
@@ -123,7 +130,9 @@ int main(int argc, char *argv[])
     }
 
 /* and store it in a file */
-    ret = canl_cred_save_proxyfile(ctx, proxy, "/tmp/x509up_u11930");
+    if (!output)
+        output = OUTPUT;
+    ret = canl_cred_save_proxyfile(ctx, proxy, output);
     if (ret){
         fprintf(stderr, "[PROXY-INIT] Cannot save new proxy"
                 ": %s\n", canl_get_error_message(ctx));
