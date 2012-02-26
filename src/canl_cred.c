@@ -344,10 +344,24 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
     if (!proxy_file)
         return set_error(cc, EINVAL, POSIX_ERROR, "Invalid proxy file name");
 
-    cert_file = fopen(proxy_file, "wb");
+    /*posix compliant*/
+    ret = open(proxy_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+    if (ret == -1){
+        ret = errno;
+        set_error(cc, ret, POSIX_ERROR, "Cannot open file for writing");
+        return ret;
+    }
+    close(ret);
+    if (ret == -1){
+        ret = errno;
+        set_error(cc, ret, POSIX_ERROR, "Cannot open file for writing");
+        return ret;
+    }
+
+    cert_file = fopen(proxy_file, "ab");
     if (!cert_file) {
         ret = errno;
-        set_error(cc, ret, POSIX_ERROR, "cannot open file with cert");
+        set_error(cc, ret, POSIX_ERROR, "cannot open file for writing");
         return ret;
     }
     
