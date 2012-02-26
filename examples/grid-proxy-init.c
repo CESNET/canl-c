@@ -1,17 +1,49 @@
 #include <canl.h>
 #include <canl_cred.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #define BITS 1024
-#define LIFETIME 600
-#define USERCERT "$HOME/.globus/usercert.pem"
-#define USERKEY "$HOME/.globus/userkey.pem"
-int
-main(int argc, char *argv[])
+#define LIFETIME 43200 /*12 hours*/
+
+int main(int argc, char *argv[])
 {
     canl_cred signer = NULL;
     canl_cred proxy = NULL;
     canl_ctx ctx = NULL;
     canl_err_code ret = 0;
+    char *user_cert = NULL;
+    char *user_key = NULL;
+    long int lifetime = 0;
+    unsigned int bits = 0;
+    int opt = 0;
+
+    while ((opt = getopt(argc, argv, "hc:k:l:b:")) != -1) {
+        switch (opt) {
+            case 'h':
+                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                        " [-k private key] [-h] [-l lifetime] [-b bits]"
+                       "\n", argv[0]);
+                exit(0);
+            case 'c':
+                user_cert = optarg;
+                break;
+            case 'k':
+                user_key = optarg;
+                break;
+            case 'l':
+		lifetime = atoi(optarg);
+                break;
+            case 'b':
+                bits = atoi(optarg);
+                break;
+            default: /* '?' */
+                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                        " [-k private key] [-h] [-l lifetime] [-b bits]"
+                       "\n", argv[0]);
+                exit(-1);
+        }
+    }
 
     ctx = canl_create_ctx();
     if (ctx == NULL) {
@@ -26,15 +58,20 @@ main(int argc, char *argv[])
                 ": %s\n", canl_get_error_message(ctx));
         goto end;
     }
-    ret = canl_cred_new_req(ctx, proxy, BITS);
+
+    if (!bits)
+        bits = BITS;
+    ret = canl_cred_new_req(ctx, proxy, bits);
     if (ret) {
 	fprintf(stderr, "[PROXY-INIT] Failed to create certificate "
                 "request container: %s\n", canl_get_error_message(ctx));
 	goto end;
     }
 
+    if (!lifetime)
+        lifetime = LIFETIME;
     /*Create key-pairs implicitly*/
-    ret = canl_cred_set_lifetime(ctx, proxy, LIFETIME);
+    ret = canl_cred_set_lifetime(ctx, proxy, lifetime);
     if (ret)
 	fprintf(stderr, "[PROXY-INIT] Failed set new cert lifetime"
                 ": %s\n", canl_get_error_message(ctx));
@@ -52,13 +89,13 @@ main(int argc, char *argv[])
         goto end;
     }
     
-    ret = canl_cred_load_cert_file(ctx, signer, USERCERT);
+    ret = canl_cred_load_cert_file(ctx, signer, user_cert);
     if (ret){
         fprintf(stderr, "[PROXY-INIT] Cannot load signer's certificate"
                 ": %s\n", canl_get_error_message(ctx));
         goto end;
     }
-    ret = canl_cred_load_priv_key_file(ctx, signer, USERKEY, NULL, NULL);
+    ret = canl_cred_load_priv_key_file(ctx, signer, user_key, NULL, NULL);
     if (ret){
         fprintf(stderr, "[PROXY-INIT] Cannot access signer's key"
                 ": %s\n", canl_get_error_message(ctx));
