@@ -86,14 +86,39 @@ ssl_set_flags(glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags)
 }
 
 static canl_err_code
-ssl_set_ca_dir(glb_ctx *cc, const char *ca_dir)
+ssl_set_dir(glb_ctx *cc, char **target, const char *ca_dir)
 {
-    return ENOSYS;
+    int fn_len = 0;
+    if (cc == NULL)
+	return EINVAL;
+
+    if (ca_dir == NULL)
+	return set_error(cc, EINVAL, POSIX_ERROR, "CA dir. name NULL");
+    
+    if (target && *target){
+	free (*target);
+	*target = NULL;
+    }
+    fn_len = strlen(ca_dir);
+    *target = (char *) malloc ((fn_len + 1) * sizeof (char));
+    if (!(*target)) {
+	return set_error(cc, ENOMEM, POSIX_ERROR, NULL);
+    }
+    strncpy (*target, ca_dir, fn_len + 1);
+
+    return 0;
 }
+
 static canl_err_code
-ssl_set_crl_dir(glb_ctx *cc, const char *crl_dir)
+ssl_set_crl_dir(glb_ctx *cc, mech_glb_ctx *m_ctx, const char *crl_dir)
 {
-    return ENOSYS;
+    return ssl_set_dir(cc, &m_ctx->crl_dir, crl_dir);
+}
+
+static canl_err_code
+ssl_set_ca_dir(glb_ctx *cc, mech_glb_ctx *m_ctx, const char *ca_dir)
+{
+    return ssl_set_dir(cc, &m_ctx->ca_dir, ca_dir);
 }
 
 static canl_err_code
@@ -840,6 +865,7 @@ ssl_finish(glb_ctx *cc, void *ctx)
     return 0;
 }
 
+/*maybe move to better file*/
 canl_err_code 
 canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
         canl_password_callback cb, void *userdata)
@@ -859,6 +885,30 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
 //        update_error(glb_cc, "can't set cert or key to context");
     }
     return err;
+}
+
+canl_err_code
+canl_ctx_set_crl_dir(canl_ctx cc, const char *dir)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    struct canl_mech *mech = find_mech(GSS_C_NO_OID); //TODO for now
+    
+    if (!cc)
+        return EINVAL;
+    
+    return mech->set_crl_dir(glb_cc, mech->glb_ctx, dir);
+}
+
+canl_err_code
+canl_ctx_set_ca_dir(canl_ctx cc, const char *dir)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    struct canl_mech *mech = find_mech(GSS_C_NO_OID); //TODO for now
+    
+    if (!cc)
+        return EINVAL;
+    
+    return mech->set_ca_dir(glb_cc, mech->glb_ctx, dir);
 }
 
 static canl_err_code

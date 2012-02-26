@@ -90,6 +90,8 @@ typedef struct _mech_glb_ctx
 {
     void *mech_ctx; //like SSL_CTX *
     unsigned int flags;
+    char  *ca_dir;
+    char  *crl_dir;
 } mech_glb_ctx;
 
 typedef struct canl_mech {
@@ -103,10 +105,10 @@ typedef struct canl_mech {
         (glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags);
 
     canl_err_code (*set_ca_dir)
-        (glb_ctx *, const char *);
+        (glb_ctx *, mech_glb_ctx *, const char *);
     
     canl_err_code (*set_crl_dir)
-        (glb_ctx *, const char *);
+        (glb_ctx *, mech_glb_ctx *, const char *);
 
     canl_err_code (*finish)
 	(glb_ctx *, void *);
