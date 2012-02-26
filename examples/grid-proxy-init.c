@@ -1,12 +1,15 @@
 #include <canl.h>
 #include <canl_cred.h>
 
+#define BITS 1024
+#define LIFETIME 600
+#define USERCERT "$HOME/.globus/usercert.pem"
+#define USERKEY "$HOME/.globus/userkey.pem"
 int
 main(int argc, char *argv[])
 {
     canl_cred signer = NULL;
     canl_cred proxy = NULL;
-    canl_x509_req proxy_req = NULL;
     canl_ctx ctx = NULL;
     canl_err_code ret;
 
@@ -17,23 +20,22 @@ main(int argc, char *argv[])
     }
 
 /* First create a certificate request with a brand-new keypair */
-    ret = canl_req_create(ctx, &proxy_req);
+    ret = canl_cred_new(ctx, &proxy);
+    ret = canl_cred_new_req(ctx, proxy, BITS);
     if (ret) {
 	fprintf(stderr, "Failed to create certificate request container: %s\n",
 		canl_get_error_message(ctx));
 	return 1;
     }
 
-/* Create a new structure for the proxy certificate to be signed copying the key-pairs just created */
-    ret = canl_cred_new(ctx, &proxy);
-    ret = canl_cred_load_req(ctx, proxy, proxy_req);
-    ret = canl_cred_set_lifetime(ctx, proxy, 60*10);
+    /*Create key-pairs implicitly*/
+    ret = canl_cred_set_lifetime(ctx, proxy, LIFETIME);
     ret = canl_cred_set_cert_type(ctx, proxy, CANL_RFC);
 
-/* Load the signing credentials */
+    /* Load the signing credentials */
     ret = canl_cred_new(ctx, &signer);
-    ret = canl_cred_load_cert_file(ctx, signer, "$HOME/.globus/usercert.pem");
-    ret = canl_cred_load_priv_key_file(ctx, signer, "$HOME/.globus/userkey.pem", NULL, NULL);
+    ret = canl_cred_load_cert_file(ctx, signer, USERCERT);
+    ret = canl_cred_load_priv_key_file(ctx, signer, USERKEY, NULL, NULL);
     /* export lookup routines ?? */
 
 #ifdef VOMS
@@ -55,8 +57,6 @@ end:
 	canl_cred_free(ctx, signer);
     if (proxy)
 	canl_cred_free(ctx, proxy);
-    if (proxy_req)
-	canl_req_free(ctx, proxy_req);
     if (ctx)
 	canl_free_ctx(ctx);
 

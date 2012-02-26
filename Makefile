@@ -28,6 +28,9 @@ LFLAGS_CLI=-L. -lcanl_c
 CFLAGS_SER=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_SER=-L. -lcanl_c
 
+CFLAGS_PRX=-Wall -g -I${top_srcdir}/src -I.
+LFLAGS_PRX=-L. -lcanl_c
+
 HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h
 
 SRC_CLI=canl_sample_client.c
@@ -37,6 +40,10 @@ OBJ_CLI=canl_sample_client.lo
 SRC_SER=canl_sample_server.c
 HEAD_SER=canl.h
 OBJ_SER=canl_sample_server.lo
+
+SRC_PRX=grid-proxy-init.c
+HEAD_PRX=canl.h canl_cred.h
+OBJ_PRX=canl_proxy_init.lo
 
 CFLAGS:=-Wall -g -I${top_srcdir}/src/proxy -I. ${CFLAGS}
 
@@ -56,7 +63,7 @@ version_info:=-version-info ${shell \
 major:=${shell \
 	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset}' }
 
-all: ${LIBCANL} server client
+all: ${LIBCANL} server client proxy
 
 ${LIBCANL}:\
 	canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo			\
@@ -90,6 +97,13 @@ server: ${OBJ_SER}
 ${OBJ_SER}: ${SRC_SER} ${HEAD_SER} ${LIBCANL}
 	${COMPILE} -c ${top_srcdir}/examples/${SRC_SER} ${CFLAGS_SER} -o $@
 
+proxy: ${OBJ_PRX}
+	${LINK} $< ${LFLAGS_PRX} -o $@
+
+${OBJ_PRX}: ${SRC_PRX} ${HEAD_PRX} ${LIBCANL}
+	${COMPILE} -c ${top_srcdir}/examples/${SRC_PRX} ${CFLAGS_PRX} -o $@
+
+
 canl_err.h: canl_error_codes 
 	${top_srcdir}/src/gen_err_codes.pl < $^ > $@
 
@@ -104,14 +118,19 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
+	${INSTALL} -m 755 proxy \
+		${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-proxy-init
 	${INSTALL} -m 755 ${LIBCANL} ${DESTDIR}${PREFIX}${prefix}/${libdir}
-	${INSTALL} -m 644 ${top_srcdir}/src/canl.h ${top_srcdir}/src/canl_ssl.h canl_err.h ${DESTDIR}${PREFIX}${prefix}/include
+	${INSTALL} -m 644 ${top_srcdir}/src/canl.h \
+		${top_srcdir}/src/canl_ssl.h canl_err.h \
+		${DESTDIR}${PREFIX}${prefix}/include
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo ${LIBCANL} .libs client server ${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage
+	rm -rfv *.o *.lo ${LIBCANL} .libs client server \
+		${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage
 
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/
