@@ -26,6 +26,7 @@ ssl_initialize(glb_ctx *cc, mech_glb_ctx **m_glb_ctx)
 
     SSL_library_init();
     SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
     ERR_clear_error();
 
     ssl_ctx = SSL_CTX_new(SSLv23_method());
@@ -586,6 +587,16 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
             (curtime - starttime) < locl_timeout)) &&
            (errorcode == SSL_ERROR_WANT_READ ||
             errorcode == SSL_ERROR_WANT_WRITE)));
+#ifdef DEBUG
+if (errorcode == SSL_ERROR_WANT_READ)
+	printf("SSL_ERR_WANT_READ");
+if (errorcode == SSL_ERROR_WANT_WRITE)
+	printf("SSL_ERR_WANT_WRITE");
+printf ("STR: %s \n",ERR_error_string(ssl_err,NULL));
+printf ("LIB: %s ;",ERR_lib_error_string(ssl_err));
+printf ("FUNC: %s ;",ERR_func_error_string(ssl_err));
+printf ("LIB: %s \n",ERR_reason_error_string(ssl_err));
+#endif
 
     //TODO split ret2 and ret into 2 ifs to set approp. error message
     if (ret2 <= 0 || ret <= 0) {
