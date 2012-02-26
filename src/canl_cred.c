@@ -296,6 +296,7 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *signer_crd = (creds*) signer_cred;
     creds *proxy_crd = (creds*) proxy_cred;
+    int err = 0;
 
     if (!ctx)
         return EINVAL;
@@ -307,12 +308,17 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
         return set_error(cc, EINVAL, POSIX_ERROR, "Proxy cred. handler"
                 " not initialized" );
     /*TODO flags - limited,version*/
-    proxy_sign(signer_crd->c_cert, signer_crd->c_key, proxy_crd->c_req,
+    err = proxy_sign(signer_crd->c_cert, signer_crd->c_key, proxy_crd->c_req,
             &proxy_crd->c_cert, proxy_crd->c_lifetime, 
             proxy_crd->c_cert_ext, 0, 2, NULL, NULL, 0, NULL, 0);
-
+    if (err)
+        return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "");
+        
     /*concatenate new chain*/
-    proxy_crd->c_cert_chain = sk_X509_dup(signer_crd->c_cert_chain);
+    if (signer_crd->c_cert_chain)
+        proxy_crd->c_cert_chain = sk_X509_dup(signer_crd->c_cert_chain);
+    if (!proxy_crd->c_cert_chain)
+       proxy_crd->c_cert_chain = sk_X509_new_null();
     sk_X509_push(proxy_crd->c_cert_chain, signer_crd->c_cert);
     
     return 0;
