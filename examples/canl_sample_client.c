@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include <canl.h>
+#include <canl_ssl.h>
 
 #define BUF_LEN 1000
 

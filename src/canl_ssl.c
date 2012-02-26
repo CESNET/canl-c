@@ -294,7 +294,6 @@ static canl_err_code
 ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	        struct timeval *timeout, const char * host)
 {
-    SSL_CTX *ctx;
     SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
 
@@ -307,8 +306,6 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
     }
     if (ssl == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
-
-    ctx = SSL_get_SSL_CTX(ssl);
 
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
@@ -411,7 +408,6 @@ end:
 static canl_err_code
 ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
 {
-    SSL_CTX *ctx = NULL;
     SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
 
@@ -424,8 +420,6 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
     }
     if (auth_ctx == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
-
-    ctx = SSL_get_SSL_CTX(ssl);
 
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
@@ -562,7 +556,6 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
     int err = 0;
-    canl_err_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -581,7 +574,6 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
             ret2 = SSL_accept(ssl);
             if (ret2 < 0) {
                 ssl_err = ERR_peek_error();
-                e_orig = SSL_ERROR;
             }
             expected = errorcode = SSL_get_error(ssl, ret2);
         }
@@ -785,7 +777,6 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
 static canl_err_code
 ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
 {
-    SSL_CTX *ctx;
     int timeout = DESTROY_TIMEOUT;
     time_t starttime, curtime;
     int expected = 0, error = 0, ret = 0, ret2 = 0;
@@ -800,8 +791,6 @@ ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
 			 "Connection not initialized");
     if (ssl == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
-
-    ctx = SSL_get_SSL_CTX(ssl);
 
     fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     curtime = starttime = time(NULL);
