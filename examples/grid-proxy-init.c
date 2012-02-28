@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "hc:k:l:b:o:")) != -1) {
         switch (opt) {
             case 'h':
-                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                fprintf(stderr, "Usage: %s [-c certificate]"
                         " [-k private key] [-h] [-l lifetime] [-b bits]"
                         " [-o output]"
                        "\n", argv[0]);
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
                 output = optarg;
                 break;
             default: /* '?' */
-                fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
+                fprintf(stderr, "Usage: %s [-c certificate]"
                         " [-k private key] [-h] [-l lifetime] [-b bits]"
                         " [-o output]"
                        "\n", argv[0]);
