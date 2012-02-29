@@ -32,7 +32,7 @@ CFLAGS_PRX=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_PRX=-L. -lcanl_c
 
 CFLAGS_DEL=-Wall -g -I${top_srcdir}/src -I.
-LFLAGS_DEL=-L. -lcanl_c 
+LFLAGS_DEL=-L. -lcanl_c -lcrypto 
 
 HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h canl_mech_ssl.h
 
@@ -70,7 +70,7 @@ version_info:=-version-info ${shell \
 major:=${shell \
 	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset}' }
 
-all: ${LIBCANL} server client proxy 
+all: ${LIBCANL} server client proxy delegation 
 
 ${LIBCANL}:\
 	canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo			\
