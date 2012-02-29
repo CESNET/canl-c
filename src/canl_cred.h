@@ -88,7 +88,10 @@ canl_err_code CANL_CALLCONV
 canl_cred_new_req(canl_ctx, canl_cred, unsigned int);
 
 canl_err_code CANL_CALLCONV
-canl_req_get_req(canl_ctx, canl_cred, X509_REQ **);
+canl_cred_save_req(canl_ctx, canl_cred, X509_REQ **);
+
+canl_err_code CANL_CALLCONV
+canl_cred_load_req(canl_ctx, canl_cred, const X509_REQ *);
 
 #if 0
 canl_err_code CANL_CALLCONV

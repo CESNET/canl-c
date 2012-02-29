@@ -510,7 +510,7 @@ canl_cred_new_req(canl_ctx ctx, canl_cred ret_req, unsigned int bits)
 }
 
 canl_err_code CANL_CALLCONV
-canl_req_get_req(canl_ctx ctx, canl_cred req_in, X509_REQ ** req_ret)
+canl_cred_save_req(canl_ctx ctx, canl_cred req_in, X509_REQ ** req_ret)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *req = (creds*) req_in;
@@ -526,11 +526,38 @@ canl_req_get_req(canl_ctx ctx, canl_cred req_in, X509_REQ ** req_ret)
 
     /*TODO free REQ if req_ret full*/
     *req_ret = X509_REQ_dup(req->c_req);
-    if (*req_ret)
+    if (!(*req_ret))
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " X509 request handler" ); //TODO check ret val
     return 0;
 }
+
+canl_err_code CANL_CALLCONV
+canl_cred_load_req(canl_ctx ctx, canl_cred cred_out, const X509_REQ *req_in)
+{
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *req = (creds*) cred_out;
+
+    if (!ctx)
+        return EINVAL;
+    if (!req)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
+                " not initialized" );
+    if (!req_in)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Request handler"
+                " not initialized" );
+    if (req->c_req) {
+        X509_REQ_free(req->c_req);
+        req->c_req = NULL;
+    }
+
+    req->c_req = X509_REQ_dup(req_in);
+    if (!req->c_req)
+        return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
+                " X509 request handler" ); //TODO check ret val
+    return 0;
+}
+
 
 #if 0
 canl_err_code CANL_CALLCONV

@@ -31,6 +31,9 @@ LFLAGS_SER=-L. -lcanl_c
 CFLAGS_PRX=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_PRX=-L. -lcanl_c
 
+CFLAGS_DEL=-Wall -g -I${top_srcdir}/src -I.
+LFLAGS_DEL=-L. -lcanl_c 
+
 HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h canl_mech_ssl.h
 
 SRC_CLI=canl_sample_client.c
@@ -44,6 +47,10 @@ OBJ_SER=canl_sample_server.lo
 SRC_PRX=grid-proxy-init.c
 HEAD_PRX=canl.h canl_cred.h
 OBJ_PRX=canl_proxy_init.lo
+
+SRC_DEL=delegation.c
+HEAD_DEL=canl.h canl_cred.h
+OBJ_DEL=canl_delegation.lo
 
 CFLAGS:=-Wall -g -I${top_srcdir}/src/proxy -I. ${CFLAGS}
 
@@ -63,7 +70,7 @@ version_info:=-version-info ${shell \
 major:=${shell \
 	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset}' }
 
-all: ${LIBCANL} server client proxy
+all: ${LIBCANL} server client proxy 
 
 ${LIBCANL}:\
 	canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo			\
@@ -103,6 +110,11 @@ proxy: ${OBJ_PRX}
 ${OBJ_PRX}: ${SRC_PRX} ${HEAD_PRX} ${LIBCANL}
 	${COMPILE} -c ${top_srcdir}/examples/${SRC_PRX} ${CFLAGS_PRX} -o $@
 
+delegation: ${OBJ_DEL}
+	${LINK} $< ${LFLAGS_DEL} -o $@
+
+${OBJ_DEL}: ${SRC_DEL} ${HEAD_DEL} ${LIBCANL}
+	${COMPILE} -c ${top_srcdir}/examples/${SRC_DEL} ${CFLAGS_DEL} -o $@
 
 canl_err.h: canl_error_codes 
 	${top_srcdir}/src/gen_err_codes.pl < $^ > $@
@@ -120,6 +132,8 @@ install: all
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 proxy \
 		${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-proxy-init
+	${INSTALL} -m 755 delegation \
+		${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-delegation
 	${INSTALL} -m 755 ${LIBCANL} ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	${INSTALL} -m 644 ${top_srcdir}/src/canl.h \
 		${top_srcdir}/src/canl_ssl.h canl_err.h \
@@ -129,7 +143,7 @@ stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
-	rm -rfv *.o *.lo ${LIBCANL} .libs client server \
+	rm -rfv *.o *.lo ${LIBCANL} .libs client server proxy delegation \
 		${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage
 
 distclean:

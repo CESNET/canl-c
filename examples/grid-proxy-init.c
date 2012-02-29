@@ -1,7 +1,7 @@
-#include <canl.h>
-#include <canl_cred.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <canl.h>
+#include <canl_cred.h>
 
 #define BITS 1024
 #define LIFETIME 43200 /*12 hours*/
