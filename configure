@@ -98,9 +98,6 @@ my %externs = (
 	'myproxy-server' => {
 		prefix=> '',
 	},
-	'myproxy-libs' => {
-		prefix=> '',
-	},
 	'myproxy-admin' => {
 		prefix=> '',
 	},
@@ -570,7 +567,6 @@ BEGIN{
 %etics_externs = (
 	default => {
 		'myproxy-devel'=>'myproxy-devel',
-		'myproxy-libs'=>'myproxy-libs',
 		'myproxy-server'=>'myproxy-server',
 		'myproxy-admin'=>'myproxy-admin',
 		cares=>'c-ares',
@@ -615,7 +611,7 @@ BEGIN{
         'jp.primary' => [ qw/classads gsoap libtar globus_essentials:R globus:B/ ],
         'jp.server-common' => [],
         'jp.ws-interface' => [],
-	'gridsite.core' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B build_common_cpp:B doxygen:B/ ],
+	'gridsite.core' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B/ ],
 	'gridsite.commands' => [ qw/curl:R openssl:R/ ],
 	'gridsite.apache' => [ qw/libxml2:R openssl:R curl:R/ ],
 	'gridsite.shared' => [ qw/libxml2:R openssl:R/ ],
@@ -624,8 +620,8 @@ BEGIN{
 	'gridsite.services' => [ qw/curl:R gsoap:R/ ],
 	'gridsite.service-clients' => [ qw/curl:R gsoap:R gsoapxx:R/ ],
 	'gridsite.gsexec' => [ qw// ],
-	'gridsite.1.5-compat' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B build_common_cpp:B doxygen:B/ ],
-	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B myproxy-libs:R voms:B libtool:B/ ],
+	'gridsite.1.5-compat' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B/ ],
+	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B voms:B libtool:B/ ],
 	'px.myproxy-config' => [ qw/myproxy-admin:R/ ], # in myproxy-config.spec
 	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B/ ],
 );
@@ -900,7 +896,6 @@ for my $ext (keys %deps_aux) {
 				axis=>'axis',
 				lcas=>'org.glite.security.lcas',
 				gsoapxx=>'-',
-				build_common_cpp=>'org.glite.build.common-cpp',
 				jdk=>'jdk',
 				voms=>'org.glite.security.voms-api-cpp',
 			},
@@ -970,14 +965,13 @@ for my $ext (keys %deps_aux) {
 				axis=>'axis1.4',
 				lcas=>'emi.sac.lcas',
 				gsoapxx=>'-',
-				build_common_cpp=>'emi.misc.glite.build-common-cpp',
 				jdk=>'java',
 				voms => 'emi.voms.voms-api',
 			},
 			sl5_x86_64_gcc412EPEL => {
 				'myproxy-devel' => 'myproxy-devel.x86_64',
 			},
-			sl6_x86_64_gcc445EPEL => {
+			sl6_x86_64_gcc446EPEL => {
 				'myproxy-devel' => 'myproxy-devel.x86_64',
 			},
 			deb6_x86_64_gcc445 => {
@@ -1053,7 +1047,7 @@ for my $ext (keys %deps_aux) {
 		supported_platforms => {
 			sl5_x86_64_gcc412EPEL => 1,
 			sl5_ia32_gcc412EPEL => 1,
-			sl6_x86_64_gcc445EPEL => 1,
+			sl6_x86_64_gcc446EPEL => 1,
 			deb6_x86_64_gcc445 => 1,
 		},
 		modules => {
@@ -1063,26 +1057,7 @@ for my $ext (keys %deps_aux) {
 	},
 );
 
-my %gridsite_rpm = (
-	'package.RPMSLocation' => "\${moduleDir}/RPMTMP/RPMS",
-	'package.SRPMSLocation' => "\${moduleDir}/RPMTMP/SRPMS",
-);
-my %gridsite_deb = (
-	'package.DEBSLocation' => "\${moduleDir}/RPMTMP",
-);
 %platform_properties = (
-	'gridsite.core' => {
-		sl5_x86_64_gcc412 => \%gridsite_rpm,
-		sl5_ia32_gcc412 => \%gridsite_rpm,
-		sl5_x86_64_gcc412EPEL => \%gridsite_rpm,
-		sl5_ia32_gcc412EPEL => \%gridsite_rpm,
-		deb5_x86_64_gcc432 =>  \%gridsite_deb,
-		deb5_ia32_gcc432 =>  \%gridsite_deb,
-		slc4_x86_64_gcc346 => \%gridsite_rpm,
-		slc4_ia32_gcc346 => \%gridsite_rpm,
-		sl6_x86_64_gcc445EPEL => \%gridsite_rpm,
-		deb6_x86_64_gcc445 => \%gridsite_deb,
-	},
 	'jobid.api-java' => {
 		default => { 'package.buildarch' => 'noarch' },
 	},
@@ -1458,6 +1433,52 @@ top_srcdir = $top_srcdir
 BEGIN{
 };
 
+sub mode_etics_packaging {
+	my ($fmod, $cmd, $rpmprepare, $debprepare) = @_;
+	my ($workspaceDir, $srcPackageName, $srcAge, $topDir);
+
+	if ($fmod eq 'gridsite.core') {
+		$workspaceDir = '..';
+		$srcPackageName = 'gridsite';
+		$srcAge = '';
+		$topDir = '../';
+	} else {
+		$workspaceDir = '${workspaceDir}';
+		$srcPackageName = '${packageName}';
+		$srcAge = '-${age}';
+		$topDir = '';
+	}
+
+	$cmd->{clean} = 'make clean
+	rm -rfv ${package.tgzLocation} ${package.SRPMSLocation}';
+	$cmd->{default}{packaging} = $rpmprepare;
+	$cmd->{default}{packaging} .= "dir=\${workspaceDir}/rpm_build_src_\$\$
+	mkdir -p \${package.tgzLocation} \${package.SRPMSLocation} \$dir/{BUILD,RPMS,SOURCES,SRPMS} 2>/dev/null || true
+	cp -vf $workspaceDir/$srcPackageName-\${version}${srcAge}.src.tar.gz \${package.tgzLocation}/
+	cp -vf $workspaceDir/$srcPackageName-\${version}${srcAge}.src.tar.gz \$dir/SOURCES/
+	rpmbuild -bs --nodeps --define \"_topdir \$dir\" $srcPackageName.spec
+	cp -v \$dir/SRPMS/*.src.rpm \${package.SRPMSLocation}/
+	rm -rf \$dir";
+
+	for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
+		for my $c (keys %{$cmd->{default}}) { $cmd->{$p}{$c} = $cmd->{default}{$c}; }
+		$cmd->{$p}{clean} = 'make clean
+	rm -rfv ${package.tgzLocation} ${package.SDEBSLocation}';
+		$cmd->{$p}{packaging} = $debprepare;
+		$cmd->{$p}{packaging} .= "dir=\${workspaceDir}/dpkg_build_src_\$\$
+	mkdir -p \${package.tgzLocation} \${package.SDEBSLocation} \$dir 2>/dev/null || true
+	cp -vf $workspaceDir/$srcPackageName-\${version}${srcAge}.src.tar.gz \${package.tgzLocation}/
+	cp -vf $workspaceDir/$srcPackageName-\${version}${srcAge}.src.tar.gz \$dir/${srcPackageName}_\${version}.orig.tar.gz
+	tar xzf \$dir/${srcPackageName}_\${version}.orig.tar.gz -C \$dir
+	cp -rf ${topDir}debian/ \$dir/$srcPackageName-\${version}/
+	cd \$dir/$srcPackageName-\${version}
+	dpkg-buildpackage -S -d -nc
+	cd -
+	cp -v \$dir/*.tar.gz \$dir/*.dsc \${package.SDEBSLocation}/
+	rm -rf \$dir";
+	}
+}
+
 sub mode_etics {
 	$fmod = shift;
 
@@ -1540,7 +1561,7 @@ sub mode_etics {
 	my %cmd;
 	$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_module 2>/dev/null";
 	#$cmd_vcs{checkout} = "((test -d jra1mw/.git && (cd jra1mw; git pull)) || (git clone -q http://scientific.zcu.cz/git/jra1mw.git";
-	#$cmd_vcs{checkout} .= " && (cd jra1mw; git checkout -b \${tag} --track origin/epel)" unless ($conftag =~ /HEAD/);
+	#$cmd_vcs{checkout} .= " && (cd jra1mw; git checkout -b \${tag} --track origin/\${tag})" unless ($conftag eq /HEAD/);
 	#$cmd_vcs{checkout} .= ")) && (test -d \${moduleName} || ln -s jra1mw/$cvs_module \${moduleName})";
 	$cmd_vcs{checkout} .= "\n\ttest -f \${packageName}-\${version}-\${age}.src.tar.gz || (ln -s \${moduleName} \${packageName}-\${version}; tar -chf - \${packageName}-\${version} --exclude CVS --exclude .git --exclude .etics | gzip --best > \${packageName}-\${version}-\${age}.src.tar.gz; rm \${packageName}-\${version})";
 	$cmd_vcs{tag} = "cvs -d \${vcsroot} tag -R \${tag} ${moduleName}";
@@ -1565,12 +1586,12 @@ sub mode_etics {
 
 			if ($project ne 'glite') {
 				# don't evaluate pkg-config calls to get them into source package
-				$flags = 'RELEASE_VERSION=${age}.${platformFamily}
+				$flags = 'RELEASE_VERSION=${age}
 	GSOAPDIR=\`pkg-config gsoap --variable=prefix\`
 	OPENSSL_GLOBUS_FLAGS=\`pkg-config globus-openssl --cflags\`
 	OPENSSL_GLOBUS_LIBS=\`pkg-config globus-openssl --libs\`';
 			} else {
-				$flags = 'RELEASE_VERSION=${age}.${platformFamily}
+				$flags = 'RELEASE_VERSION=${age}
 	GSOAPDIR=${gsoap.location}
 	OPENSSL_GLOBUS_FLAGS=-I${globus.location}/include/${globus.dbg.nothr.flavor}
 	OPENSSL_GLOBUS_LIBS=-L${globus.location}/${libdir}
@@ -1583,20 +1604,13 @@ sub mode_etics {
 	$flags
 	EOF";
 			$cmd{default}{compile} = "make prefix=\${prefix}$project{local_prefix} libdir=\${libdir}";
-			$cmd{default}{clean} = "rm -rvf \${moduleDir}/src/tgz; $cmd{default}{clean}";
 			$cmd{default}{install} = "make prefix=\${prefix}$project{local_prefix} libdir=\${libdir} install";
-			$cmd{default}{packaging} = "mkdir -p \${moduleDir}/RPMTMP/SOURCES \${moduleDir}/src/tgz 2>/dev/null || true
-	make prefix=\${prefix}$project{local_prefix} rpm && \\
-	cp \${moduleDir}/RPMTMP/SOURCES/gridsite-\${version}.src.tar.gz \${moduleDir}/src/tgz";
-
-			for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
-				$cmd{$p} = ();
-				for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
-				$cmd{$p}{packaging} = "mkdir -p \${moduleDir}/RPMTMP/SOURCES \${moduleDir}/src/tgz 2>/dev/null || true
-	chmod +x \${moduleDir}/src/make-debian-files || true
-	make prefix=\${prefix}$project{local_prefix} deb && \\
-	cp \${moduleDir}/RPMTMP/gridsite_\${version}-\${age}.\${platformFamily}.tar.gz \${moduleDir}/src/tgz";
-			}
+			mode_etics_packaging($fmod, \%cmd,
+				"make prefix=\${prefix}$project{local_prefix} rpm-prepare
+	cp gridsite.spec ../\n\t",
+				"chmod +x \${moduleDir}/src/make-debian-files || true
+	make prefix=\${prefix}$project{local_prefix} deb-prepare\n\t"
+			);
 		}
 		elsif ($module eq '1.5-compat') {
 			$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_prefix{$subsys}.$subsys.core 2>/dev/null";
@@ -1609,7 +1623,7 @@ sub mode_etics {
 	MINOR_VERSION=1.5
 	PATCH_VERSION=1.5.0
 	VERSION=\\\$(PATCH_VERSION)
-	RELEASE_VERSION=\${age}.\${platformFamily}
+	RELEASE_VERSION=\${age}
 	GSOAPDIR=\\`pkg-config gsoap --variable=prefix\\`
 	OPENSSL_GLOBUS_FLAGS=\\`pkg-config globus-openssl --cflags\\`
 	OPENSSL_GLOBUS_LIBS=\\`pkg-config globus-openssl --libs\\`
@@ -1620,6 +1634,7 @@ sub mode_etics {
 	rm -fv \${prefix}$project{local_prefix}/\${libdir}/libgridsite*.so.1
 	rm -fv \${prefix}$project{local_prefix}/\${libdir}/libgridsite*.so
 	rm -fv \${prefix}$project{local_prefix}/\${libdir}/libgridsite*.a";
+			$cmd{default}{packaging} = "None";
 		}
 		else {
 			$cmd{default}{clean} = 'None';
@@ -1632,8 +1647,6 @@ sub mode_etics {
 		$cmd{default}{packaging} = "make rpm package=".$confprefix."$subsys-myproxy-config";
 	}
 	else {
-		$cmd{clean} = 'make clean
-	rm -rfv ${package.tgzLocation} ${package.SRPMSLocation}';
 		$cmd{default}{configure} = "/usr/bin/perl $confdir/configure $project{flavours} --root=\${prefix} --prefix=$project{local_prefix} --stage=\${stageDir} --sysroot=\${package.prefix} --libdir=\${libdir} --project=\${projectName} --module $subsys.$module @copts";
 		$cmd{default}{compile} = 'make';
 		$cmd{default}{test} = 'make check';
@@ -1642,29 +1655,7 @@ sub mode_etics {
 			$cmd{default}{compile} = "make rpath=$project{local_prefix}/\${libdir}";
 			$cmd{default}{install} = "make install post-install rpath=$project{local_prefix}/\${libdir}";
 		}
-		$cmd{default}{packaging} = 'dir=${workspaceDir}/rpm_build_src_$$
-	mkdir -p ${package.tgzLocation} ${package.SRPMSLocation} $dir/{BUILD,RPMS,SOURCES,SRPMS} 2>/dev/null || true
-	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz ${package.tgzLocation}/
-	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz $dir/SOURCES/
-	rpmbuild -bs --nodeps --define "_topdir $dir" ${packageName}.spec
-	cp -v $dir/SRPMS/*.src.rpm ${package.SRPMSLocation}/
-	rm -rf $dir';
-		for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
-			for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
-			$cmd{$p}{clean} = 'make clean
-	rm -rfv ${package.tgzLocation} ${package.SDEBSLocation}';
-			$cmd{$p}{packaging} = 'dir=${workspaceDir}/dpkg_build_src_$$
-	mkdir -p ${package.tgzLocation} ${package.SDEBSLocation} $dir 2>/dev/null || true
-	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz ${package.tgzLocation}/
-	cp -vf ${workspaceDir}/${packageName}-${version}-${age}.src.tar.gz $dir/${packageName}_${version}.orig.tar.gz
-	tar xzf $dir/${packageName}_${version}.orig.tar.gz -C $dir
-	cp -rf debian/ $dir/${packageName}-${version}/
-	cd $dir/${packageName}-${version}
-	dpkg-buildpackage -S -d -nc
-	cd -
-	cp -v $dir/*.tar.gz $dir/*.dsc ${package.SDEBSLocation}/
-	rm -rf $dir';
-		}
+		mode_etics_packaging($fmod, \%cmd);
 	}
 
 	my $defprops = '';

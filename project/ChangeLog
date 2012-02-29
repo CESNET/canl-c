@@ -6,3 +6,17 @@
 - Build cleanups
 - Improvements throughout the code
 
+1.0.2-1
+- Building certificate delegation samples
+- Making use of canl_mech_ssl to include openssl header files
+- Examples added: canl-proxy-init
+- Client can give cert and key paths explicitly
+- Recognition of command line args
+- License string as recognized by rpmlint and packaging guidelines
+- Truly independent of auth. mechanism
+- Cert, key  in mech. context
+- Writing proxy to file with restrictive permissions
+- Duplicating only existing certificates
+- Set CA directory and CRL directory to context
+- Compatiblity with FIPS openssl releases
+
