@@ -1,5 +1,6 @@
 #include "canl_locl.h"
 #include "canl_cred.h"
+#include "canl_mech_ssl.h"
 
 static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from);
 

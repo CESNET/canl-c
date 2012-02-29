@@ -1,5 +1,6 @@
 #include "canl_locl.h"
 #include "canl_ssl.h"
+#include "canl_mech_ssl.h"
 
 #define SSL_SERVER_METH SSLv23_server_method()
 #define SSL_CLIENT_METH SSLv3_client_method()

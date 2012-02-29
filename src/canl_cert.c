@@ -1,4 +1,5 @@
 #include "canl_locl.h"
+#include "canl_mech_ssl.h"
 
 #if 0
 static int set_cert(glb_ctx *cc, X509 *cert);

@@ -31,7 +31,7 @@ LFLAGS_SER=-L. -lcanl_c
 CFLAGS_PRX=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_PRX=-L. -lcanl_c
 
-HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h
+HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h canl_mech_ssl.h
 
 SRC_CLI=canl_sample_client.c
 HEAD_CLI=canl.h

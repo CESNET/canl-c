@@ -31,6 +31,7 @@ print qq (/*
  */
 
 #include "canl_locl.h"
+#include "canl_mech_ssl.h"
 
 struct canl_err_desc canl_err_descs[] = {);
 

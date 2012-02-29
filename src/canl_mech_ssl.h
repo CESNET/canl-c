@@ -1,8 +1,12 @@
 #ifndef _CANL_MECH_SSL_H
 #define _CANL_MECH_SSL_H
 
+#include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/safestack.h>
 
 typedef struct _cert_key_store {
     X509 *cert;
