@@ -51,12 +51,6 @@ typedef enum _CANL_AUTH_MECHANISM
     GSSAPI,
 } CANL_AUTH_MECHANISM;
 
-typedef struct _cert_key_store {
-    X509 *cert;
-    EVP_PKEY *key;
-    STACK_OF(X509) *chain;
-} cert_key_store;
-
 typedef struct _glb_ctx
 {
     char * err_msg;
@@ -64,7 +58,6 @@ typedef struct _glb_ctx
     /* XXX Do we need to keep these two:? */
     canl_err_origin err_orig;
     long original_err_code;
-    cert_key_store *cert_key;
 } glb_ctx;
 
 typedef struct _asyn_result {
@@ -86,38 +79,30 @@ typedef struct _io_handler
     gss_OID oid;
 } io_handler;
 
-typedef struct _mech_glb_ctx
-{
-    void *mech_ctx; //like SSL_CTX *
-    unsigned int flags;
-    char  *ca_dir;
-    char  *crl_dir;
-} mech_glb_ctx;
-
 typedef struct canl_mech {
     CANL_AUTH_MECHANISM mech;
-    mech_glb_ctx *glb_ctx;
+    void *glb_ctx;
 
     canl_err_code (*initialize)
-        (glb_ctx *, mech_glb_ctx **);
+        (glb_ctx *, void **);
 
     canl_err_code (*set_flags)
         (glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags);
 
     canl_err_code (*set_ca_dir)
-        (glb_ctx *, mech_glb_ctx *, const char *);
+        (glb_ctx *, void *, const char *);
     
     canl_err_code (*set_crl_dir)
-        (glb_ctx *, mech_glb_ctx *, const char *);
+        (glb_ctx *, void *, const char *);
 
     canl_err_code (*finish)
 	(glb_ctx *, void *);
 
     canl_err_code (*client_init)
-        (glb_ctx *, mech_glb_ctx *, void **);
+        (glb_ctx *, void *, void **);
 
     canl_err_code (*server_init)
-        (glb_ctx *, mech_glb_ctx *, void **);
+        (glb_ctx *, void *, void **);
 
     canl_err_code (*free_ctx)
 	(glb_ctx *, void *);
@@ -142,10 +127,33 @@ typedef struct canl_mech {
 
 } canl_mech;
 
+/* Openssl specific**************************/
+typedef struct _cert_key_store {
+    X509 *cert;
+    EVP_PKEY *key;
+    STACK_OF(X509) *chain;
+} cert_key_store;
+
+typedef struct _mech_glb_ctx
+{
+    void *mech_ctx; //like SSL_CTX *
+    unsigned int flags;
+    char  *ca_dir;
+    char  *crl_dir;
+    cert_key_store *cert_key;
+} mech_glb_ctx;
+
+int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx,
+        char *cert, char *key);
+int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key);
+int set_cert_file(glb_ctx *cc, X509 **to, const char *cert);
+int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *cert);
+extern canl_mech canl_mech_ssl;
+/* *****************************************/
+
 struct canl_mech *
 find_mech(gss_OID oid);
 
-extern struct canl_mech canl_mech_ssl;
 
 void reset_error (glb_ctx *cc, unsigned long err_code);
 canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
@@ -155,11 +163,5 @@ canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
 int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);
-
-/*TODO maybe move to another haeder file*/
-int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key);
-int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key);
-int set_cert_file(glb_ctx *cc, X509 **to, const char *cert);
-int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *cert);
 
 #endif

@@ -72,31 +72,33 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd = (creds*) cred;
     int ret = 0;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx*) canl_mech_ssl.glb_ctx;
 
     if (!ctx)
         return EINVAL;
-    if (!crd || !cc->cert_key)
+    if (!crd || !m_ctx->cert_key)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
     
-    if (!cc->cert_key){
-        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
-        if (!cc->cert_key) {
+    if (!m_ctx->cert_key){
+        m_ctx->cert_key = (cert_key_store *) calloc(1, 
+                sizeof(*(m_ctx->cert_key)));
+        if (!m_ctx->cert_key) {
             return set_error(cc, ENOMEM, POSIX_ERROR, "not enought memory"
                     " for the certificate storage");
         }
     }
 
     if (crd->c_key) {
-        if ((ret = pkey_dup(cc, &cc->cert_key->key, crd->c_key))) {
+        if ((ret = pkey_dup(cc, &m_ctx->cert_key->key, crd->c_key))) {
             return ret;
         }
     }
 
     if (crd->c_cert)
-        cc->cert_key->cert = X509_dup(crd->c_cert);
+        m_ctx->cert_key->cert = X509_dup(crd->c_cert);
     if (crd->c_cert_chain)
-        cc->cert_key->chain = sk_X509_dup(crd->c_cert_chain);
+        m_ctx->cert_key->chain = sk_X509_dup(crd->c_cert_chain);
     return 0;
 }
 

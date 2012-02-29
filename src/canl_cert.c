@@ -18,15 +18,16 @@ int do_set_ctx_own_cert(glb_ctx *cc, canl_x509 cert, canl_stack_of_x509 chain,
         is_chain = 1;
     if (key)
         is_key = 1;
-    if (!cc->cert_key){
-        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
-        if (!cc->cert_key) {
+    if (!m_ctx->cert_key){
+        m_ctx->cert_key = (cert_key_store *) calloc(1, 
+             sizeof(*(m_ctx->cert_key)));
+        if (!m_ctx->cert_key) {
             err = ENOMEM;
             goto end;
         }
     }
 
-    if (!cc->cert_key->cert) {
+    if (!m_ctx->cert_key->cert) {
     }
 */
     return 0;
@@ -37,12 +38,12 @@ static int set_cert(glb_ctx *cc, X509 *cert)
     int err = 0;
     CANL_ERROR_ORIGIN err_orig = 0;
     
-    if (cc->cert_key->cert) {
-        free(cc->cert_key->cert);
-        cc->cert_key->cert = NULL;
+    if (m_ctx->cert_key->cert) {
+        free(m_ctx->cert_key->cert);
+        m_ctx->cert_key->cert = NULL;
     }
-    cc->cert_key->cert = (X509 *) malloc (sizeof(X509));
-    if (!cc->cert_key->cert) {
+    m_ctx->cert_key->cert = (X509 *) malloc (sizeof(X509));
+    if (!m_ctx->cert_key->cert) {
         err = ENOMEM;
         goto end;
     }
@@ -55,26 +56,28 @@ end:
 #endif
 
 //TODO cert
-int do_set_ctx_own_cert_file(glb_ctx *cc, char *cert, char *key)
+int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx, 
+        char *cert, char *key)
 {
     int err = 0;
 
-    if (!cc->cert_key){
-        cc->cert_key = (cert_key_store *) calloc(1, sizeof(*(cc->cert_key)));
-        if (!cc->cert_key) {
+    if (!m_ctx->cert_key){
+        m_ctx->cert_key = (cert_key_store *) calloc(1, 
+                sizeof(*(m_ctx->cert_key)));
+        if (!m_ctx->cert_key) {
             return set_error(cc, ENOMEM, POSIX_ERROR, "not enought memory"
                     " for the certificate storage"); 
         }
     }
 
     if (key) {
-        err = set_key_file(cc, &cc->cert_key->key, key);
+        err = set_key_file(cc, &m_ctx->cert_key->key, key);
         if (err)
             return err;
     }
 
     if (cert) {
-        err = set_cert_file(cc, &cc->cert_key->cert, cert);
+        err = set_cert_file(cc, &m_ctx->cert_key->cert, cert);
         if (err)
             return err;
     }

@@ -13,8 +13,9 @@ static void dbg_print_ssl_error(int errorcode);
 #endif
 
 static canl_err_code
-ssl_initialize(glb_ctx *cc, mech_glb_ctx **m_glb_ctx)
+ssl_initialize(glb_ctx *cc, void **v_glb_ctx)
 {
+    mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **)v_glb_ctx;
     int err = 0;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
     char *ca_cert_dirn = NULL;
@@ -111,20 +112,23 @@ ssl_set_dir(glb_ctx *cc, char **target, const char *ca_dir)
 }
 
 static canl_err_code
-ssl_set_crl_dir(glb_ctx *cc, mech_glb_ctx *m_ctx, const char *crl_dir)
+ssl_set_crl_dir(glb_ctx *cc, void *v_ctx, const char *crl_dir)
 {
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
     return ssl_set_dir(cc, &m_ctx->crl_dir, crl_dir);
 }
 
 static canl_err_code
-ssl_set_ca_dir(glb_ctx *cc, mech_glb_ctx *m_ctx, const char *ca_dir)
+ssl_set_ca_dir(glb_ctx *cc, void *v_ctx, const char *ca_dir)
 {
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
     return ssl_set_dir(cc, &m_ctx->ca_dir, ca_dir);
 }
 
 static canl_err_code
-ssl_server_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
+ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
 {
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
     SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
     SSL *ssl = NULL;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
@@ -139,10 +143,10 @@ ssl_server_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
 
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
-    if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
+    if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || !m_ctx->cert_key->key)) {
         if (user_cert_fn && user_key_fn && !access(user_cert_fn, R_OK) && 
                 !access(user_key_fn, R_OK)) {
-            err = do_set_ctx_own_cert_file(cc, user_cert_fn, user_key_fn);
+            err = do_set_ctx_own_cert_file(cc, m_ctx, user_cert_fn, user_key_fn);
             if (err)
                 return err;
         }
@@ -175,9 +179,9 @@ ssl_server_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
 
     SSL_set_accept_state(ssl);
 
-    if (cc->cert_key) {
-        if (cc->cert_key->cert) {
-            err = SSL_use_certificate(ssl, cc->cert_key->cert);
+    if (m_ctx->cert_key) {
+        if (m_ctx->cert_key->cert) {
+            err = SSL_use_certificate(ssl, m_ctx->cert_key->cert);
             if (err != 1) {
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
                         "use certificate");
@@ -185,8 +189,8 @@ ssl_server_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
             else
                 err = 0;
         }
-        if (cc->cert_key->key) {
-            err = SSL_use_PrivateKey(ssl, cc->cert_key->key);
+        if (m_ctx->cert_key->key) {
+            err = SSL_use_PrivateKey(ssl, m_ctx->cert_key->key);
             if (err != 1) {
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
                         "use private key");
@@ -210,8 +214,9 @@ ssl_server_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
 }
 
 static canl_err_code
-ssl_client_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
+ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
 {
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
     SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
     SSL *ssl = NULL;
     int err = 0;
@@ -233,20 +238,23 @@ ssl_client_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
 
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
-    if (!err && (!cc->cert_key || !cc->cert_key->cert || !cc->cert_key->key)) {
+    if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || !m_ctx->cert_key->key)) {
         if (user_proxy_fn && !access(user_proxy_fn, R_OK)) {
-            err = do_set_ctx_own_cert_file(cc, user_proxy_fn, user_proxy_fn);
+            err = do_set_ctx_own_cert_file(cc, m_ctx, user_proxy_fn, 
+                    user_proxy_fn);
             if (err)
                 return err;
         }
         else {
             if (user_cert_fn && !access(user_cert_fn, R_OK)) {
-                err = do_set_ctx_own_cert_file(cc, user_cert_fn, NULL);
+                err = do_set_ctx_own_cert_file(cc, m_ctx, 
+                        user_cert_fn, NULL);
                 if (err)
                     return err;
             }
             if (user_key_fn && !access(user_key_fn, R_OK)) {
-                err = do_set_ctx_own_cert_file(cc, NULL, user_key_fn);
+                err = do_set_ctx_own_cert_file(cc, m_ctx,
+                        NULL, user_key_fn);
                 if (err)
                     return err;
             }
@@ -264,16 +272,16 @@ ssl_client_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
     if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
         SSL_set_options(ssl, SSL_OP_NO_SSLv2);
 
-    if (cc->cert_key) {
-        if (cc->cert_key->key) {
-            err = SSL_use_PrivateKey(ssl, cc->cert_key->key);
+    if (m_ctx->cert_key) {
+        if (m_ctx->cert_key->key) {
+            err = SSL_use_PrivateKey(ssl, m_ctx->cert_key->key);
             if (err != 1) {
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
                         "use private key");
             }
         }
-        if (cc->cert_key->cert) {
-            err = SSL_use_certificate(ssl, cc->cert_key->cert);
+        if (m_ctx->cert_key->cert) {
+            err = SSL_use_certificate(ssl, m_ctx->cert_key->cert);
             if (err != 1) {
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
                         "use certificate");
@@ -281,7 +289,7 @@ ssl_client_init(glb_ctx *cc, mech_glb_ctx *m_ctx, void **ctx)
         }
         /*Make sure the key and certificate file match
          * not mandatory on client side*/
-        if (cc->cert_key->cert && cc->cert_key->key)
+        if (m_ctx->cert_key->cert && m_ctx->cert_key->key)
             if ( (err = SSL_check_private_key(ssl)) != 1)
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Private key"
                         " does not match the certificate public key"); 
@@ -873,6 +881,8 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
 
+    mech_glb_ctx *m_ctx = canl_mech_ssl.glb_ctx;
+
     if (!cc)
         return EINVAL;
     if(!cert ) {
@@ -880,7 +890,7 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
         return EINVAL;
     }
 
-    err = do_set_ctx_own_cert_file(glb_cc, cert, key);
+    err = do_set_ctx_own_cert_file(glb_cc, m_ctx, cert, key);
     if(err) {
 //        update_error(glb_cc, "can't set cert or key to context");
     }
@@ -988,9 +998,11 @@ static void dbg_print_ssl_error(int errorcode)
 }
 #endif
 
-struct canl_mech canl_mech_ssl = {
+mech_glb_ctx ssl_glb_ctx;
+
+canl_mech canl_mech_ssl = {
     TLS,
-    NULL,
+    &ssl_glb_ctx,
     ssl_initialize,
     ssl_set_flags,
     ssl_set_ca_dir,
