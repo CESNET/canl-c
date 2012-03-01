@@ -158,7 +158,7 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
         crd->c_cert_chain = NULL;
     }
     crd->c_cert_chain = sk_X509_dup(cert_stack);
-    if (crd->c_cert_chain)
+    if (!crd->c_cert_chain)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate chain" ); //TODO check ret val
     return 0;
@@ -212,7 +212,7 @@ canl_cred_load_cert(canl_ctx ctx, canl_cred cred, X509 *cert)
     }
 
     crd->c_cert = X509_dup(cert);
-    if (crd->c_cert)
+    if (!crd->c_cert)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate" ); //TODO check ret val
     return 0;
@@ -322,7 +322,7 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
         proxy_crd->c_cert_chain = sk_X509_dup(signer_crd->c_cert_chain);
     if (!proxy_crd->c_cert_chain)
        proxy_crd->c_cert_chain = sk_X509_new_null();
-    sk_X509_push(proxy_crd->c_cert_chain, signer_crd->c_cert);
+    sk_X509_push(proxy_crd->c_cert_chain, X509_dup(signer_crd->c_cert));
     
     return 0;
        
@@ -335,6 +335,7 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
     creds *crd = (creds*) cred;
     FILE *cert_file  = NULL;
     int ret = 0;
+    int o_ret = 0;
     unsigned long ssl_err = 0;
     X509 *cert_from_chain = NULL;
 
@@ -348,26 +349,29 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
         return set_error(cc, EINVAL, POSIX_ERROR, "Invalid proxy file name");
 
     /*posix compliant*/
-    ret = open(proxy_file, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-    if (ret == -1){
+    o_ret = open(proxy_file, O_CREAT | O_EXCL |O_WRONLY, S_IRUSR | S_IWUSR);
+    if (o_ret == -1){
         ret = errno;
         set_error(cc, ret, POSIX_ERROR, "Cannot open file for writing");
-        return ret;
     }
-    close(ret);
-    if (ret == -1){
-        ret = errno;
-        set_error(cc, ret, POSIX_ERROR, "Cannot open file for writing");
-        return ret;
+    else {
+        ret = close(o_ret);
+        if (ret == -1){
+            ret = errno;
+            set_error(cc, ret, POSIX_ERROR, "Cannot close file for writing");
+            return ret;
+        }
     }
-
-    cert_file = fopen(proxy_file, "ab");
+    if (o_ret)
+        cert_file = fopen(proxy_file, "wb");
+    else
+        cert_file = fopen(proxy_file, "ab");
     if (!cert_file) {
         ret = errno;
         set_error(cc, ret, POSIX_ERROR, "cannot open file for writing");
         return ret;
     }
-    
+
     ERR_clear_error();
 
     /*new cert + priv key + chain*/
@@ -438,7 +442,7 @@ canl_cred_save_cert(canl_ctx ctx, canl_cred cred, X509 ** cert)
     }
 
     *cert = X509_dup(crd->c_cert);
-    if (*cert)
+    if (!(*cert))
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate" ); //TODO check ret val
  
@@ -474,7 +478,7 @@ canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
         *cert_stack = NULL;
     }
     *cert_stack = sk_X509_dup(crd->c_cert_chain);
-    if (*cert_stack)
+    if (!(*cert_stack))
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate chain" ); //TODO check ret val
     return 0;

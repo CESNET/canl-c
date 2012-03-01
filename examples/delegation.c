@@ -75,7 +75,7 @@ main(int argc, char *argv[])
     
     if (!bits)
         bits = BITS;
-    ret = canl_cred_new_req(ctx, &proxy_bob, bits);
+    ret = canl_cred_new_req(ctx, proxy_bob, bits);
     if (ret) {
         fprintf(stderr, "[DELEGATION] Failed to create certificate "
                 "request container: %s\n", canl_get_error_message(ctx));
@@ -165,28 +165,14 @@ main(int argc, char *argv[])
 /* Bob - on receiving the final certificate and chain */
     /* deserialize the new proxy cert and chain from Alice */
 
-    ret = canl_cred_new(ctx, &proxy);
-    if (ret){
-        fprintf(stderr, "[DELEGATION] Proxy context cannot be created"
-                ": %s\n", canl_get_error_message(ctx));
-        goto end;
-    }
-    
-    ret = canl_cred_load_req(ctx, proxy, proxy_bob);
-    if (ret){
-        fprintf(stderr, "[DELEGATION] Cannot load cert. request container"
-                ": %s\n", canl_get_error_message(ctx));
-        goto end;
-    }
-    
-    ret = canl_cred_load_cert(ctx, proxy, x509_cert);
+    ret = canl_cred_load_cert(ctx, proxy_bob, x509_cert);
     if (ret){
         fprintf(stderr, "[DELEGATION] Cannot load certificate"
                 ": %s\n", canl_get_error_message(ctx));
         goto end;
     }
     
-    ret = canl_cred_load_chain(ctx, proxy, x509_chain);
+    ret = canl_cred_load_chain(ctx, proxy_bob, x509_chain);
     if (ret){
         fprintf(stderr, "[DELEGATION] Cannot load cert. chain"
                 ": %s\n", canl_get_error_message(ctx));
@@ -195,7 +181,7 @@ main(int argc, char *argv[])
     
     if (!output)
         output = OUTPUT;
-    ret = canl_cred_save_proxyfile(ctx, proxy, output);
+    ret = canl_cred_save_proxyfile(ctx, proxy_bob, output);
     if (ret){
         fprintf(stderr, "[PROXY-INIT] Cannot save new proxy"
                 ": %s\n", canl_get_error_message(ctx));
