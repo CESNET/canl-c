@@ -271,7 +271,7 @@ canl_cred_set_extension(canl_ctx ctx, canl_cred cred, X509_EXTENSION *cert_ext)
 
     if (!crd->c_cert_ext)
        crd->c_cert_ext = sk_X509_EXTENSION_new_null();
-    sk_X509_EXTENSION_push(crd->c_cert_ext, cert_ext);
+    sk_X509_EXTENSION_push(crd->c_cert_ext, X509_EXTENSION_dup(cert_ext));
     return 0;
 }
 
@@ -337,6 +337,8 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
     int ret = 0;
     int o_ret = 0;
     unsigned long ssl_err = 0;
+    int n_certs = 0;
+    int i = 0;
     X509 *cert_from_chain = NULL;
 
     if (!ctx)
@@ -390,16 +392,20 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
         goto end;
     }
 
-    while ((cert_from_chain = sk_X509_pop(crd->c_cert_chain)) != NULL) {
-        ret = PEM_write_X509(cert_file, cert_from_chain);
-        if (!ret) {
-            ssl_err = ERR_get_error();
-            ret = set_error(cc, ssl_err, SSL_ERROR, "Error while writing"
-                    " the certificate to the file");
-            goto end;
+    n_certs = sk_X509_num(crd->c_cert_chain);
+    for (i = 0; i <  n_certs; i++){
+        cert_from_chain = sk_X509_value(crd->c_cert_chain, i);
+        if (cert_from_chain) {
+            ret = PEM_write_X509(cert_file, cert_from_chain);
+            if (!ret) {
+                ssl_err = ERR_get_error();
+                if (ssl_err)
+                    ret = set_error(cc, ssl_err, SSL_ERROR, "Error "
+                            " while writing the certificate to the file");
+                goto end;
+            }
         }
     }
-
 
     if (fclose(cert_file)){
         ret = errno;
