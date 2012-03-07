@@ -113,20 +113,6 @@ ssl_set_dir(glb_ctx *cc, char **target, const char *ca_dir)
 }
 
 static canl_err_code
-ssl_set_crl_dir(glb_ctx *cc, void *v_ctx, const char *crl_dir)
-{
-    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
-    return ssl_set_dir(cc, &m_ctx->crl_dir, crl_dir);
-}
-
-static canl_err_code
-ssl_set_ca_dir(glb_ctx *cc, void *v_ctx, const char *ca_dir)
-{
-    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
-    return ssl_set_dir(cc, &m_ctx->ca_dir, ca_dir);
-}
-
-static canl_err_code
 ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
 {
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
@@ -903,11 +889,12 @@ canl_ctx_set_crl_dir(canl_ctx cc, const char *dir)
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct canl_mech *mech = find_mech(GSS_C_NO_OID); //TODO for now
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)mech->glb_ctx;
     
     if (!cc)
         return EINVAL;
     
-    return mech->set_crl_dir(glb_cc, mech->glb_ctx, dir);
+    return ssl_set_dir(glb_cc, &m_ctx->crl_dir, dir);
 }
 
 canl_err_code
@@ -915,11 +902,12 @@ canl_ctx_set_ca_dir(canl_ctx cc, const char *dir)
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
     struct canl_mech *mech = find_mech(GSS_C_NO_OID); //TODO for now
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)mech->glb_ctx;
     
     if (!cc)
         return EINVAL;
     
-    return mech->set_ca_dir(glb_cc, mech->glb_ctx, dir);
+    return ssl_set_dir(glb_cc, &m_ctx->ca_dir, dir);
 }
 
 static canl_err_code
@@ -1006,8 +994,6 @@ canl_mech canl_mech_ssl = {
     &ssl_glb_ctx,
     ssl_initialize,
     ssl_set_flags,
-    ssl_set_ca_dir,
-    ssl_set_crl_dir,
     ssl_finish,
     ssl_client_init,
     ssl_server_init,

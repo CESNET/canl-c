@@ -83,12 +83,6 @@ typedef struct canl_mech {
     canl_err_code (*set_flags)
         (glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags);
 
-    canl_err_code (*set_ca_dir)
-        (glb_ctx *, void *, const char *);
-    
-    canl_err_code (*set_crl_dir)
-        (glb_ctx *, void *, const char *);
-
     canl_err_code (*finish)
 	(glb_ctx *, void *);
 
