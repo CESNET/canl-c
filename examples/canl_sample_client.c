@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-s server] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
                 break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-s server] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
                 exit(-1);
         }
     }

@@ -19,17 +19,18 @@ int main(int argc, char *argv[])
     int opt, port = 4321;
     char *serv_cert = NULL;
     char *serv_key = NULL;
+    char *ca_dir = NULL;
     char buf[BUF_LEN];
     int buf_len = 0;
     struct timeval timeout;
     canl_principal princ = NULL;
     char *name = NULL;
 
-    while ((opt = getopt(argc, argv, "hp:c:k:")) != -1) {
+    while ((opt = getopt(argc, argv, "hp:c:k:d:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -40,9 +41,12 @@ int main(int argc, char *argv[])
             case 'k':
                 serv_key = optarg;
                 break;
+            case 'd':
+                ca_dir = optarg;
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
                 exit(-1);
         }
     }

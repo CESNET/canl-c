@@ -133,7 +133,7 @@ ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
     if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || !m_ctx->cert_key->key)) {
         if (user_cert_fn && user_key_fn && !access(user_cert_fn, R_OK) && 
                 !access(user_key_fn, R_OK)) {
-            err = do_set_ctx_own_cert_file(cc, m_ctx, user_cert_fn, user_key_fn);
+            err = do_set_ctx_own_cert_file(cc, m_ctx, user_cert_fn, user_key_fn, NULL);
             if (err)
                 return err;
         }
@@ -206,7 +206,7 @@ ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
     SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
     SSL *ssl = NULL;
-    int err = 0;
+    int err = 0, i = 0;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
     user_cert_fn = user_key_fn = user_proxy_fn = NULL;
 
@@ -216,32 +216,24 @@ ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
     if (ssl_ctx == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
 
-    ssl = SSL_new(ssl_ctx);
-    if (ssl == NULL)
-	return set_error(cc, ERR_get_error(), SSL_ERROR,
-		         "Failed to create SSL connection context");
-
-    SSL_set_connect_state(ssl);
-
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
     if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || !m_ctx->cert_key->key)) {
         if (user_proxy_fn && !access(user_proxy_fn, R_OK)) {
-            err = do_set_ctx_own_cert_file(cc, m_ctx, user_proxy_fn, 
-                    user_proxy_fn);
+            err = do_set_ctx_own_cert_file(cc, m_ctx, NULL, NULL, user_proxy_fn);
             if (err)
                 return err;
         }
         else {
             if (user_cert_fn && !access(user_cert_fn, R_OK)) {
                 err = do_set_ctx_own_cert_file(cc, m_ctx, 
-                        user_cert_fn, NULL);
+                        user_cert_fn, NULL, NULL);
                 if (err)
                     return err;
             }
             if (user_key_fn && !access(user_key_fn, R_OK)) {
                 err = do_set_ctx_own_cert_file(cc, m_ctx,
-                        NULL, user_key_fn);
+                        NULL, user_key_fn, NULL);
                 if (err)
                     return err;
             }
@@ -254,6 +246,41 @@ ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
     user_key_fn = NULL;
     free(user_proxy_fn);
     user_proxy_fn = NULL;
+
+    if (m_ctx->cert_key && m_ctx->cert_key->chain) {
+        /*
+         * Certificate was a proxy with a cert. chain.
+         * Add the certificates one by one to the chain.
+         */
+        X509_STORE_add_cert(ssl_ctx->cert_store, m_ctx->cert_key->cert);
+        for (i = 0; i < sk_X509_num(m_ctx->cert_key->chain); ++i) {
+            X509 *cert = (sk_X509_value(m_ctx->cert_key->chain, i));
+
+            if (!X509_STORE_add_cert(ssl_ctx->cert_store, cert)) {
+                if (ERR_GET_REASON(ERR_peek_error()) == 
+                        X509_R_CERT_ALREADY_IN_HASH_TABLE) {
+                    ERR_clear_error();
+                    continue;
+                }
+                else {
+                    set_error(cc, 1, CANL_ERROR, "Cannot add certificate "
+                            "to the SSL context's certificate store");
+                }
+            }
+        }
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L
+        X509_STORE_set_verify_cb(ssl_ctx->cert_store, proxy_verify_callback);
+#endif
+    }
+
+    ssl = SSL_new(ssl_ctx);
+    if (ssl == NULL)
+	return set_error(cc, ERR_get_error(), SSL_ERROR,
+		         "Failed to create SSL connection context");
+
+    SSL_set_connect_state(ssl);
+
+
 
     SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
     if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
@@ -271,10 +298,10 @@ ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
             err = SSL_use_certificate(ssl, m_ctx->cert_key->cert);
             if (err != 1) {
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Cannot"
-                        "use certificate");
-            }
-        }
-        /*Make sure the key and certificate file match
+				"use certificate");
+	    }
+	}
+               /*Make sure the key and certificate file match
          * not mandatory on client side*/
         if (m_ctx->cert_key->cert && m_ctx->cert_key->key)
             if ( (err = SSL_check_private_key(ssl)) != 1)
@@ -877,7 +904,7 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
         return EINVAL;
     }
 
-    err = do_set_ctx_own_cert_file(glb_cc, m_ctx, cert, key);
+    err = do_set_ctx_own_cert_file(glb_cc, m_ctx, cert, key, NULL);
     if(err) {
 //        update_error(glb_cc, "can't set cert or key to context");
     }

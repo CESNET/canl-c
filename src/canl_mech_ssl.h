@@ -24,7 +24,7 @@ typedef struct _mech_glb_ctx
 } mech_glb_ctx;
 
 int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx,
-        char *cert, char *key);
+        char *cert, char *key, char * proxy);
 int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key);
 int set_cert_file(glb_ctx *cc, X509 **to, const char *cert);
 int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *cert);

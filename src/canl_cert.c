@@ -58,7 +58,7 @@ end:
 
 //TODO cert
 int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx, 
-        char *cert, char *key)
+        char *cert, char *key, char *proxy)
 {
     int err = 0;
 
@@ -80,6 +80,13 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx,
     if (cert) {
         err = set_cert_file(cc, &m_ctx->cert_key->cert, cert);
         if (err)
+            return err;
+    }
+
+    if (proxy) {
+        err = load_credentials(proxy, proxy,  &m_ctx->cert_key->cert, 
+                &m_ctx->cert_key->chain, &m_ctx->cert_key->key, NULL);
+        if (!err)
             return err;
     }
     return 0;
