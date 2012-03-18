@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
     if (err > 0) {
         buf[err] = '\0';
         printf ("[CLIENT] received: %s\n", buf);
+        err = 0;
     }
 
 end:
