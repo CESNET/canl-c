@@ -15,7 +15,7 @@ canl_ctx CANL_CALLCONV
 canl_ctx_set_ssl_flags(canl_ctx, unsigned int);
 
 canl_err_code CANL_CALLCONV
-canl_ctx_set_ssl_cred(canl_ctx, char *, char *key,
+canl_ctx_set_ssl_cred(canl_ctx, char *, char *key, char *proxy,
 		      canl_password_callback, void *);
 
 canl_err_code CANL_CALLCONV

@@ -65,7 +65,8 @@ int main(int argc, char *argv[])
     }
 
     if (serv_cert || serv_key){
-	err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, NULL, NULL);
+	err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, NULL, 
+                                    NULL, NULL);
         if (err) {
             printf("[SERVER] cannot set certificate or key to context: %s\n",
 		   canl_get_error_message(my_ctx));

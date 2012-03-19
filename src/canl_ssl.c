@@ -889,7 +889,7 @@ ssl_finish(glb_ctx *cc, void *ctx)
 
 /*maybe move to better file*/
 canl_err_code 
-canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
+canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key, char *proxy,
         canl_password_callback cb, void *userdata)
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
@@ -904,7 +904,7 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key,
         return EINVAL;
     }
 
-    err = do_set_ctx_own_cert_file(glb_cc, m_ctx, cert, key, NULL);
+    err = do_set_ctx_own_cert_file(glb_cc, m_ctx, cert, key, proxy);
     if(err) {
 //        update_error(glb_cc, "can't set cert or key to context");
     }

@@ -21,12 +21,14 @@ int main(int argc, char *argv[])
     struct timeval timeout;
     char *serv_cert = NULL;
     char *serv_key = NULL;
+    char *proxy_cert = NULL;
 
     while ((opt = getopt(argc, argv, "hp:s:c:k:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] "
+                        " [-s server] [-x proxy certificate] \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -40,9 +42,13 @@ int main(int argc, char *argv[])
             case 'k':
                 serv_key = optarg;
                 break;
+            case 'x': 
+                proxy_cert = optarg;
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] "
+                        " [-s server] [-x proxy certificate] \n", argv[0]);
                 exit(-1);
         }
     }
@@ -64,7 +70,8 @@ int main(int argc, char *argv[])
     }
     
     if (serv_cert || serv_key){
-        err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, NULL, NULL);
+        err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, proxy_cert,
+                                     NULL, NULL);
         if (err) {
             printf("[CLIENT] cannot set certificate or key to context: %s\n",
                     canl_get_error_message(my_ctx));
