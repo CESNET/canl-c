@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         goto end;
     }
     
-    if (serv_cert || serv_key){
+    if (serv_cert || serv_key || proxy_cert){
         err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, proxy_cert,
                                      NULL, NULL);
         if (err) {
