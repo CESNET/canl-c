@@ -1014,6 +1014,108 @@ static void dbg_print_ssl_error(int errorcode)
 }
 #endif
 
+#if 0
+
+int do_ocsp_verify ((X509 *cert, X509 *issuer))
+{
+    OCSP_REQUEST *req = NULL;
+    int result = 0, ssl = 0;
+    char *host = NULL, *path = NULL, *port = NULL;
+    OCSP_CERTID *id = NULL;
+    /*get url from cert or use some implicit value*/
+
+    /*get connection parameters out of url*/
+    if (!OCSP_parse_url(chosenurl, &host, &port, &path, &ssl)) {
+        result = MYPROXY_OCSPRESULT_ERROR_BADOCSPADDRESS;
+        goto end;
+    }
+    if (!(req = OCSP_REQUEST_new())) {
+        result = MYPROXY_OCSPRESULT_ERROR_OUTOFMEMORY;
+        goto end;
+    }
+
+    id = OCSP_cert_to_id(0, cert, issuer);
+
+    /* Add id and nonce*/
+    if (!id || !OCSP_request_add0_id(req, id))
+        goto end;
+    //OCSP_request_add1_nonce(req, 0, -1); Is it necessery?
+
+
+    /*make new canl cc and io and init client*/
+
+    /* sign the request */
+    if (sign_cert && sign_key &&
+            !OCSP_request_sign(req, sign_cert, sign_key, EVP_sha1(), 0, 0)) {
+        result = MYPROXY_OCSPRESULT_ERROR_SIGNFAILURE;
+        goto end;
+    }
+
+    /* establish a connection to the OCSP responder */
+    if (!(result = ssl_connect(cc, io, ))) {
+        result = MYPROXY_OCSPRESULT_ERROR_CONNECTFAILURE;
+        goto end;
+    }
+
+    /* send the request and get a response */
+    resp = OCSP_sendreq_bio(bio, path, req);
+    if ((rc = OCSP_response_status(resp)) != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
+        switch (rc) {
+            case OCSP_RESPONSE_STATUS_MALFORMEDREQUEST:
+                result = MYPROXY_OCSPRESULT_ERROR_MALFORMEDREQUEST; break;
+            case OCSP_RESPONSE_STATUS_INTERNALERROR:
+                result = MYPROXY_OCSPRESULT_ERROR_INTERNALERROR;    break;
+            case OCSP_RESPONSE_STATUS_TRYLATER:
+                result = MYPROXY_OCSPRESULT_ERROR_TRYLATER;         break;
+            case OCSP_RESPONSE_STATUS_SIGREQUIRED:
+                result = MYPROXY_OCSPRESULT_ERROR_SIGREQUIRED;      break;
+            case OCSP_RESPONSE_STATUS_UNAUTHORIZED:
+                result = MYPROXY_OCSPRESULT_ERROR_UNAUTHORIZED;     break;
+        }
+        goto end;
+    }
+
+    /* verify the response */
+    result = MYPROXY_OCSPRESULT_ERROR_INVALIDRESPONSE;
+    if (!(basic = OCSP_response_get1_basic(resp))) goto end;
+    if (usenonce && OCSP_check_nonce(req, basic) <= 0) goto end;
+
+    if (!responder_cert ||
+            (rc = OCSP_basic_verify(basic, responder_cert, store,
+                                    OCSP_TRUSTOTHER)) <= 0)
+        if ((rc = OCSP_basic_verify(basic, NULL, store, 0)) <= 0)
+            goto end;
+
+    if (!OCSP_resp_find_status(basic, id, &status, &reason, &producedAt,
+                &thisUpdate, &nextUpdate))
+        goto end;
+    if (!OCSP_check_validity(thisUpdate, nextUpdate, skew, maxage))
+        goto end;
+
+    /* All done.  Set the return code based on the status from the response. */
+    if (status == V_OCSP_CERTSTATUS_REVOKED) {
+        result = MYPROXY_OCSPRESULT_CERTIFICATE_REVOKED;
+        myproxy_log("OCSP status revoked!");
+    } else {
+        result = MYPROXY_OCSPRESULT_CERTIFICATE_VALID;
+        myproxy_log("OCSP status valid");
+    }
+
+    if (host) OPENSSL_free(host);
+    if (port) OPENSSL_free(port);
+    if (path) OPENSSL_free(path);
+    if (req) OCSP_REQUEST_free(req);
+    if (resp) OCSP_RESPONSE_free(resp);
+    if (basic) OCSP_BASICRESP_free(basic);
+    if (ctx) SSL_CTX_free(ctx);   /* this does X509_STORE_free(store) */
+    if (certdir) free(certdir);
+    if (aiaocspurl) free(aiaocspurl);
+
+    return 0;
+}
+
+#endif
+
 mech_glb_ctx ssl_glb_ctx;
 
 canl_mech canl_mech_ssl = {
