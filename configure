@@ -48,7 +48,8 @@ my $lbjp_tag = '';
 my $jp_tag = '';
 my $jobid_tag = '';
 my $libdir = getlibdir();
-my $project = 'glite';
+my $project = 'emi';
+my $project_version;
 my (%projects, %project);
 my $debug = 0;
 my $pkg_config_env = (defined $ENV{PKG_CONFIG_PATH}) ? "$ENV{PKG_CONFIG_PATH}:" : '';
@@ -278,7 +279,12 @@ $externs{'mysql-server'}{withprefix}=$externs{mysql}{withprefix} if $externs{'my
 $externs{'mysql-devel'}{wihtprefix}=$externs{mysql}{withprefix} if $externs{'mysql-devel'}{withprefix} eq '';
 $externs{'gsoapxx'}{withprefix}=$externs{gsoap}{withprefix} if $externs{'gsoapxx'}{withprefix} eq '';
 
+if ($project =~ /^([^0-9]*)(.*)$/) {
+	$project = $1;
+	$project_version = $2;
+}
 %project = %{$projects{$project}};
+$project_version = $project{current_version} unless $project_version;
 for my $platform (keys %{$project{etics_externs}}) {
 	for $_ (keys %{$project{etics_externs}{$platform}}) {
 		$etics_externs{$platform}{$_} = $project{etics_externs}{$platform}{$_};
@@ -319,8 +325,12 @@ if ($listmodules) {
 	if (exists $lbmodules{$listmodules}) {
 		@m = map exists $subpackages{$listmodules . '.' . $_} ? "" : "$name_prefix.$listmodules.$_",@{$lbmodules{$listmodules}};
 	} else {
-		for my $sub (keys %subpackages) {
-			push @m, $sub if ($subpackages{$sub} eq $listmodules);
+		if ($project eq 'emi' and $project_version == 1) {
+			# no sub-packages in EMI-1
+		} else {
+			for my $sub (keys %subpackages) {
+				push @m, $sub if ($subpackages{$sub} eq $listmodules);
+			}
 		}
 	}
 	print map $_ eq "" ? "" : "$_ ", @m;
@@ -581,20 +591,20 @@ BEGIN{
 );
 
 %need_externs_aux = (
-	'lb.client' => [ qw/cppunit:B classads libtool:B/ ],
-	'lb.common' => [ qw/expat cares:B cppunit:B classads libtool:B/ ],
+	'lb.client' => [ qw/cppunit:B classads libtool:B globus:B/ ],
+	'lb.common' => [ qw/expat cares:B cppunit:B classads libtool:B globus:B/ ],
 	'lb.doc' => [ qw/tetex-latex:B/ ],
-	'lb.logger' => [ qw/cppunit:B libtool:B/ ],
-	'lb.logger-msg' => [ qw/cppunit:B activemq libtool:B/ ],
+	'lb.logger' => [ qw/cppunit:B libtool:B globus:B/ ],
+	'lb.logger-msg' => [ qw/cppunit:B activemq libtool:B globus:B/ ],
 	'lb.nagios' => [ qw/globus_proxy_utils:R/ ],
-	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql:R mysql-server:R mysql-devel:B cppunit:B gsoap:B classads voms:B lcas gridsite bison:B libtool:B libxml2 flex:B/ ],
-	'lb.state-machine' => [ qw/classads libtool:B libxslt:B expat:B/ ],
-	'lb.utils' => [ qw/cppunit:B libtool:B/ ],
+	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql-server:R cppunit:B gsoap:B classads voms:B lcas gridsite bison:B libtool:B libxml2 flex:B/ ],
+	'lb.state-machine' => [ qw/classads libtool:B libxslt:B expat:B globus:B/ ],
+	'lb.utils' => [ qw/cppunit:B libtool:B globus:B/ ],
 	'lb.ws-interface' => [ qw/libxslt:B tidy:B/ ],
-	'lb.ws-test' => [ qw/gsoap:B libtool:B/ ],
+	'lb.ws-test' => [ qw/gsoap:B libtool:B globus:B/ ],
 	'lb.types' => [ qw// ],
-	'lb.harvester' => [ qw/docbook-utils:B libtool:B/ ],
-	'lbjp-common.db' => [ qw/mysql:B mysql-devel:B postgresql:B cppunit:B log4c:B libtool:B/ ],
+	'lb.harvester' => [ qw/docbook-utils:B libtool:B globus:B/ ],
+	'lbjp-common.db' => [ qw/mysql-devel:B postgresql:B cppunit:B log4c:B libtool:B/ ],
 	'lbjp-common.log' => [ qw/log4c libtool:B/ ],
 	'lbjp-common.maildir' => [ qw/libtool:B/ ],
 	'lbjp-common.server-bones' => [ qw/libtool:B/ ],
@@ -607,8 +617,8 @@ BEGIN{
 	'jobid.api-java' =>  [ qw/ant:B jdk:B/ ],
 	'jp.client' => [ qw/gsoap libtar globus_essentials:R globus:B/ ],
         'jp.doc' => [],
-        'jp.index' => [ qw/gsoap globus_essentials:R globus:B/ ],
-        'jp.primary' => [ qw/classads gsoap libtar globus_essentials:R globus:B/ ],
+        'jp.index' => [ qw/gsoap globus_essentials:R globus:B mysql-server:R/ ],
+        'jp.primary' => [ qw/classads gsoap libtar globus_essentials:R globus:B  mysql-server:R/ ],
         'jp.server-common' => [],
         'jp.ws-interface' => [],
 	'gridsite.core' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B/ ],
@@ -662,7 +672,7 @@ for my $jar (keys %need_jars) {
 		lbjp-common.gss
 	/ ],
 	'lb.logger-msg' => [ qw/
-		lb.logger-devel:B
+		lb.logger:B
 	/ ],
 	'lb.nagios' => [ qw/
 		lb.client:R
@@ -693,12 +703,12 @@ for my $jar (keys %need_jars) {
 	'lb.glite-LB' => [ qw/
 		lb.logger:R lb.server:R lb.utils:R lb.doc:R
 		lb.ws-test:R lb.harvester:R lb.yaim:R lb.client-java:R
-		lb.logger-msg:R lb.client-progs:R
+		lb.logger-msg:R
 	/ ],
 	'lb.emi-lb' => [ qw/
 		lb.logger:R lb.server:R lb.utils:R lb.doc:R
 		lb.ws-test:R lb.harvester:R lb.yaim:R lb.client-java:R
-		lb.logger-msg:R lb.client-progs:R
+		lb.logger-msg:R
 	/ ],
 	'lbjp-common.db' => [ qw/lbjp-common.trio lbjp-common.log/ ],
 	'lbjp-common.maildir' => [ qw// ],
@@ -874,6 +884,7 @@ for my $ext (keys %deps_aux) {
 # modules .............. additional modules in subsystems
 %projects = (
 	glite => {
+		current_version => 3,
 		etics_name => 'org.glite',
 		conf_prefix => { %cvs_tag_prefix },
 		tag_prefix => { %cvs_tag_prefix },
@@ -916,7 +927,7 @@ for my $ext (keys %deps_aux) {
 		need_externs_aux => {
 			'lb.client-java' => [ qw/ant:B jdk:B axis:B trustmanager utiljava libtool:B/ ],
 			'lb.glite-LB' => [ qw/fetchcrl:R gpt:R gip_release:R gip_service:R bdii:R glite_version:R glite_info_templates:R glue_schema:R/ ],
-			'lb.yaim' => [ qw/yaim_core:R perl-LDAP:R/ ],
+			'lb.yaim' => [ qw/yaim_core:R/ ],
 			'px.glite-PX' => [qw/myproxy-server:R myproxy-admin:R fetchcrl:R gip_service:R bdii:R glite_version:R gpt:R glue_schema:R/],
 			'px.myproxy-yaim' => [ qw/yaim_core:R/ ],
 		},
@@ -935,6 +946,7 @@ for my $ext (keys %deps_aux) {
 	},
 
 	emi => {
+		current_version => 2,
 		etics_name => 'emi',
 		conf_prefix => {
 			'lb' => 'emi-',
@@ -1040,7 +1052,7 @@ for my $ext (keys %deps_aux) {
 		need_externs_aux => {
 			'lb.client-java' => [ qw/ant:B jdk:B axis:B trustmanager trustmanager_axis libtool:B/ ],
 			'lb.emi-lb' => [ qw/fetchcrl:R gip_service:R bdii:R glite_version:R glue_schema:R/ ],
-			'lb.yaim' => [ qw/yaim_core:R yaim_bdii:R perl-LDAP:R/ ],
+			'lb.yaim' => [ qw/yaim_core:R yaim_bdii:R/ ],
 			'px.emi-px' => [qw/myproxy-server:R myproxy-admin:R fetchcrl:R gip_service:R bdii:R glite_version:R glue_schema:R/],
 			'px.myproxy-yaim' => [ qw/yaim_core:R yaim_bdii:R/ ],
 		},
@@ -1437,6 +1449,9 @@ sub mode_etics_packaging {
 	my ($fmod, $cmd, $rpmprepare, $debprepare) = @_;
 	my ($workspaceDir, $srcPackageName, $srcAge, $topDir);
 
+	# old-school packaging by ETICS for EMI-1
+	if ($project eq 'emi' and $project_version == 1) { return; }
+
 	if ($fmod eq 'gridsite.core') {
 		$workspaceDir = '..';
 		$srcPackageName = 'gridsite';
@@ -1535,11 +1550,22 @@ sub mode_etics {
 		push @copts, '--version ${version}-${age}';
 	}
 	else {
-		$conf = "$confprefix$subsys-${module}_R_${major}_${minor}_${rev}_${age}"; 
-
+		$conf = "$confprefix$subsys-${module}_R_${major}_${minor}_${rev}_${age}";
 # XXX: gridsite hack
 		$conftag = $subsys eq 'gridsite' ? "$project{tag_prefix}{$subsys}$subsys-${module}_R_${major}_${minor}_${rev}" : 
-			"$project{tag_prefix}{$subsys}$subsys-${module}_R_${major}_${minor}_${rev}_${age}"; }
+			"$project{tag_prefix}{$subsys}$subsys-${module}_R_${major}_${minor}_${rev}_${age}";
+
+		# lowering age for older packaging
+		if ($project eq 'emi' and $project_version == 1) {
+			$age = $age - 1;
+		}
+	}
+
+	# emi1 suffix for older packaging
+	if ($project eq 'emi' and $project_version == 1) {
+		$age = $age.$project.$project_version;
+		$conf = $conf.$project.$project_version;
+	}
 
 	my $file = $output ? $output : "$conf.ini";
 	open C,">$file" or die "$file: $!\n";
@@ -1990,7 +2016,7 @@ General options (defaults in []):
   --version=maj.min.rev-age	specify version here instead of reading version.properties
   --branch=branch		CVS branch/etics name suffix (HEAD, branch_2_1, ...)
   --libdir=libdir		typically [lib,lib64] postfix
-  --project=PROJECT		build or generate etics for a project (glite/emi) [emi]
+  --project=PROJECT		build or generate etics for a project (glite/emi1/emi) [emi]
   --debug			print more details
   
 Mode of operation:
