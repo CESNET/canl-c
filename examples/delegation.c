@@ -192,13 +192,13 @@ main(int argc, char *argv[])
 end:
     if (signer)
 	canl_cred_free(ctx, signer);
-    if (proxy)
+/*    if (proxy)
 	canl_cred_free(ctx, proxy);
     if (proxy_cert)
 	canl_cred_free(ctx, proxy_cert);
     if (proxy_bob)
 	canl_cred_free(ctx, proxy_bob);
-    if (req)
+*/    if (req)
 	X509_REQ_free(req);
     if (x509_cert)
 	X509_free(x509_cert);
