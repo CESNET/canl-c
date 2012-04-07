@@ -3,6 +3,35 @@
 #include "canl_mech_ssl.h"
 
 static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from);
+static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
+
+static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack)
+{
+    int count = 0;
+    X509 *cert_from_chain = NULL;
+    STACK_OF(X509) *new_chain = NULL;
+    int i = 0;
+    
+    if (!stack)
+        return NULL;
+    
+    count = sk_X509_num(stack);
+    if (!count)
+        return NULL;
+
+    new_chain = sk_X509_new_null();
+    if (!new_chain)
+        return NULL;
+
+    for (i = 0; i < count; i++){
+        cert_from_chain = sk_X509_value(stack, i);
+        if (cert_from_chain) {
+           sk_X509_push(new_chain, X509_dup(cert_from_chain));
+        }
+    }
+
+    return new_chain;
+}
 
 canl_err_code CANL_CALLCONV
 canl_cred_new(canl_ctx ctx, canl_cred * cred)
@@ -99,7 +128,7 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     if (crd->c_cert)
         m_ctx->cert_key->cert = X509_dup(crd->c_cert);
     if (crd->c_cert_chain)
-        m_ctx->cert_key->chain = sk_X509_dup(crd->c_cert_chain);
+        m_ctx->cert_key->chain = my_sk_X509_dup(cc, crd->c_cert_chain);
     return 0;
 }
 
@@ -157,7 +186,7 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
         sk_X509_pop_free(crd->c_cert_chain, X509_free);
         crd->c_cert_chain = NULL;
     }
-    crd->c_cert_chain = sk_X509_dup(cert_stack);
+    crd->c_cert_chain = my_sk_X509_dup(cc, cert_stack);
     if (!crd->c_cert_chain)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate chain" ); //TODO check ret val
@@ -319,7 +348,7 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
         
     /*concatenate new chain*/
     if (signer_crd->c_cert_chain)
-        proxy_crd->c_cert_chain = sk_X509_dup(signer_crd->c_cert_chain);
+        proxy_crd->c_cert_chain = my_sk_X509_dup(cc, signer_crd->c_cert_chain);
     if (!proxy_crd->c_cert_chain)
        proxy_crd->c_cert_chain = sk_X509_new_null();
     sk_X509_push(proxy_crd->c_cert_chain, X509_dup(signer_crd->c_cert));
@@ -483,7 +512,7 @@ canl_cred_save_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) **cert_stack)
         sk_X509_pop_free(*cert_stack, X509_free);
         *cert_stack = NULL;
     }
-    *cert_stack = sk_X509_dup(crd->c_cert_chain);
+    *cert_stack = my_sk_X509_dup(cc, crd->c_cert_chain);
     if (!(*cert_stack))
         return set_error(cc, ENOMEM, POSIX_ERROR, "Cannot copy"
                 " certificate chain" ); //TODO check ret val
