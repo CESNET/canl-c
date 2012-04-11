@@ -10,7 +10,6 @@ extern "C" {
 #endif
 
 typedef void *canl_cred;
-typedef void *canl_x509_req;
 
 typedef enum canl_cert_type {
     CANL_EEC,
