@@ -2,6 +2,8 @@
 #include "canl_cred.h"
 #include "canl_mech_ssl.h"
 
+#define DEF_KEY_LEN 1024
+
 static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from);
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 
@@ -526,9 +528,13 @@ canl_cred_new_req(canl_ctx ctx, canl_cred ret_req, unsigned int bits)
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd_req = (creds*) ret_req;
     int ret = 0;
+    int in_bits = DEF_KEY_LEN;
 
     if (!ctx)
         return EINVAL;
+    
+    if (bits)
+        in_bits = bits;
 
     if (!ret_req)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
@@ -540,7 +546,8 @@ canl_cred_new_req(canl_ctx ctx, canl_cred ret_req, unsigned int bits)
     }
 
     /*TODO 1st NULL may invoke callback to ask user for new name*/
-    ret = proxy_genreq(NULL, &crd_req->c_req, &crd_req->c_key, bits, NULL, NULL);
+    ret = proxy_genreq(NULL, &crd_req->c_req, &crd_req->c_key, in_bits, 
+            NULL, NULL);
     if (ret)
         return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Cannot make new"
                 "proxy certificate");
