@@ -25,6 +25,7 @@ Source: http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{versi
 Summary: Development files for EMI caNl
 Group: Development/Libraries
 Requires: %{name}%{?_isa} = %{version}-%{release}
+Requires: krb5-devel%{?_isa}
 
 
 %description devel

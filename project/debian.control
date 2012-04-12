@@ -19,7 +19,7 @@ Description: @SUMMARY@
 Package: libcanl-c-dev
 Section: libdevel
 Architecture: any
-Depends: libcanl-c1 (= ${binary:Version}), ${misc:Depends}
+Depends: libcanl-c1 (= ${binary:Version}), libkrb5-dev, ${misc:Depends}
 Description: Development files for EMI caNl
  This package contains development libraries and header files for EMI caNL.
 
