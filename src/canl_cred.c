@@ -4,7 +4,6 @@
 
 #define DEF_KEY_LEN 1024
 
-static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from);
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack)
@@ -122,7 +121,7 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     }
 
     if (crd->c_key) {
-        if ((ret = pkey_dup(cc, &m_ctx->cert_key->key, crd->c_key))) {
+        if ((ret = pkey_dup(&m_ctx->cert_key->key, crd->c_key))) {
             return ret;
         }
     }
@@ -134,7 +133,7 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     return 0;
 }
 
-static int pkey_dup(glb_ctx *cc, EVP_PKEY **to, EVP_PKEY *from)
+int pkey_dup(EVP_PKEY **to, EVP_PKEY *from)
 {
     CRYPTO_add(&from->references,1,CRYPTO_LOCK_EVP_PKEY);
     *to = from;
