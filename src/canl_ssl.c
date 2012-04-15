@@ -1,19 +1,252 @@
 #include "canl_locl.h"
 #include "canl_ssl.h"
 #include "canl_mech_ssl.h"
+#include <openssl/ocsp.h>
 
 #define SSL_SERVER_METH SSLv23_server_method()
 #define SSL_CLIENT_METH SSLv3_client_method()
 #define DESTROY_TIMEOUT 10
+#define USENONCE 0
 
-static int do_ssl_connect( glb_ctx *cc, io_handler *io, SSL *ssl, struct timeval *timeout);
-static int do_ssl_accept( glb_ctx *cc, io_handler *io, SSL *ssl, struct timeval *timeout);
-static int check_hostname_cert(glb_ctx *cc, io_handler *io, SSL *ssl, const char *host);
+typedef struct {
+    char *ca_dir;
+    char *crl_dir;
+} canl_x509store_t;
+
+typedef struct {
+    char            *url;
+    X509            *cert;
+    X509            *issuer;
+    canl_x509store_t *store;
+    X509            *sign_cert;
+    EVP_PKEY        *sign_key;
+    long            skew;
+    long            maxage;
+} canl_ocsprequest_t;
+
+
+
+typedef enum {
+    CANL_OCSPRESULT_ERROR_NOTCONFIGURED     = -14,
+    CANL_OCSPRESULT_ERROR_NOAIAOCSPURI      = -13,
+    CANL_OCSPRESULT_ERROR_INVALIDRESPONSE   = -12,
+    CANL_OCSPRESULT_ERROR_CONNECTFAILURE    = -11,
+    CANL_OCSPRESULT_ERROR_SIGNFAILURE       = -10,
+    CANL_OCSPRESULT_ERROR_BADOCSPADDRESS    = -9,
+    CANL_OCSPRESULT_ERROR_OUTOFMEMORY       = -8,
+    CANL_OCSPRESULT_ERROR_UNKNOWN           = -7,
+    CANL_OCSPRESULT_ERROR_UNAUTHORIZED      = -6,
+    CANL_OCSPRESULT_ERROR_SIGREQUIRED       = -5,
+    CANL_OCSPRESULT_ERROR_TRYLATER          = -3,
+    CANL_OCSPRESULT_ERROR_INTERNALERROR     = -2,
+    CANL_OCSPRESULT_ERROR_MALFORMEDREQUEST  = -1,
+    CANL_OCSPRESULT_CERTIFICATE_VALID       = 0,
+    CANL_OCSPRESULT_CERTIFICATE_REVOKED     = 1
+} canl_ocspresult_t;
+
+static int do_ssl_connect( glb_ctx *cc, io_handler *io, 
+        SSL *ssl, struct timeval *timeout);
+static int do_ssl_accept( glb_ctx *cc, io_handler *io, 
+        SSL *ssl, struct timeval *timeout);
+static int check_hostname_cert(glb_ctx *cc, io_handler *io,
+        SSL *ssl, const char *host);
+static BIO *my_connect_ssl(char *host, int port, SSL_CTX **ctx);
+static BIO *my_connect(char *host, int port, int ssl, SSL_CTX **ctx);
+static int set_ocsp_sign_cert(X509 *sign_cert);
+static int set_ocsp_sign_key(EVP_PKEY *sign_key);
+static int set_ocsp_cert(X509 *cert);
+static int set_ocsp_skew(int skew);
+static int set_ocsp_maxage(int maxage);
+static int set_ocsp_url(char *url);
+static int set_ocsp_issuer(X509 *issuer);
+static canl_x509store_t * store_dup(canl_x509store_t *store_from);
+static X509_STORE * canl_create_x509store(canl_x509store_t *store);
+
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
 
-static canl_err_code
+static canl_ocsprequest_t *ocspreq = NULL;
+/*static int set_ocsp_url(char *url, X509 *cert, X509 *issuer, 
+  canl_x509store_t *store, X509 *sign_cert, EVP_PKEY *sign_key, 
+  long skew, long maxage) {
+ */ 
+
+    static int
+set_ocsp_cert(X509 *cert)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+
+    if (cert) {
+        if (!ocspreq->cert) {
+            X509_free(ocspreq->cert);
+            ocspreq->cert = NULL;
+        }
+        ocspreq->cert = X509_dup(cert);
+        if (!ocspreq->cert)
+            return 1;
+    }
+    return 0;
+}
+
+    static int 
+set_ocsp_url(char *url)
+{
+
+    int len = 0;
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+
+    if (url) {
+        if (!ocspreq->url) {
+            free (ocspreq->url);
+            ocspreq->url = NULL;
+        }
+        len = strlen(url);
+        ocspreq->url = (char *) malloc((len +1) * sizeof (char));
+        if (!ocspreq->url)
+            return 1;
+        strncpy(ocspreq->url, url, len + 1);
+    }
+    return 0;
+}
+
+    static int 
+set_ocsp_issuer(X509 *issuer)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (issuer) {
+        if (!ocspreq->issuer) {
+            X509_free (ocspreq->issuer);
+            ocspreq->issuer = NULL;
+        }
+        ocspreq->issuer = X509_dup(issuer);
+        if (!ocspreq->issuer)
+            return 1;
+    }
+    return 0;
+}
+
+    static int 
+set_ocsp_sign_cert(X509 *sign_cert)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (sign_cert) {
+        if (!ocspreq->sign_cert) {
+            X509_free (ocspreq->sign_cert);
+            ocspreq->sign_cert = NULL;
+        }
+        ocspreq->sign_cert = X509_dup(sign_cert);
+        if (!ocspreq->sign_cert)
+            return 1;
+    }
+    return 0;
+}
+
+    static int
+set_ocsp_sign_key(EVP_PKEY *sign_key)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (sign_key) {
+        if (!ocspreq->sign_key) {
+            EVP_PKEY_free (ocspreq->sign_key);
+            ocspreq->sign_key = NULL;
+        }
+        pkey_dup(&ocspreq->sign_key, sign_key);
+        if (!ocspreq->sign_key)
+            return 1;
+    }
+    return 0;
+}
+    static int
+set_ocsp_skew(int skew)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (skew)
+        ocspreq->skew = skew;
+    return 0;
+}
+    static int
+set_ocsp_maxage(int maxage)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (maxage)
+        ocspreq->maxage = maxage;
+    return 0;
+}
+
+static canl_x509store_t * 
+store_dup(canl_x509store_t *store_from)
+{
+    canl_x509store_t *store_to = NULL;
+    if (!store_from)
+        return NULL;
+
+    store_to = calloc(1, sizeof(*store_to));
+    if (!store_to)
+        return NULL;
+
+    if (store_from->ca_dir) {
+        int len = strlen(store_from->ca_dir);
+        store_to->ca_dir = (char *) malloc((len + 1) * sizeof (char));    
+        if (store_to->ca_dir)
+            return NULL;
+        strncpy (store_to->ca_dir, store_from->ca_dir, len + 1);
+    }
+    if (store_from->crl_dir) {
+        int len = strlen(store_from->crl_dir);
+        store_to->crl_dir = (char *) malloc((len + 1) * sizeof (char));    
+        if (store_to->crl_dir)
+            return NULL;
+        strncpy (store_to->crl_dir, store_from->crl_dir, len + 1);
+    }
+    return store_to;
+}
+
+    static int
+set_ocsp_store(canl_x509store_t *store)
+{
+
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (store){
+        ocspreq->store = store_dup(store);
+        if (!ocspreq->store)
+            return 1;
+    }
+    return 0;
+}
+
+
+    static canl_err_code
 ssl_initialize(glb_ctx *cc, void **v_glb_ctx)
 {
     mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **)v_glb_ctx;
@@ -24,7 +257,7 @@ ssl_initialize(glb_ctx *cc, void **v_glb_ctx)
     SSL_CTX *ssl_ctx = NULL;
 
     if (!cc)
-	return EINVAL;
+        return EINVAL;
 
     SSL_library_init();
     SSL_load_error_strings();
@@ -1014,46 +1247,65 @@ static void dbg_print_ssl_error(int errorcode)
 }
 #endif
 
-#if 0
+static X509_STORE *
+canl_create_x509store(canl_x509store_t *store)
+{
+    return NULL;
+}
 
-int do_ocsp_verify ((X509 *cert, X509 *issuer))
+int do_ocsp_verify (canl_ocsprequest_t *data)
 {
     OCSP_REQUEST *req = NULL;
-    int result = 0, ssl = 0;
+    OCSP_RESPONSE *resp = NULL;
+    OCSP_BASICRESP *basic = NULL;
+    X509_STORE *store = 0;
+    int rc = 0, reason = 0, ssl = 0, status = 0;
     char *host = NULL, *path = NULL, *port = NULL;
     OCSP_CERTID *id = NULL;
+    char *chosenurl = NULL;
+    BIO *bio = NULL;
+    SSL_CTX *ctx = NULL;
+    canl_ocspresult_t result = 0;
+    ASN1_GENERALIZEDTIME  *producedAt, *thisUpdate, *nextUpdate;
     /*get url from cert or use some implicit value*/
 
     /*get connection parameters out of url*/
     if (!OCSP_parse_url(chosenurl, &host, &port, &path, &ssl)) {
-        result = MYPROXY_OCSPRESULT_ERROR_BADOCSPADDRESS;
+        result = CANL_OCSPRESULT_ERROR_BADOCSPADDRESS;
         goto end;
     }
     if (!(req = OCSP_REQUEST_new())) {
-        result = MYPROXY_OCSPRESULT_ERROR_OUTOFMEMORY;
+        result = CANL_OCSPRESULT_ERROR_OUTOFMEMORY;
         goto end;
     }
 
-    id = OCSP_cert_to_id(0, cert, issuer);
+    id = OCSP_cert_to_id(0, data->cert, data->issuer);
 
     /* Add id and nonce*/
     if (!id || !OCSP_request_add0_id(req, id))
         goto end;
-    //OCSP_request_add1_nonce(req, 0, -1); Is it necessery?
-
-
-    /*make new canl cc and io and init client*/
+    if (USENONCE)
+        OCSP_request_add1_nonce(req, 0, -1);
 
     /* sign the request */
-    if (sign_cert && sign_key &&
-            !OCSP_request_sign(req, sign_cert, sign_key, EVP_sha1(), 0, 0)) {
-        result = MYPROXY_OCSPRESULT_ERROR_SIGNFAILURE;
+       if (data->sign_cert && data->sign_key &&
+       !OCSP_request_sign(req, data->sign_cert, data->sign_key, 
+       EVP_sha1(), 0, 0)) {
+       result = CANL_OCSPRESULT_ERROR_SIGNFAILURE;
+       goto end;
+       }
+    
+    ctx = SSL_CTX_new(SSLv3_client_method());
+    if (ctx == NULL) {
+        result = CANL_OCSPRESULT_ERROR_OUTOFMEMORY;
         goto end;
     }
+    //SSL_CTX_set_cert_store(ctx, store);
+    SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
 
     /* establish a connection to the OCSP responder */
-    if (!(result = ssl_connect(cc, io, ))) {
-        result = MYPROXY_OCSPRESULT_ERROR_CONNECTFAILURE;
+    if (!(bio = my_connect(host, atoi(port), ssl, &ctx))) {
+        result = CANL_OCSPRESULT_ERROR_CONNECTFAILURE;
         goto end;
     }
 
@@ -1062,44 +1314,54 @@ int do_ocsp_verify ((X509 *cert, X509 *issuer))
     if ((rc = OCSP_response_status(resp)) != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
         switch (rc) {
             case OCSP_RESPONSE_STATUS_MALFORMEDREQUEST:
-                result = MYPROXY_OCSPRESULT_ERROR_MALFORMEDREQUEST; break;
+                result = CANL_OCSPRESULT_ERROR_MALFORMEDREQUEST; break;
             case OCSP_RESPONSE_STATUS_INTERNALERROR:
-                result = MYPROXY_OCSPRESULT_ERROR_INTERNALERROR;    break;
+                result = CANL_OCSPRESULT_ERROR_INTERNALERROR;    break;
             case OCSP_RESPONSE_STATUS_TRYLATER:
-                result = MYPROXY_OCSPRESULT_ERROR_TRYLATER;         break;
+                result = CANL_OCSPRESULT_ERROR_TRYLATER;         break;
             case OCSP_RESPONSE_STATUS_SIGREQUIRED:
-                result = MYPROXY_OCSPRESULT_ERROR_SIGREQUIRED;      break;
+                result = CANL_OCSPRESULT_ERROR_SIGREQUIRED;      break;
             case OCSP_RESPONSE_STATUS_UNAUTHORIZED:
-                result = MYPROXY_OCSPRESULT_ERROR_UNAUTHORIZED;     break;
+                result = CANL_OCSPRESULT_ERROR_UNAUTHORIZED;     break;
         }
         goto end;
     }
 
     /* verify the response */
-    result = MYPROXY_OCSPRESULT_ERROR_INVALIDRESPONSE;
-    if (!(basic = OCSP_response_get1_basic(resp))) goto end;
-    if (usenonce && OCSP_check_nonce(req, basic) <= 0) goto end;
-
-    if (!responder_cert ||
-            (rc = OCSP_basic_verify(basic, responder_cert, store,
-                                    OCSP_TRUSTOTHER)) <= 0)
+    result = CANL_OCSPRESULT_ERROR_INVALIDRESPONSE;
+    if (!(basic = OCSP_response_get1_basic(resp))) 
+        goto end;
+    if (USENONCE && OCSP_check_nonce(req, basic) <= 0) 
+        goto end;
+    /*TODO make the store*/ 
+    if (data->store && !(store = canl_create_x509store(data->store)))
+        goto end;
+    /*TODO check the second parametr (responder_cert) and the last one*/
+    if ((rc = OCSP_basic_verify(basic, 0, store, 0)) <= 0)
         if ((rc = OCSP_basic_verify(basic, NULL, store, 0)) <= 0)
             goto end;
 
     if (!OCSP_resp_find_status(basic, id, &status, &reason, &producedAt,
                 &thisUpdate, &nextUpdate))
         goto end;
-    if (!OCSP_check_validity(thisUpdate, nextUpdate, skew, maxage))
+    if (!OCSP_check_validity(thisUpdate, nextUpdate, data->skew, data->maxage))
         goto end;
 
     /* All done.  Set the return code based on the status from the response. */
     if (status == V_OCSP_CERTSTATUS_REVOKED) {
-        result = MYPROXY_OCSPRESULT_CERTIFICATE_REVOKED;
-        myproxy_log("OCSP status revoked!");
+        result = CANL_OCSPRESULT_CERTIFICATE_REVOKED;
+        /*TODO myproxy_log("OCSP status revoked!"); */
     } else {
-        result = MYPROXY_OCSPRESULT_CERTIFICATE_VALID;
-        myproxy_log("OCSP status valid");
+        result = CANL_OCSPRESULT_CERTIFICATE_VALID;
+        /*TODO myproxy_log("OCSP status valid"); */
     }
+end:
+    /*TODO check what's this 
+      if (result < 0 && result != CANL_OCSPRESULT_ERROR_NOTCONFIGURED) {
+      ssl_error_to_verror();
+      TODO myproxy_log("OCSP check failed");
+      myproxy_log_verror();
+      } */
 
     if (host) OPENSSL_free(host);
     if (port) OPENSSL_free(port);
@@ -1108,13 +1370,50 @@ int do_ocsp_verify ((X509 *cert, X509 *issuer))
     if (resp) OCSP_RESPONSE_free(resp);
     if (basic) OCSP_BASICRESP_free(basic);
     if (ctx) SSL_CTX_free(ctx);   /* this does X509_STORE_free(store) */
-    if (certdir) free(certdir);
-    if (aiaocspurl) free(aiaocspurl);
 
     return 0;
 }
 
-#endif
+static BIO *
+my_connect_ssl(char *host, int port, SSL_CTX **ctx) {
+      BIO *conn = 0;
+
+        if (!(conn = BIO_new_ssl_connect(*ctx))) goto error_exit;
+          BIO_set_conn_hostname(conn, host);
+            BIO_set_conn_int_port(conn, &port);
+
+              if (BIO_do_connect(conn) <= 0) goto error_exit;
+                return conn;
+
+error_exit:
+                  if (conn) BIO_free_all(conn);
+                    return 0;
+}
+
+static BIO *
+my_connect(char *host, int port, int ssl, SSL_CTX **ctx) {
+    BIO *conn;
+    SSL *ssl_ptr;
+
+    if (ssl) {
+        if (!(conn = my_connect_ssl(host, port, ctx))) goto error_exit;
+        BIO_get_ssl(conn, &ssl_ptr);
+        /*TODO figure out, how to check cert without canl_ctx
+        if (!check_hostname_cert(SSL_get_peer_certificate(ssl_ptr), host))
+            goto error_exit;*/
+        if (SSL_get_verify_result(ssl_ptr) != X509_V_OK) goto error_exit;
+        return conn;
+    }
+
+    if (!(conn = BIO_new_connect(host))) goto error_exit;
+    BIO_set_conn_int_port(conn, &port);
+    if (BIO_do_connect(conn) <= 0) goto error_exit;
+    return conn;
+
+error_exit:
+    if (conn) BIO_free_all(conn);
+    return 0;
+}
 
 mech_glb_ctx ssl_glb_ctx;
 
