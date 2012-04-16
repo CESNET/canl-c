@@ -3,6 +3,8 @@
 #include "canl_mech_ssl.h"
 
 #define DEF_KEY_LEN 1024
+#define DEF_KEY_LEN_LONGER 2048
+#define LIFETIME_TRESHOLD 10*24*60*60 //10 days
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 
@@ -182,7 +184,7 @@ canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
     count = sk_X509_num(cert_stack);
     if (!count)
         return 0; //TODO is empty cert_stack error?
-    
+
     if (crd->c_cert_chain) {
         sk_X509_pop_free(crd->c_cert_chain, X509_free);
         crd->c_cert_chain = NULL;
@@ -330,6 +332,7 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
     creds *signer_crd = (creds*) signer_cred;
     creds *proxy_crd = (creds*) proxy_cred;
     int err = 0;
+    int key_size = 0;
 
     if (!ctx)
         return EINVAL;
@@ -340,6 +343,20 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
     if (!proxy_crd)
         return set_error(cc, EINVAL, POSIX_ERROR, "Proxy cred. handler"
                 " not initialized" );
+
+    if (proxy_crd->c_req) {
+        EVP_PKEY *tmp_key = X509_REQ_get_pubkey(proxy_crd->c_req);
+        if (!tmp_key)
+            return set_error(cc, 0, CANL_ERROR, "Cannot extract key out of"
+                    " the certificate request" );
+        key_size = EVP_PKEY_size(tmp_key);
+        /*TODO free tmp_key? is it duplicate or poiter? */
+        if ((proxy_crd->c_lifetime > LIFETIME_TRESHOLD) && 
+                (key_size <= DEF_KEY_LEN_LONGER))
+            return set_error(cc, 0, CANL_ERROR, "Cannot sign cert. request -"
+                    " the key is too short with respect to cert. lifetime");
+    }
+
     /*TODO flags - limited,version*/
     err = proxy_sign(signer_crd->c_cert, signer_crd->c_key, proxy_crd->c_req,
             &proxy_crd->c_cert, proxy_crd->c_lifetime, 
@@ -530,10 +547,14 @@ canl_cred_new_req(canl_ctx ctx, canl_cred ret_req, unsigned int bits)
     int in_bits = DEF_KEY_LEN;
 
     if (!ctx)
-        return EINVAL;
+        return EINVAL;   
+    
     
     if (bits)
         in_bits = bits;
+    /*set longer key if lifetime is long enough*/
+    else if (crd_req->c_lifetime > LIFETIME_TRESHOLD)
+        in_bits = DEF_KEY_LEN_LONGER;
 
     if (!ret_req)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
