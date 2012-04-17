@@ -10,6 +10,7 @@ BuildRequires: bison
 BuildRequires: c-ares-devel%{?_isa}
 BuildRequires: chrpath
 BuildRequires: flex
+BuildRequires: krb5-devel%{?_isa}
 BuildRequires: libtool
 BuildRequires: openssl-devel%{?_isa}
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
