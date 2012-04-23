@@ -29,7 +29,7 @@ void CANL_CALLCONV
 canl_free_ctx(canl_ctx cc);
 
 canl_err_code CANL_CALLCONV
-canl_create_io_handler(canl_ctx cc, canl_io_handler*);
+canl_create_io_handler(canl_ctx cc, canl_io_handler *io);
 
 canl_err_code CANL_CALLCONV
 canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,

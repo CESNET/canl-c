@@ -347,14 +347,15 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
     if (proxy_crd->c_req) {
         EVP_PKEY *tmp_key = X509_REQ_get_pubkey(proxy_crd->c_req);
         if (!tmp_key)
-            return set_error(cc, 0, CANL_ERROR, "Cannot extract key out of"
-                    " the certificate request" );
+            return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Cannot"
+                    "extract key out of the certificate request" );
         key_size = EVP_PKEY_size(tmp_key);
         /*TODO free tmp_key? is it duplicate or poiter? */
         if ((proxy_crd->c_lifetime > LIFETIME_TRESHOLD) && 
                 (key_size <= DEF_KEY_LEN_LONGER))
-            return set_error(cc, 0, CANL_ERROR, "Cannot sign cert. request -"
-                    " the key is too short with respect to cert. lifetime");
+            return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Cannot" 
+                    "sign cert. request -the key is too short with "
+                   " respect to cert. lifetime");
     }
 
     /*TODO flags - limited,version*/
