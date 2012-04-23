@@ -29,3 +29,12 @@
 - Preparation for OCSP support
 - Using proxy cert file (chain of certs) as easy as user cert
 
+1.0.4-1
+- Build dependency on krb5-devel added
+- Better error codes
+- Refuse to sign certificate if key size is not long enough
+- Using default key size of 1024 bits
+- canl_cert_req object not used anymore
+- Preparing implementation of OCSP support
+- Fixed Vulnerability in Voms CRL processing
+

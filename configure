@@ -40,7 +40,7 @@ my $nothrflavour = 'gcc64dbg';
 my $mode = 'build';
 my $help = 0;
 my $listmodules;
-my $version;
+my ($version, $force_version);
 my $branch;
 my $output;
 my $lb_tag = '';
@@ -55,7 +55,7 @@ my $debug = 0;
 my $pkg_config_env = (defined $ENV{PKG_CONFIG_PATH}) ? "$ENV{PKG_CONFIG_PATH}:" : '';
 
 my @nodes = qw/client server logger logger-msg nagios utils client-java doc ws-test db jpprimary jpindex jpclient harvester lb px proxyrenewal/;
-my @default_nodes = qw/lb px proxyrenewal/;
+my @default_nodes = qw/lb px proxyrenewal nagios/;
 my %enable_nodes;
 my %disable_nodes;
 my %default_nodes; @default_nodes{@default_nodes} = (1) x ($#default_nodes + 1);
@@ -191,7 +191,7 @@ my %lbmodules = (
 	'lbjp-common' => [qw/db log maildir server-bones trio jp-interface gss gsoap-plugin db-devel log-devel maildir-devel server-bones-devel trio-devel jp-interface-devel gss-devel gsoap-plugin-devel/],
 	'jobid' => [qw/api-c api-c-devel api-cpp api-cpp-devel api-java/],
 	'jp' => [ qw/client doc index primary server-common ws-interface/ ],
-	'gridsite' => [ qw/apache shared commands core devel slashgrid services service-clients gsexec/ ],
+	'gridsite' => [ qw/apache libs commands core devel slashgrid services service-clients gsexec/ ],
 	'px' => [ qw/proxyrenewal myproxy-yaim proxyrenewal-devel proxyrenewal-progs/ ],
 	'canl' => [ qw/c c-devel/ ],
 	);
@@ -230,7 +230,7 @@ my @opts = (
 	'nothrflavour:s' => \$nothrflavour,
 	'mode=s' => \$mode,
 	'listmodules=s' => \$listmodules,
-	'version=s' => \$version,
+	'version=s' => \$force_version,
 	'branch=s' => \$branch,
 	'output=s' => \$output,
 	'stage=s' => \$stagedir,
@@ -597,7 +597,7 @@ BEGIN{
 	'lb.logger' => [ qw/cppunit:B libtool:B globus:B/ ],
 	'lb.logger-msg' => [ qw/cppunit:B activemq libtool:B globus:B/ ],
 	'lb.nagios' => [ qw/globus_proxy_utils:R/ ],
-	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql-server:R cppunit:B gsoap:B classads voms:B lcas gridsite bison:B libtool:B libxml2 flex:B/ ],
+	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql-server:R cppunit:B gsoap:B classads voms:B lcas gridsite:B bison:B libtool:B libxml2 flex:B/ ],
 	'lb.state-machine' => [ qw/classads libtool:B libxslt:B expat:B globus:B/ ],
 	'lb.utils' => [ qw/cppunit:B libtool:B globus:B/ ],
 	'lb.ws-interface' => [ qw/libxslt:B tidy:B/ ],
@@ -624,7 +624,7 @@ BEGIN{
 	'gridsite.core' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B/ ],
 	'gridsite.commands' => [ qw/curl:R openssl:R/ ],
 	'gridsite.apache' => [ qw/libxml2:R openssl:R curl:R/ ],
-	'gridsite.shared' => [ qw/libxml2:R openssl:R/ ],
+	'gridsite.libs' => [ qw/libxml2:R openssl:R/ ],
 	'gridsite.devel' => [ qw// ],
 	'gridsite.slashgrid' => [ qw/curl:R fuse:R/],
 	'gridsite.services' => [ qw/curl:R gsoap:R/ ],
@@ -633,7 +633,7 @@ BEGIN{
 	'gridsite.1.5-compat' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B/ ],
 	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B voms:B libtool:B/ ],
 	'px.myproxy-config' => [ qw/myproxy-admin:R/ ], # in myproxy-config.spec
-	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B/ ],
+	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B krb5-devel:B/ ],
 );
 
 %need_jars = (
@@ -748,13 +748,13 @@ for my $jar (keys %need_jars) {
 	'jp.ws-interface' => [ qw// ],
 
 	'gridsite.core' => [ qw// ],
-	'gridsite.commands' => [ qw/gridsite.core:B gridsite.shared:R/ ],
-	'gridsite.apache' => [ qw/gridsite.core:B gridsite.shared:R/ ],
-	'gridsite.shared' => [ qw/gridsite.core:B / ],
-	'gridsite.devel' => [ qw/gridsite.core:B gridsite.shared:R/ ],
-	'gridsite.slashgrid' => [ qw/gridsite.core:B gridsite.shared:R/],
-	'gridsite.services' => [ qw/gridsite.core:B gridsite.shared:R/ ],
-	'gridsite.service-clients' => [ qw/gridsite.core:B gridsite.shared:R/ ],
+	'gridsite.commands' => [ qw/gridsite.core:B/ ],
+	'gridsite.apache' => [ qw/gridsite.core:B/ ],
+	'gridsite.libs' => [ qw/gridsite.core:B / ],
+	'gridsite.devel' => [ qw/gridsite.core:B/ ],
+	'gridsite.slashgrid' => [ qw/gridsite.core:B/],
+	'gridsite.services' => [ qw/gridsite.core:B/ ],
+	'gridsite.service-clients' => [ qw/gridsite.core:B/ ],
 	'gridsite.gsexec' => [ qw/gridsite.core:B/ ],
 
 	'px.proxyrenewal' => [ qw// ],
@@ -895,7 +895,7 @@ for my $ext (keys %deps_aux) {
 				globus_essentials=>'vdt_globus_essentials',
 				globus=>'globus',
 				globus_proxy_utils=>'vdt_globus_essentials',
-				gridsite=>'org.gridsite.shared',
+				gridsite=>'org.gridsite.libs',
 				yaim_core=>'org.glite.yaim.core',
 				gip_release=>'glite-info-provider-release',
 				gip_service=>'glite-info-provider-service',
@@ -965,7 +965,7 @@ for my $ext (keys %deps_aux) {
 				globus_essentials=>'globus-gssapi-gsi',
 				globus=>'globus-gssapi-gsi-devel',
 				globus_proxy_utils=>'globus-proxy-utils',
-				gridsite=>'emi.gridsite.shared',
+				gridsite=>'emi.gridsite.libs',
 				yaim_core=>'emi.yaim.yaim-core',
 				yaim_bdii=>'emi.bdii.yaim-bdii',
 				gip_service=>'emi.bdii.glite-info-provider-service',
@@ -1041,6 +1041,7 @@ for my $ext (keys %deps_aux) {
 				#'httpd-devel' => 'apache2-prefork-dev',
 				#'fuse-devel' => 'libfuse-dev',
 				#gsoap => 'gsoap',
+				#'krb5-devel' => 'libkrb5-dev',
 			},
 		},
 		etics_projects => {
@@ -1192,8 +1193,8 @@ sub get_version
 	my ($major,$minor,$rev,$age);
 	my $old_;
 
-	if ($version) {
-		$version =~ /([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-(.+)/;
+	if ($force_version) {
+		$force_version =~ /([[:digit:]]+)\.([[:digit:]]+)\.([[:digit:]]+)-(.+)/;
 		($major,$minor,$rev,$age) = ($1,$2,$3,$4);
 	}
 	else {
@@ -1212,9 +1213,8 @@ sub get_version
 		}
 		close V;
 		$_ = $old_;
-
-		$version = "$major.$minor.$rev-$age";
 	}
+	$version = "$major.$minor.$rev-$age";
 
 	return ($major, $minor, $rev, $age);
 }
@@ -1364,7 +1364,7 @@ top_srcdir = $top_srcdir
 	for my $dir (readdir $dh) {
 		if ($dir=~/^(.*)\.spec$/) {
 			if ($1 ne $packageName) {
-				printf STDERR "Changed RPM name: $packageName --> $1\n";
+				printf STDERR "Changed RPM name: $packageName --> $1\n" if ($debug);;
 				$packageName=$1;
 			}
 			last;
@@ -1375,7 +1375,7 @@ top_srcdir = $top_srcdir
 	for my $file ("$packageName.spec", "debian.rules", "debian.control", "debian.changelog", "debian.copyright") {
 		if (-f "$abs_srcdir/project/$file") {
 			my $old_ = $_;
-			printf STDERR "Creating $build$file\n";
+			printf STDERR "Creating $build$file\n" if ($debug);;
 			open DST, ">$build$file";
 			open SRC, "<$abs_srcdir/project/$file";
 			while (<SRC>) {
@@ -1394,6 +1394,11 @@ top_srcdir = $top_srcdir
 				if (/\@DEBIAN_VCS\@/) { s/\@DEBIAN_VCS\@/$package{debian_vcs}/g; }
 				if (/\@DEBIAN_DATE\@/) { s/\@DEBIAN_DATE\@/$debdate/g; }
 				if (/\@SPEC_DATE\@/) { s/\@SPEC_DATE\@/$specdate/g; }
+				if (/^\s*.+\/configure\s/ and $force_version) {
+					print "Version forced to $version\n" if ($debug);;
+					s/--version\s+\S+\s?//;
+					s/$/ --version $version/;
+				}
 				printf DST "%s", "$_";
 			}
 			close SRC;
@@ -1402,7 +1407,7 @@ top_srcdir = $top_srcdir
 		}
 	}
 
-	print "Creating ${build}debian/\n";
+	print "Creating ${build}debian/\n" if ($debug);;
 
 	`rm -rfv  ${build}debian`;
 	mkdir $build."debian" or die $!;
@@ -2013,7 +2018,7 @@ General options (defaults in []):
   --nothrflavour=flavour	threaded and non-treaded flavours [gcc64dbgpthr,gcc64dbg]
   --listmodules=subsys          list modules of a subsystem
   --listmodules=module          list subpackages of a module
-  --version=maj.min.rev-age	specify version here instead of reading version.properties
+  --version=maj.min.rev-age	version used instead of reading version.properties
   --branch=branch		CVS branch/etics name suffix (HEAD, branch_2_1, ...)
   --libdir=libdir		typically [lib,lib64] postfix
   --project=PROJECT		build or generate etics for a project (glite/emi1/emi) [emi]
