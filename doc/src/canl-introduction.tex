@@ -155,7 +155,7 @@ printf("%s\n", canl_get_error_message(my_ctx));
 \marginpar{Context deallocation}%
 It is recommended to free the memory allocated to each 
 context if they are not needed anymore, in first case \verb'canl_io_handler'
-, then \verb'canl_ctx' in case of the \texit{Main API}:
+, then \verb'canl_ctx' in case of the \textit{Main API}:
 \begin{lstlisting}
 if (my_io_h)
 	canl_io_destroy(my_ctx, my_io_h);
