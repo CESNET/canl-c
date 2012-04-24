@@ -100,7 +100,7 @@ ${LIBCANL}:\
 
 %.pdf: %.tex
 	$(PDFLATEX) $<
-	$(BIBTEX) `basename $< .tex`
+#	$(BIBTEX) `basename $< .tex`
 	$(PDFLATEX) $<
 	$(PDFLATEX) $<
 
