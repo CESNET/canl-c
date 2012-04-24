@@ -1,0 +1,107 @@
+%
+%% Copyright (c) Members of the EGEE Collaboration. 2004-2010.
+%% See http://www.eu-egee.org/partners for details on the copyright holders.
+%% 
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%% 
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%% 
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+%
+% -*- mode: latex -*-
+\documentclass{emi}
+\def\insideDG{}
+
+\input{definitions}
+%\def\LB{LB\xspace}
+
+\title{Common Authentication Library -- Developer's Guide}
+%\Subtitle{Developer's Guide}
+\author{CESNET caNl team}
+%\DocIdentifier{glite-lb-doc-dg-\version}
+%\DeliverableId{}
+\Date{\today}
+%\Activity{JRA1: Middleware Engineering}
+%\DocStatus{DRAFT}
+\DocVersion{\version}
+%\Dissemination{PUBLIC}
+%\DocumentLink{\url{http://egee.cesnet.cz/cvsweb/LB/LBDG.pdf}}
+\Abstract{\input{canl-abstract}}
+\EMICompVersion{3.x}
+
+
+\usepackage{listings}
+\usepackage{amsmath}
+
+%\setlength{\marginparwidth}{1.2in}
+\let\oldmarginpar\marginpar
+\renewcommand\marginpar[1]{\-\oldmarginpar[\raggedleft\footnotesize #1]%
+{\raggedright\footnotesize #1}}
+
+\begin{document}
+\reversemarginpar
+\lstset{language=C,basicstyle=\footnotesize,numbers=none,breaklines=true}
+%\lstset{title={\bf File: }\lstname}
+\lstset{rangeprefix=/*,rangesuffix=*/,includerangemarker=false}
+\lstset{escapeinside={//*}{\^^M}}
+
+% ----- BEGIN COPY -----
+% copied from org.glite.lb.client/doc/api/api.tex in hope it could be useful
+
+%\parindent=0pt
+%\parskip=\smallskipamount
+
+\makeatletter
+\def\jobid{\textit{JobId}\xspace}
+\def\@tti[#1]{\item[{\normalfont\texttt{#1}}]\catcode`\_=8}
+\def\tti{\catcode`\_=11\noexpand\@tti}
+\newlength{\tw}
+
+\def\synopsis{\catcode`\_=11\noexpand\@synopsis}
+\def\@synopsis#1#2{
+\tw=\linewidth
+\advance\tw-2em
+\texttt{#1(}\\
+\strut\hskip2em\begin{tabularx}\tw{>{\begingroup\tt}l<{\endgroup}lX}
+#2
+\end{tabularx}\\
+\texttt)
+\catcode`\_=8
+}
+
+\def\Synopsis{\subsubsection*{Synopsis}}
+\def\Description{\subsubsection*{Description}}
+\def\Return{\subsubsection*{Return values}}
+
+% ----- END COPY -----
+
+%\input{frontmatter}
+\input{funding}
+\input{copyright}
+\tableofcontents
+
+%TODO is it necessery
+%\newpage
+%\input{versions}
+
+\newpage
+\input{canl-introduction}
+
+\newpage
+\input{canl-cs-auth-connection}
+
+\newpage
+\input{canl-proxy-cert}
+
+%\newpage
+%\bibliographystyle{unsrt}
+%\bibliography{lbjp}
+
+\end{document}
+

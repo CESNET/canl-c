@@ -1,0 +1,167 @@
+%
+%% Copyright (c) Members of the EGEE Collaboration. 2004-2010.
+%% See http://www.eu-egee.org/partners for details on the copyright holders.
+%% 
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%% 
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%% 
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+%
+% -*- mode: latex -*-
+
+\section{Introduction}
+
+This document serves as a developer's guide and could be
+seen as an API reference too, even though comments in
+the header files may give the reader better insights into that matter.
+
+The \CANL API can be devided by functionality into two parts:
+
+\begin{itemize}
+\item \textit{\CANL Main API} is used to establish (secure) client-server
+connection with one or both sides authenticated, send or receive data,
+\item \textit{\CANL Certificate API}
+\end{itemize}
+The Main API is independent from the Certificate API, but the latter
+one shares a number of data types and functions with the first one.
+
+\subsection{Language Bindings}
+\CANL is developed in C language as well as C++ and Java language bindings,
+however this document covers only the C interface.
+
+\subsection{Getting and Building Library}
+TODO package names
+
+external dependencies:
+\begin{itemize}
+\item c-ares -- asynchronous resolver library
+\item openssl -- cryptography and SSL/TLS toolkit
+\end{itemize}
+
+\subsection{General Guidelines}
+
+\marginpar{Naming conventions}%
+All function names are prefixed with canl\_
+
+\marginpar{Input and output arguments}%
+All structures and objects passed in output of functions
+(even though pointers are used as a help)
+are dynamically allocated, so proper functions to free the allocated 
+memory has to be called. e.g. \verb'canl_free_ctx()' deallocates members
+of the stucture.
+
+\marginpar{Opaque types}%
+Almost all types used in caNl are \textit{Opaque types}- i.e. their structure is 
+not exposed to users. To use and/or modify these structures API call has 
+to be used. Example of opaque type is \verb'canl_ctx'.
+
+\marginpar{Return values}%
+The return type of most of the API functions is \verb'canl_err_code' which
+ in most cases can be interpreted as int. Unless specified otherwise, zero
+return value means success, non-zero failure. Standard error codes from 
+\verb'errno.h' are used as much as possible.
+TODO openssl mapping
+
+Few API function return \verb'char *'. In such a~case
+\verb'NULL' indicates an error, non-null value means success.
+
+\subsection{Context and Parameter Settings}
+\label{s:context}
+All the API functions use a \emph{context} parameter of type \verb'canl_ctx' 
+to maintain state information like error message and code. 
+Some API functions also use an \emph{io context} of type \verb'canl_io_handler'
+which keeps information about each particular connection 
+(\eg socket number, oid, SSL context).The caller can create as many 
+contexts as needed, all of them will be independent. When calling
+\verb'canl_create_ctx()' or \verb'canl_create_io_handler()' all members 
+of the objects are initialized with default values which are often 
+NULL for pointer type and 0 in case of int and similar types.
+
+\section{\CANL Components}
+\label{s:common}
+
+\subsection{Header Files}
+
+Header files for the common structures and functions are summarized in
+table~\ref{t:cheaders}.
+
+\begin{table}[h]
+\begin{tabularx}{\textwidth}{>{\tt}lX}
+canl.h & Definition of context objects and \textit{Main API} common 
+functions declarations. \\
+canl\_ssl.h & Declaration of functions that use X509 certificates 
+based authentication mechanism (pretty much dependent on 
+openssl library funcions).\\
+canl\_cred.h & Definition of context objects of the 
+\textit{Certificate API}  and  functions declarations.\\
+\end{tabularx}
+\caption{Header files}
+\label{t:cheaders}
+\end{table}
+
+\subsection{Building Client Programs}
+The easiest way to build programs using \CANL in C is to use
+GNU's libtool to take care of all the dependencies:
+\begin{verbatim}
+libtool --mode=compile gcc -c example1.c -D_GNU_SOURCE
+libtool --mode=link gcc -o example1 example1.o -lcanl_c
+\end{verbatim}
+
+\subsection{Context}
+\label{s:canl_ctx}
+\marginpar{Context initialization}%
+There are two opaque data structures representing caNl \textit{Main API} 
+context: \verb'canl_ctx' and \verb'canl\_io\_handler' (see 
+section~\ref{s:context}.
+\verb'canl_ctx' must be initialized before any caNl API call.
+\verb'canl_io_handler' must be initialized before function call 
+representing io operation (e.g. \verb'canl_io_connect()') and after
+\verb'canl_ctx' initialization. 
+\begin{lstlisting}
+#include <canl.h>
+#include <canl_ssl.h>
+
+canl_io_handler my_io_h = NULL;
+canl_ctx my_ctx;
+my_ctx = canl_create_ctx();
+err = canl_create_io_handler(my_ctx, &my_io_h);
+\end{lstlisting}
+There is one opaque data structure representing \CANL 
+\textit{Certificate API}: \verb'canl_cred'.
+It must only be initialized before function calls
+that use this context as a parametr.
+\begin{lstlisting}
+#include <canl.h>
+#include <canl_cred.h>
+
+canl_ctx ctx = NULL;
+ctx = canl_create_ctx();
+\end{lstlisting}
+\marginpar{Obtaining error description}%
+\verb'canl_ctx' stores details of all errors which has occurred since 
+context initialization, in human readable format. To obtain it use 
+\verb'canl_get_error_message()':
+\begin{lstlisting}
+printf("%s\n", canl_get_error_message(my_ctx));
+\end{lstlisting}
+
+\marginpar{Context deallocation}%
+It is recommended to free the memory allocated to each 
+context if they are not needed anymore, in first case \verb'canl_io_handler'
+, then \verb'canl_ctx' in case of the \texit{Main API}:
+\begin{lstlisting}
+if (my_io_h)
+	canl_io_destroy(my_ctx, my_io_h);
+canl_free_ctx(my_ctx);
+\end{lstlisting}
+as for the Certificate API:
+\begin{lstlisting}
+canl_cred_free(ctx, signer);
+\end{lstlisting}

@@ -1,0 +1,54 @@
+%
+%% Copyright (c) Members of the EGEE Collaboration. 2004-2010.
+%% See http://www.eu-egee.org/partners for details on the copyright holders.
+%% 
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%% 
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%% 
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+%
+% external packages
+\usepackage{xspace}
+\usepackage{ifthen}
+\usepackage{comment}
+\usepackage{listings}
+
+% useful definitions
+\def\CANL{caNl}
+\newcommand\LBver[1]{\textit{\LB version {#1}}}
+\def\JP{JP\xspace}
+%\def\eg{e.\,g.}
+\def\eg{for example\xspace}
+\def\Eg{For example\xspace}
+%\def\ie{i.\,e.}
+\def\ie{that is\xspace}
+\def\wrt{with respect to\xspace}
+\def\Dash{---\penalty-1000}
+
+\def\req{\noindent\textbf{Prerequisities:}}
+\def\how{\noindent\textbf{How to run:}}
+\def\what{\noindent\textbf{What to test:}}
+\def\result{\noindent\textbf{Expected result:}}
+\def\note{\noindent\textbf{Note:}}
+\def\path#1{{\normalfont\textsf{#1}}}
+\def\code#1{\texttt{#1}}
+\def\ctblb#1{\code{org.glite.testsuites.ctb/LB/tests/#1}}
+
+\specialcomment{hints}{\par\noindent\textbf{Hints: }\begingroup\slshape}{\endgroup}
+%\includecomment{hints}
+
+\long\def\TODO#1{\par\noindent\textbf{TODO:} {\sl#1}\par}
+\long\def\ludek#1{}
+
+\hyphenation{plug-in}
+
+\newcommand{\email}[1]{\href{mailto:#1}{#1}}
+
+\input{ver.tex}

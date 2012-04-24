@@ -1,0 +1,142 @@
+%
+%% Copyright (c) Members of the EGEE Collaboration. 2004-2010.
+%% See http://www.eu-egee.org/partners for details on the copyright holders.
+%% 
+%% Licensed under the Apache License, Version 2.0 (the "License");
+%% you may not use this file except in compliance with the License.
+%% You may obtain a copy of the License at
+%% 
+%%     http://www.apache.org/licenses/LICENSE-2.0
+%% 
+%% Unless required by applicable law or agreed to in writing, software
+%% distributed under the License is distributed on an "AS IS" BASIS,
+%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%% See the License for the specific language governing permissions and
+%% limitations under the License.
+%
+% -*- mode: latex -*-
+
+\section{Client-Server Authenticated Connection}
+\label{s:cs-auth-conn}
+
+For client-server authenticated connection we just use \CANL
+\textit{Main API} calls. In time of writing this paper 
+\CANL use \textit{openssl - SSL/TLS and cryptography toolkit}. 
+However, core of the \CANL has been developed to be as independent
+ on any cryptography toolkit as possible, so it may support 
+other libraries in the future.
+
+\subsection{Main API Reference guide}
+These are the functions of the \verb'Main API' that do not 
+use \textit{openssl API} calls or variable types directly
+ (as a parameter or in their definitions):
+
+\begin{itemize}
+\item \verb'canl_ctx canl_create_ctx()'--This function
+returns an initialized authentication context object
+\item \verb'void CANL_CALLCONV canl_free_ctx(canl_ctx cc)'--This
+function will free the authentication context, releasing 
+all associated information.  The context must not be used after this call.
+\begin{itemize}
+\item param cc - the authentication context to free.
+\end{itemize}
+\item \verb'canl_err_code 
+canl_create_io_handler(canl_ctx cc, canl_io_handler *io)' -- 
+This function will create an \verb'i/o handler' from the authentication 
+context. This handler shall be passed to all I/O-related functions.
+\begin{itemize}
+\item param cc - the authentication context
+\item param io -  return an initialized \verb'i/o context', or NULL if 
+it did not succeed.
+\item return - \CANL error code
+\end{itemize}
+
+\item \verb'canl_err_code canl_io_close(canl_ctx cc, canl_io_handler io)' --
+This function will close an existing connection.  The 'io' object may 
+be reused by another connection. It is safe to call this 
+function on an io object which was connected.
+\begin{itemize}
+\item param ac - The authentication context
+\item param io - The \verb'i/o context'
+\item return - \verb'canl_err_code'
+\end{itemize}
+\item \verb'canl_err_code canl_io_connect(canl_ctx cc, canl_io_handler io, 
+const char *host, const char *service, int port, gss_OID_set auth_mechs, 
+int flags, struct timeval *timeout)' --
+This function will try to connect to a server object, 
+doing authentication (if not forbidden)
+\begin{itemize}
+\item param ac - The authentication context
+\item param io - The \verb'i/o context'
+\item param host - The server to which to connect
+\item param service - TODO DK
+\item param port - The port on which the server is listening
+\item param auth\_mechs - Authentication mechanism to use
+\item flags - TODO
+\item param timeout - The timeout after which to drop the connect attempt
+\item return - \verb'canl_err_code'
+\end{itemize}
+\item \verb'canl_io_accept(canl_ctx cc, canl_io_handler io, 
+int fd, struct sockaddr s_addr, int flags, 
+canl_principal *peer, struct timeval *timeout)' -- This function will 
+setup a server to accept connections from clients, doing 
+authentication (if not forbidden)
+\begin{itemize}
+\item param ac - The authentication context
+\item param io - The \verb'i/o context'
+\item param fd - \TODO
+\item param port - The port on which the server is listening
+\end{itemize}
+
+\end{itemize}
+
+\subsection{Secure Client-Server Connection Example}
+We give example of caNl client, for complete sample see 
+\verb'canl_samples_server.c' in 
+\TODO Where to find sources (package?)- Frantisek?
+
+Include nesessary header files:
+\begin{lstlisting}
+#include <canl.h>
+#include <canl_ssl.h>
+\end{lstlisting}
+
+Initialize context and set parameters:
+\begin{lstlisting}
+canl_ctx my_ctx;
+canl_io_handler my_io_h = NULL;
+my_ctx = canl_create_ctx();
+err = canl_create_io_handler(my_ctx, &my_io_h);
+err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, NULL, NULL);
+\end{lstlisting}
+
+Connect to the server, send something then read the response:
+
+\begin{lstlisting}
+err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0, &timeout);
+if (err) {
+        printf("[CLIENT] connection to %s cannot be established: %s\n",
+               p_server, canl_get_error_message(my_ctx));
+        goto end;
+    }
+err = canl_io_write (my_ctx, my_io_h, buf, buf_len, &timeout);
+if (err <= 0) {
+        printf("can't write using ssl: %s\n",
+               canl_get_error_message(my_ctx));
+        goto end;
+    }
+err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
+if (err > 0) {
+        buf[err] = '\0';
+        printf ("[CLIENT] received: %s\n", buf);
+        err = 0;
+    }
+\end{lstlisting}
+
+Free the allocated memory:
+
+\begin{lstlisting}
+if (my_io_h)
+        canl_io_destroy(my_ctx, my_io_h);
+canl_free_ctx(my_ctx);
+\end{lstlisting}
