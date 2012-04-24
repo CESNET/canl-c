@@ -7,13 +7,17 @@ libdir=lib
 -include Makefile.inc
 -include ${top_srcdir}/project/version.properties
 
-VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/:${top_srcdir}/examples
+VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/:${top_srcdir}/examples:${top_srcdir}/doc/src
+KPATH = TEXINPUTS=".:${top_srcdir}/doc/src//:"
+KPATHBIB = BIBINPUTS=".:$(VPATH)//:"
 LIBCARES_LIBS?=-lcares  
 LIBSSL_LIBS?=-lssl
 
 CC=gcc
 YACC=bison -y
 LEX=flex
+PDFLATEX = $(KPATH) pdflatex
+BIBTEX = $(KPATHBIB) bibtex
 
 COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
@@ -72,6 +76,8 @@ major:=${shell \
 
 all: ${LIBCANL} server client proxy delegation 
 
+doc: canl.pdf
+
 ${LIBCANL}:\
 	canl.lo canl_err.lo canl_dns.lo canl_ssl.lo canl_cert.lo canl_cred.lo			\
 	canl_err_desc.lo doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo		\
@@ -91,6 +97,14 @@ ${LIBCANL}:\
 
 %.lo: %.c ${HEAD_CANL} 
 	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
+
+%.pdf: %.tex
+	$(PDFLATEX) $<
+	$(BIBTEX) `basename $< .tex`
+	$(PDFLATEX) $<
+	$(PDFLATEX) $<
+
+canl.tex: ver.tex
 
 client: ${OBJ_CLI}
 	${LINK} $< ${LFLAGS_CLI} -o $@
@@ -122,6 +136,9 @@ canl_err.h: canl_error_codes
 canl_err_desc.c: canl_error_codes canl_error_desc
 	${top_srcdir}/src/gen_err_desc.pl $^ > $@
 
+ver.tex:
+	printf "\134def\134version{${module.version}}\n" > ver.tex
+
 check:
 
 install: all
@@ -144,7 +161,8 @@ stage: all
 
 clean:
 	rm -rfv *.o *.lo ${LIBCANL} .libs client server proxy delegation \
-		${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage
+		${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage \
+		canl.aux canl.log canl.pdf canl.out canl.toc ver.tex
 
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/
