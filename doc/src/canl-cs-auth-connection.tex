@@ -32,61 +32,62 @@ use \textit{openssl API} calls or variable types directly
  (as a parameter or in their definitions):
 
 \begin{itemize}
-\item \verb'canl_ctx canl_create_ctx()'--This function
-returns an initialized authentication context object
-\item \verb'void CANL_CALLCONV canl_free_ctx(canl_ctx cc)'--This
-function will free the authentication context, releasing 
-all associated information.  The context must not be used after this call.
-\begin{itemize}
-\item param cc - the authentication context to free.
-\end{itemize}
-\item \verb'canl_err_code 
-canl_create_io_handler(canl_ctx cc, canl_io_handler *io)' -- 
-This function will create an \verb'i/o handler' from the authentication 
-context. This handler shall be passed to all I/O-related functions.
-\begin{itemize}
-\item param cc - the authentication context
-\item param io -  return an initialized \verb'i/o context', or NULL if 
-it did not succeed.
-\item return - \CANL error code
-\end{itemize}
+  \item \verb'canl_ctx canl_create_ctx()'--This function
+  returns an initialized authentication context object
+  \item \verb'void CANL_CALLCONV canl_free_ctx(canl_ctx cc)'--This
+  function will free the authentication context, releasing 
+  all associated information.  The context must not be used after this call.
+  \begin{itemize}
+    \item param cc - the authentication context to free.
+  \end{itemize}
+  \item \verb'canl_err_code'
+  \verb'canl_create_io_handler(canl_ctx cc, canl_io_handler *io)' -- 
+  This function will create an \verb'i/o handler' from the authentication 
+  context. This handler shall be passed to all I/O-related functions.
+  \begin{itemize}
+    \item param cc - the authentication context
+    \item param io -  return an initialized \verb'i/o context', or NULL if 
+    it did not succeed.
+    \item return - \CANL error code
+  \end{itemize}
 
-\item \verb'canl_err_code canl_io_close(canl_ctx cc, canl_io_handler io)' --
-This function will close an existing connection.  The 'io' object may 
-be reused by another connection. It is safe to call this 
-function on an io object which was connected.
-\begin{itemize}
-\item param ac - The authentication context
-\item param io - The \verb'i/o context'
-\item return - \verb'canl_err_code'
-\end{itemize}
-\item \verb'canl_err_code canl_io_connect(canl_ctx cc, canl_io_handler io, 
-const char *host, const char *service, int port, gss_OID_set auth_mechs, 
-int flags, struct timeval *timeout)' --
-This function will try to connect to a server object, 
-doing authentication (if not forbidden)
-\begin{itemize}
-\item param ac - The authentication context
-\item param io - The \verb'i/o context'
-\item param host - The server to which to connect
-\item param service - TODO DK
-\item param port - The port on which the server is listening
-\item param auth\_mechs - Authentication mechanism to use
-\item flags - TODO
-\item param timeout - The timeout after which to drop the connect attempt
-\item return - \verb'canl_err_code'
-\end{itemize}
-\item \verb'canl_io_accept(canl_ctx cc, canl_io_handler io, 
-int fd, struct sockaddr s_addr, int flags, 
-canl_principal *peer, struct timeval *timeout)' -- This function will 
-setup a server to accept connections from clients, doing 
-authentication (if not forbidden)
-\begin{itemize}
-\item param ac - The authentication context
-\item param io - The \verb'i/o context'
-\item param fd - \TODO
-\item param port - The port on which the server is listening
-\end{itemize}
+  \item \verb'canl_err_code canl_io_close(canl_ctx cc, canl_io_handler io)' --
+  This function will close an existing connection.  The 'io' object may 
+  be reused by another connection. It is safe to call this 
+  function on an io object which was connected.
+  \begin{itemize}
+    \item param ac - The authentication context
+    \item param io - The \verb'i/o context'
+    \item return - \verb'canl_err_code'
+  \end{itemize}
+  \item \verb'canl_err_code canl_io_connect(canl_ctx cc, canl_io_handler io,' 
+  \verb'const char *host, const char *service, int port,' 
+  \verb'gss_OID_set auth_mechs,'
+  \verb'int flags, struct timeval *timeout)' --
+  This function will try to connect to a server object, 
+  doing authentication (if not forbidden)
+  \begin{itemize}
+    \item param ac - The authentication context
+    \item param io - The \verb'i/o context'
+    \item param host - The server to which to connect
+    \item param service - TODO DK
+    \item param port - The port on which the server is listening
+    \item param auth\_mechs - Authentication mechanism to use
+    \item flags - TODO
+    \item param timeout - The timeout after which to drop the connect attempt
+    \item return - \verb'canl_err_code'
+  \end{itemize}
+  \item \verb'canl_io_accept(canl_ctx cc, canl_io_handler io,'
+  \verb'int fd, struct sockaddr s_addr, int flags,'
+  \verb'canl_principal *peer, struct timeval *timeout)' -- This function will 
+  setup a server to accept connections from clients, doing 
+  authentication (if not forbidden)
+  \begin{itemize}
+    \item param ac - The authentication context
+    \item param io - The \verb'i/o context'
+    \item param fd - \TODO
+    \item param port - The port on which the server is listening
+  \end{itemize}
 
 \end{itemize}
 
