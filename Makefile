@@ -162,7 +162,8 @@ stage: all
 clean:
 	rm -rfv *.o *.lo ${LIBCANL} .libs client server proxy delegation \
 		${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage \
-		canl.aux canl.log canl.pdf canl.out canl.toc ver.tex
+		canl.aux canl.log canl.pdf canl.out canl.toc ver.tex \
+		canl.bbl canl.blg
 
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/
