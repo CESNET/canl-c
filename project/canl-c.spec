@@ -13,6 +13,7 @@ BuildRequires: flex
 BuildRequires: krb5-devel%{?_isa}
 BuildRequires: libtool
 BuildRequires: openssl-devel%{?_isa}
+BuildRequires: pkgconfig
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv: yes
 Source: http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-@VERSION@.src.tar.gz
