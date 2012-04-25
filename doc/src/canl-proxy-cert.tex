@@ -151,7 +151,7 @@ canl_err_code canl_cred_save_chain(canl_ctx, canl_cred cred, STACK_OF(X509) **to
   This function saves certificate chain of trust with proxy 
   certificate into openssl object of type \textit{STACK\_OF(X509)}
   \begin{itemize}
-    \item param cred - credentials context with certificate chain to save
+   \item param cred - credentials context with certificate chain to save
     \item param to - save certificate into
   \end{itemize}
   \item \begin{verbatim}
@@ -180,13 +180,65 @@ canl_err_code canl_cred_save_req(canl_ctx, canl_cred cred, X509_REQ **to)\end{ve
 
 \end{itemize}
 
-\subsection{Make and Initialize New proxy certificate - example}
-\TODO Do it
+\subsection{Make New Proxy Certificate -- Example}
+We give an example of a proxy certificate creation. We do not 
+define variables in this example, unless
+their type is \CANL defined. We do not check return values in most
+cases as well.
+For complete sample see \TODO source
 
 Include nesessary header files:
 \begin{lstlisting}
 #include <canl.h>
 #include <canl_cred.h>
 \end{lstlisting}
+\CANL context variables
+\begin{lstlisting}
+canl_cred signer = NULL;
+canl_cred proxy = NULL;
+canl_ctx ctx = NULL;
+\end{lstlisting}
+
+Initialize context:
+\begin{lstlisting}
+ctx = canl_create_ctx();
+ret = canl_cred_new(ctx, &proxy);
+\end{lstlisting}
+
+Create a certificate request with a new key-pair.
+\begin{lstlisting}
+ret = canl_cred_new_req(ctx, proxy, bits);
+\end{lstlisting}
+
+(Optional) Set cert. creation parametrs
+\begin{lstlisting}
+ret = canl_cred_set_lifetime(ctx, proxy, lifetime);
+ret = canl_cred_set_cert_type(ctx, proxy, CANL_RFC);
+\end{lstlisting}
+
+Load the signing credentials
+\begin{lstlisting}
+ret = canl_cred_new(ctx, &signer);
+ret = canl_cred_load_cert_file(ctx, signer, user_cert);
+ret = canl_cred_load_priv_key_file(ctx, signer, user_key, NULL, NULL);
+\end{lstlisting}
+
+Create the new proxy certificate
+\begin{lstlisting}
+ret = canl_cred_sign_proxy(ctx, signer, proxy);
+\end{lstlisting}
+
+And store it in a file
+\begin{lstlisting}
+ret = canl_cred_save_proxyfile(ctx, proxy, output);
+\end{lstlisting}
 
 
+\begin{lstlisting}
+if (signer)
+    canl_cred_free(ctx, signer);
+if (proxy)
+    canl_cred_free(ctx, proxy);
+if (ctx)
+    canl_free_ctx(ctx);
+\end{lstlisting}
