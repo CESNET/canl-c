@@ -29,7 +29,8 @@ The \CANL API can be devided by functionality into two parts:
 connection with one or both sides authenticated, send or receive data,
 \item \textit{\CANL Certificate API}
 \end{itemize}
-The Main API is independent from the Certificate API, but the latter
+The \textit{Main API} is independent from the \textit{Certificate API}
+, but the latter
 one shares a number of data types and functions with the first one.
 
 \subsection{Language Bindings}
@@ -48,35 +49,35 @@ external dependencies:
 \subsection{General Guidelines}
 
 \marginpar{Naming conventions}%
-All function names are prefixed with canl\_
+All function names are prefixed with \verb'canl_'
 
 \marginpar{Input and output arguments}%
 All structures and objects passed in output of functions
 (even though pointers are used as a help)
 are dynamically allocated, so proper functions to free the allocated 
-memory has to be called. e.g. \verb'canl_free_ctx()' deallocates members
-of the stucture.
+memory has to be called. e.g. \verb'canl_free_ctx()' 
+deallocates members of the stucture.
 
 \marginpar{Opaque types}%
 Almost all types used in caNl are \textit{Opaque types}- i.e. their structure is 
 not exposed to users. To use and/or modify these structures API call has 
-to be used. Example of opaque type is \verb'canl_ctx'.
+to be used. Example of opaque type is {\tt canl\_ctx}.
 
 \marginpar{Return values}%
-The return type of most of the API functions is \verb'canl_err_code' which
+The return type of most of the API functions is {\tt canl\_err\_code} which
  in most cases can be interpreted as int. Unless specified otherwise, zero
 return value means success, non-zero failure. Standard error codes from 
-\verb'errno.h' are used as much as possible.
+{\tt errno.h} are used as much as possible.
 TODO openssl mapping
 
-Few API function return \verb'char *'. In such a~case
-\verb'NULL' indicates an error, non-null value means success.
+Few API functions return {\tt char *}. In such a~case
+{\tt NULL} indicates an error, non-null value means success.
 
 \subsection{Context and Parameter Settings}
 \label{s:context}
-All the API functions use a \emph{context} parameter of type \verb'canl_ctx' 
+All the API functions use a \emph{context} parameter of type {\tt canl\_ctx} 
 to maintain state information like error message and code. 
-Some API functions also use an \emph{io context} of type \verb'canl_io_handler'
+Some API functions also use an \emph{io context} of type {\tt canl\_io\_handler}
 which keeps information about each particular connection 
 (\eg socket number, oid, SSL context).The caller can create as many 
 contexts as needed, all of them will be independent. When calling
@@ -117,13 +118,13 @@ libtool --mode=link gcc -o example1 example1.o -lcanl_c
 \subsection{Context}
 \label{s:canl_ctx}
 \marginpar{Context initialization}%
-There are two opaque data structures representing caNl \textit{Main API} 
-context: \verb'canl_ctx' and \verb'canl\_io\_handler' (see 
-section~\ref{s:context}.
-\verb'canl_ctx' must be initialized before any caNl API call.
-\verb'canl_io_handler' must be initialized before function call 
+There are two opaque data structures representing 
+caNl \textit{Main API} context: {\tt canl\_ctx} and
+ {\tt canl\_io\_handler} (see section~\ref{s:context}).
+{\tt canl\_ctx} must be initialized before any caNl API call.
+{\tt canl\_io\_handler} must be initialized before function call 
 representing io operation (e.g. \verb'canl_io_connect()') and after
-\verb'canl_ctx' initialization. 
+{\tt canl\_ctx} initialization. 
 \begin{lstlisting}
 #include <canl.h>
 #include <canl_ssl.h>
@@ -134,7 +135,7 @@ my_ctx = canl_create_ctx();
 err = canl_create_io_handler(my_ctx, &my_io_h);
 \end{lstlisting}
 There is one opaque data structure representing \CANL 
-\textit{Certificate API}: \verb'canl_cred'.
+\textit{Certificate API} context: {\tt canl\_cred}.
 It must only be initialized before function calls
 that use this context as a parametr.
 \begin{lstlisting}
@@ -145,7 +146,7 @@ canl_ctx ctx = NULL;
 ctx = canl_create_ctx();
 \end{lstlisting}
 \marginpar{Obtaining error description}%
-\verb'canl_ctx' stores details of all errors which has occurred since 
+{\tt canl\_ctx} stores details of all errors which has occurred since 
 context initialization, in human readable format. To obtain it use 
 \verb'canl_get_error_message()':
 \begin{lstlisting}
@@ -154,8 +155,8 @@ printf("%s\n", canl_get_error_message(my_ctx));
 
 \marginpar{Context deallocation}%
 It is recommended to free the memory allocated to each 
-context if they are not needed anymore, in first case \verb'canl_io_handler'
-, then \verb'canl_ctx' in case of the \textit{Main API}:
+context if they are not needed anymore, in first case {\tt canl\_io\_handler}
+, then {\tt canl\_ctx} in case of the \textit{Main API}:
 \begin{lstlisting}
 if (my_io_h)
 	canl_io_destroy(my_ctx, my_io_h);

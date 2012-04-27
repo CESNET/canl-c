@@ -20,13 +20,13 @@
 \label{s:cs-auth-conn}
 
 If we want to create new proxy certificate or \Eg delegate
-credentials, we can use \CANL \verb'Certificate API'.
+credentials, we can use \CANL \textit{Certificate API}.
 This part of API uses X509 authentication mechanism 
 (uses openssl library now)
 
-\subsection{Credentials API}
-These are the functions of the \verb'Credentials API', all of them use
-\verb'canl_ctx' as first parameter and \verb'canl_err_code' as a return
+\subsection{Certificate API}
+These are the functions of the \textit{Certificate API}, all of them use
+{\tt canl\_ctx} as first parameter and {\tt canl\_err\_code} as a return
 value, so we do not include them in following description:
 
 \begin{itemize}
@@ -89,7 +89,8 @@ canl_err_code canl_cred_load_cert(canl_ctx, canl_cred cred, X509 *cert)\end{verb
     \item param cert - openssl structure to load certificate from.
     \end{itemize}
   \item \begin{verbatim}
-canl_err_code canl_cred_load_cert_file(canl_ctx, canl_cred cred, const char *file)\end{verbatim}
+canl_err_code canl_cred_load_cert_file(canl_ctx, canl_cred cred, 
+const char *file)\end{verbatim}
   This funcion loads user certificate out of a file.
   \begin{itemize}
     \item param cred - credentials which save certificate to
@@ -104,7 +105,8 @@ canl_err_code canl_cred_set_lifetime(canl_ctx, canl_cred cred, const long lt)\en
     \item param lt - lifetime in seconds
   \end{itemize}
   \item \begin{verbatim}
-canl_err_code canl_cred_set_extension(canl_ctx, canl_cred cred, X509_EXTENSION *ext)\end{verbatim}
+canl_err_code canl_cred_set_extension(canl_ctx, canl_cred cred,
+X509_EXTENSION *ext)\end{verbatim}
   This function sets the certificate extension to for the certificate 
   which is going to be created
   \begin{itemize}
@@ -112,7 +114,8 @@ canl_err_code canl_cred_set_extension(canl_ctx, canl_cred cred, X509_EXTENSION *
     \item param ext - openssl structure holding X509 certificate extension
   \end{itemize}
 \item \begin{verbatim}
-canl_err_code canl_cred_set_cert_type(canl_ctx, canl_cred cred, const enum canl_cert_type type)\end{verbatim}
+canl_err_code canl_cred_set_cert_type(canl_ctx, canl_cred cred,
+const enum canl_cert_type type)\end{verbatim}
   This function sets the certificate type to for the certificate
   which is going to be created
   \begin{itemize}
@@ -120,7 +123,8 @@ canl_err_code canl_cred_set_cert_type(canl_ctx, canl_cred cred, const enum canl_
     \item param type - \CANL enum type ...\TODO type
   \end{itemize}
   \item \begin{verbatim}
-canl_err_code canl_cred_sign_proxy(canl_ctx, canl_cred signer, canl_cred proxy)\end{verbatim}
+canl_err_code canl_cred_sign_proxy(canl_ctx, canl_cred signer,
+canl_cred proxy)\end{verbatim}
   This function makes new proxy certificate based on information in 
   \textit{proxy} parameter. The new certificate is signed with private key 
   saved in \textit{signer}. A new certificate chain is saved 
@@ -133,7 +137,8 @@ canl_err_code canl_cred_sign_proxy(canl_ctx, canl_cred signer, canl_cred proxy)\
     certificate type and extensions.
   \end{itemize}
   \item \begin{verbatim}
-canl_err_code canl_cred_save_proxyfile(canl_ctx, canl_cred cred, const char * file)\end{verbatim}
+canl_err_code canl_cred_save_proxyfile(canl_ctx, canl_cred cred,
+const char * file)\end{verbatim}
   This function saves proxy certificate into a file
   \begin{itemize}
     \item param cred - credentials context with certificate to save 
