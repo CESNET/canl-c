@@ -39,6 +39,10 @@ install: build-stamp
 	rm -vf $(CURDIR)/debian/tmp/usr/lib/*.la
 	rm -vf $(CURDIR)/debian/tmp/usr/lib/*.a
 	find $(CURDIR)/debian/tmp -name '*' -print | xargs -I {} -i bash -c "chrpath -d {} > /dev/null 2>&1" || echo 'Stripped RPATH'
+	mv $(CURDIR)/debian/tmp/usr/share/doc/canl-@MAJOR@.@MINOR@.@REVISION@ $(CURDIR)/debian/tmp/usr/share/doc/canl
+	(cd $(CURDIR)/debian/tmp/usr/share/doc/canl; \
+	 rm -fv ChangeLog LICENSE; \
+	 cat $(CURDIR)/project/ChangeLog | gzip -9 > changelog.gz)
 
 binary-indep:
 
