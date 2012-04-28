@@ -22,16 +22,25 @@ This document serves as a developer's guide and could be
 seen as an API reference too, even though comments in
 the header files may give the reader better insights into that matter.
 
-The \CANL API can be devided by functionality into two parts:
+Common Authentication Library (\CANL for short)
+CANL was designed to provide common security layer support in grid 
+applications. It is largely based on existing code (VOMS, LB). Its 
+simple API can be devided by functionality into two parts:
 
 \begin{itemize}
 \item \textit{\CANL Main API} is used to establish (secure) client-server
-connection with one or both sides authenticated, send or receive data,
-\item \textit{\CANL Certificate API}
+connection with one or both sides authenticated, send or receive data.
+As will be described in~\ref{s:cs-auth-conn}, most of the \textit{Main API} 
+is not directly dependent on cryptography toolkit (SSL implementation) It is
+also internaly plugin-based and therefore other secutity mechanisms support can
+be added in future.
+\item \textit{\CANL Certificate API} allows certificate and proxy management \eg
+proxy creation, signing, etc. We may think of \textit{Certificate API} as the
+second level of \textit{Main API}
 \end{itemize}
-The \textit{Main API} is independent from the \textit{Certificate API}
-, but the latter
-one shares a number of data types and functions with the first one.
+
+Currently there is EMI Product Team assigned to \CANL development with three
+subgroups for each language binding.
 
 \subsection{Language Bindings}
 \CANL is developed in C language as well as C++ and Java language bindings,
