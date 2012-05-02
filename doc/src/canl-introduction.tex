@@ -32,7 +32,7 @@ simple API can be devided by functionality into two parts:
 connection with one or both sides authenticated, send or receive data.
 As will be described in~\ref{s:cs-auth-conn}, most of the \textit{Main API} 
 is not directly dependent on cryptography toolkit (SSL implementation) It is
-also internaly plugin-based and therefore other secutity mechanisms support can
+also internally plugin-based and therefore other security mechanisms support can
 be added in future.
 \item \textit{\CANL Certificate API} allows certificate and proxy management \eg
 proxy creation, signing, etc. We may think of \textit{Certificate API} as the
@@ -65,7 +65,7 @@ All structures and objects passed in output of functions
 (even though pointers are used as a help)
 are dynamically allocated, so proper functions to free the allocated 
 memory has to be called. e.g. \verb'canl_free_ctx()' 
-deallocates members of the stucture.
+deallocates members of the structure.
 
 \marginpar{Opaque types}%
 Almost all types used in caNl are \textit{Opaque types}- i.e. their structure is 
@@ -108,7 +108,7 @@ canl.h & Definition of context objects and \textit{Main API} common
 functions declarations. \\
 canl\_ssl.h & Declaration of functions that use X509 certificates 
 based authentication mechanism (pretty much dependent on 
-openssl library funcions).\\
+openssl library functions).\\
 canl\_cred.h & Definition of context objects of the 
 \textit{Certificate API}  and  functions declarations.\\
 \end{tabularx}
@@ -146,7 +146,7 @@ err = canl_create_io_handler(my_ctx, &my_io_h);
 There is one opaque data structure representing \CANL 
 \textit{Certificate API} context: {\tt canl\_cred}.
 It must only be initialized before function calls
-that use this context as a parametr.
+that use this context as a parameter.
 \begin{lstlisting}
 #include <canl.h>
 #include <canl_cred.h>

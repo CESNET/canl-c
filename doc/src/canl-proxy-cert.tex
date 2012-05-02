@@ -34,7 +34,7 @@ value, so we do not include them in following description:
 canl_err_code canl_cred_new(canl_ctx, canl_cred *cred)\end{verbatim}
 This function creates new structure (context) to hold credentials.
   \begin{itemize}
-    \item param cred - new object will be retured to this pointer after
+    \item param cred - new object will be returned to this pointer after
     success.
   \end{itemize}
   \item \begin{verbatim}
@@ -64,18 +64,18 @@ char * file, canl_password_callback clb, void *pass)\end{verbatim}
   \end{itemize}
   \item \verb'canl_cred_load_chain(canl_ctx, canl_cred cred,'
   \verb' STACK_OF(X509) *chain)'
-  This funcion loads certificate chain out of an openssl structure. The 
-  chain usualy 
+  This function loads certificate chain out of an openssl structure. The 
+  chain usually 
   consist of a proxy certificate and certificates forming
   chain of trust
   \begin{itemize}
     \item param cred - credentials context to set chain to
-    \item param chain - openssl structre to load certificate chain from.
+    \item param chain - openssl structure to load certificate chain from.
   \end{itemize}
   \item \verb'canl_cred_load_chain_file(canl_ctx, canl_cred cred,'
   \verb' const char * file)'
-  This funcion loads certificate chain out of a file. The chain usualy 
-  consist of a proxy certificate and certificates forming
+  This function loads certificate chain out of a file. The chain usually 
+  consists of a proxy certificate and certificates forming
   chain of trust
   \begin{itemize}
     \item param cred - credentials which save certificate chain to
@@ -83,7 +83,7 @@ char * file, canl_password_callback clb, void *pass)\end{verbatim}
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_load_cert(canl_ctx, canl_cred cred, X509 *cert)\end{verbatim}
-  This funcion loads user certificate out of an openssl structure.
+  This function loads user certificate out of an openssl structure.
   \begin{itemize}
     \item param cred - credentials context to set certificate to 
     \item param cert - openssl structure to load certificate from.
@@ -91,7 +91,7 @@ canl_err_code canl_cred_load_cert(canl_ctx, canl_cred cred, X509 *cert)\end{verb
   \item \begin{verbatim}
 canl_err_code canl_cred_load_cert_file(canl_ctx, canl_cred cred, 
 const char *file)\end{verbatim}
-  This funcion loads user certificate out of a file.
+  This function loads user certificate out of a file.
   \begin{itemize}
     \item param cred - credentials which save certificate to
     \item param file - file to load certificate from.
@@ -133,7 +133,7 @@ canl_cred proxy)\end{verbatim}
     \item param signer - credentials context which holds signer's certificate
     and key.
     \item param proxy - credentials context with a certificate 
-    signing request, public key and user certifice; optionally lifetime,
+    signing request, public key and user certificate; optionally lifetime,
     certificate type and extensions.
   \end{itemize}
   \item \begin{verbatim}
@@ -192,7 +192,7 @@ their type is \CANL defined. We do not check return values in most
 cases as well.
 For complete sample see \TODO source
 
-Include nesessary header files:
+Include necessary header files:
 \begin{lstlisting}
 #include <canl.h>
 #include <canl_cred.h>
@@ -215,7 +215,7 @@ Create a certificate request with a new key-pair.
 ret = canl_cred_new_req(ctx, proxy, bits);
 \end{lstlisting}
 
-(Optional) Set cert. creation parametrs
+(Optional) Set cert. creation parameters
 \begin{lstlisting}
 ret = canl_cred_set_lifetime(ctx, proxy, lifetime);
 ret = canl_cred_set_cert_type(ctx, proxy, CANL_RFC);

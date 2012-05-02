@@ -47,7 +47,7 @@ use \textit{openssl API} calls or variable types directly
   This function will create an \textit{i/o handler} from the authentication 
   context. This handler shall be passed to all I/O-related functions.
   \begin{itemize}
-    \item param cc - the \textit{autehentication context}
+    \item param cc - the \textit{authentication context}
     \item param io -  return an initialized \textit{i/o context}, 
 or NULL if it did not succeed.
     \item return - \CANL error code
@@ -59,7 +59,7 @@ or NULL if it did not succeed.
   be reused by another connection. It is safe to call this 
   function on an io object which was connected.
   \begin{itemize}
-    \item param cc - The \textit{autehentication context}
+    \item param cc - The \textit{authentication context}
     \item param io - The \textit{i/o context}
     \item return - \textit{canl error code}
   \end{itemize}
@@ -69,7 +69,7 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
   This function will try to connect to a server object, 
   doing authentication (if not forbidden)
   \begin{itemize}
-    \item param cc - The \textit{autehentication context}
+    \item param cc - The \textit{authentication context}
     \item param io - The \textit{i/o context}
     \item param host - The server to which to connect
     \item param service - TODO DK
@@ -86,7 +86,7 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
   setup a server to accept connections from clients, doing 
   authentication (if not forbidden)
   \begin{itemize}
-    \item param cc - The \textit{autehentication context}
+    \item param cc - The \textit{authentication context}
     \item param io - The \textit{i/o context}
     \item param fd - \TODO
     \item param port - The port on which the server is listening
@@ -103,23 +103,23 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
   \textit{context}.  These credentials will become the default ones 
   for all API calls depending on this \textit{context}.
   \begin{itemize}
-    \item param cc - The \textit{autehentication context}
+    \item param cc - The \textit{authentication context}
     \item param cert - The certificate to be set
     \item param key - Its private key
     \item param proxy - The proxy certificate to be set
     \item param clb - A callback function which should return 
     the password to the private key, if needed.
     \item param pass - User specified data that will be passed 
-    as is to the callvack function.  Note that the content of this 
+    as is to the callback function.  Note that the content of this 
     pointer will not be copied internally, and will be passed
     directly to the callback.  This means that altering the 
     data pointed by it will have
-    a direct effect on the behaviour of the function. User specified 
-    data that will be passed as is to the callvack function.  Note that
+    a direct effect on the behavior of the function. User specified 
+    data that will be passed as is to the callback function.  Note that
     the content of this pointer will not be copied internally, and 
     will be passed
     directly to the callback.  This means that altering the data 
-    pointed by it will have a direct effect on the behaviour of the function.
+    pointed by it will have a direct effect on the behavior of the function.
     \item return - \textit{canl error code}
   \end{itemize}
   \item \verb'canl_err_code'
@@ -127,7 +127,7 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
 
   Set certficate authority directory (openssl ca directory structure)
     \begin{itemize} 
-    \item param cc - The \textit{autehentication context}
+    \item param cc - The \textit{authentication context}
     \item ca\_dir - The path that will be set.  It will not be 
     checked whether this path actually contains the CAs or not.
     \item return - \textit{canl error code}
@@ -135,7 +135,7 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
   \item \verb'canl_err_code'
   \verb'canl_ctx_set_crl_dir(canl_ctx cc, const char *crl_dir)'
     \begin{itemize} 
-    \item param cc - The \textit{autehentication context}
+    \item param cc - The \textit{authentication context}
     \item crl\_dir - The path that will be set.  It will not be 
     checked whether this path actually contains the CRLs or not.
     \item return - \textit{canl error code}
@@ -143,7 +143,7 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
 
 \end{itemize}
 \subsection{Secure Client-Server Connection Example}
-We give an xample of a caNl client that use \textit{Main API} 
+We give an example of a caNl client that use \textit{Main API} 
 with openssl. We do not define variables in this example, unless
 their type is \CANL defined. For complete sample see 
 {\tt canl\_samples\_server.c} in 
