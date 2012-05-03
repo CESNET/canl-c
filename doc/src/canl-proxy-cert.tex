@@ -19,10 +19,10 @@
 \section{Credentials Handling}
 \label{s:cs-auth-conn}
 
-If we want to create new proxy certificate or \Eg delegate
+If we want to create new proxy certificate or \eg delegate
 credentials, we can use \CANL \textit{Certificate API}.
 This part of API uses X509 authentication mechanism 
-(uses openssl library now)
+(openssl library now)
 
 \subsection{Certificate API}
 These are the functions of the \textit{Certificate API}, all of them use
@@ -34,75 +34,75 @@ value, so we do not include them in following description:
 canl_err_code canl_cred_new(canl_ctx, canl_cred *cred)\end{verbatim}
 This function creates new structure (context) to hold credentials.
   \begin{itemize}
-    \item param cred - new object will be returned to this pointer after
-    success.
+    \item param cred -- a new object will be returned to this pointer after
+    success
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_free(canl_ctx, canl_cred *cred)\end{verbatim}
   This function will free the credentials context, releasing
   all associated information.  The context must not be used after this call.
   \begin{itemize}
-    \item param cred - credentials context to free 
+    \item param cred -- the credentials context to free 
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_ctx_set_cred(canl_ctx, canl_cred cred)\end{verbatim}
-  This one sets users credentials to \CANL context
+  This one sets users credentials to \CANL context.
   \begin{itemize}
-    \item param cred - credentials to set to global \CANL context
+    \item param cred -- credentials to set to global \CANL context
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_load_priv_key_file(canl_ctx, canl_cred cred, const 
 char * file, canl_password_callback clb, void *pass)\end{verbatim}
-  Load private key from specified file into credentials context.
+  Load private key from specified file into the credentials context.
   \begin{itemize}
-    \item param cred - credentials which save private key to
-    \item param file - file to load private key from
-    \item param clb - A callback function which should return
+    \item param cred -- credentials which save private key to
+    \item param file -- the file to load private key from
+    \item param clb -- the callback function which should return
     the password to the private key, if needed.
-    \item param pass - User specified data that will be passed
-    as is to the callback function.
+    \item param pass -- User specified data that will be passed
+    as is to the callback function
   \end{itemize}
   \item \verb'canl_cred_load_chain(canl_ctx, canl_cred cred,'
   \verb' STACK_OF(X509) *chain)'
-  This function loads certificate chain out of an openssl structure. The 
+  This function loads the certificate chain out of an openssl structure. The 
   chain usually 
   consist of a proxy certificate and certificates forming
-  chain of trust
+  a chain of trust.
   \begin{itemize}
-    \item param cred - credentials context to set chain to
-    \item param chain - openssl structure to load certificate chain from.
+    \item param cred -- the credentials context to set chain to
+    \item param chain -- the openssl structure to load certificate chain from.
   \end{itemize}
   \item \verb'canl_cred_load_chain_file(canl_ctx, canl_cred cred,'
   \verb' const char * file)'
-  This function loads certificate chain out of a file. The chain usually 
+  This function loads the certificate chain out of a file. The chain usually 
   consists of a proxy certificate and certificates forming
-  chain of trust
+  a chain of trust.
   \begin{itemize}
-    \item param cred - credentials which save certificate chain to
-    \item param file - file to load certificate chain from.
+    \item param cred -- credentials which save certificate chain to
+    \item param file -- the file to load certificate chain from
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_load_cert(canl_ctx, canl_cred cred, X509 *cert)\end{verbatim}
-  This function loads user certificate out of an openssl structure.
+  This function loads user certificate out of an openssl structure
   \begin{itemize}
-    \item param cred - credentials context to set certificate to 
-    \item param cert - openssl structure to load certificate from.
+    \item param cred -- the credentials context to set certificate to 
+    \item param cert -- the openssl structure to load certificate from
     \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_load_cert_file(canl_ctx, canl_cred cred, 
 const char *file)\end{verbatim}
   This function loads user certificate out of a file.
   \begin{itemize}
-    \item param cred - credentials which save certificate to
-    \item param file - file to load certificate from.
+    \item param cred -- credentials which save certificate to
+    \item param file -- the file to load certificate from
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_set_lifetime(canl_ctx, canl_cred cred, const long lt)\end{verbatim}
   This function sets the lifetime for a certificate which is going to 
   be created
   \begin{itemize}
-    \item param cred - credentials context
-    \item param lt - lifetime in seconds
+    \item param cred -- the credentials context
+    \item param lt -- the lifetime in seconds
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_set_extension(canl_ctx, canl_cred cred,
@@ -110,17 +110,17 @@ X509_EXTENSION *ext)\end{verbatim}
   This function sets the certificate extension to for the certificate 
   which is going to be created
   \begin{itemize}
-    \item param cred - credentials context 
-    \item param ext - openssl structure holding X509 certificate extension
+    \item param cred -- the credentials context 
+    \item param ext -- the openssl structure holding X509 certificate extension
   \end{itemize}
 \item \begin{verbatim}
 canl_err_code canl_cred_set_cert_type(canl_ctx, canl_cred cred,
 const enum canl_cert_type type)\end{verbatim}
   This function sets the certificate type to for the certificate
-  which is going to be created
+  which is going to be created.
   \begin{itemize}
-    \item param cred - credentials context
-    \item param type - \CANL enum type ...\TODO type
+    \item param cred -- the credentials context
+    \item param type -- a \CANL enum type ...\TODO type
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_sign_proxy(canl_ctx, canl_cred signer,
@@ -128,59 +128,61 @@ canl_cred proxy)\end{verbatim}
   This function makes new proxy certificate based on information in 
   \textit{proxy} parameter. The new certificate is signed with private key 
   saved in \textit{signer}. A new certificate chain is saved 
-  into \textit{proxy}
+  into \textit{proxy}.
   \begin{itemize}
-    \item param signer - credentials context which holds signer's certificate
+    \item param signer -- the credentials context which holds signer's certificate
     and key.
-    \item param proxy - credentials context with a certificate 
+    \item param proxy -- the credentials context with a certificate 
     signing request, public key and user certificate; optionally lifetime,
     certificate type and extensions.
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_save_proxyfile(canl_ctx, canl_cred cred,
 const char * file)\end{verbatim}
-  This function saves proxy certificate into a file
+  This function saves proxy certificate into a file.
   \begin{itemize}
-    \item param cred - credentials context with certificate to save 
-    \item param file - save certificate into 
+    \item param cred -- the credentials context with certificate to save 
+    \item param file -- save the certificate into 
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_save_cert(canl_ctx, canl_cred cred, X509 **to)\end{verbatim}
   This function saves certificate into openssl object of type \textit{X509}
-  \begin{itemize}
-    \item param cred - credentials context with certificate to save
-    \item param to - save certificate into
+  \begin{itemize}.
+    \item param cred -- the credentials context with certificate to save
+    \item param to -- save the certificate into
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_save_chain(canl_ctx, canl_cred cred, STACK_OF(X509) **to)\end{verbatim}
   This function saves certificate chain of trust with proxy 
-  certificate into openssl object of type \textit{STACK\_OF(X509)}
+  certificate into openssl object of type \textit{STACK\_OF(X509)}.
   \begin{itemize}
-   \item param cred - credentials context with certificate chain to save
-    \item param to - save certificate into
+   \item param cred -- the credentials context with certificate chain to save
+    \item param to -- save the certificate into
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_new_req(canl_ctx, canl_cred cred, unsigned int bits)\end{verbatim}
-  This function creates new certificate signing request after new key pair 
+  This function creates a new certificate signing request after a new key pair 
   is generated.
    \begin{itemize}
-    \item param cred - credentials context, certificate signing request 
+    \item param cred -- the credentials context, certificate signing request 
     is saved there
-    \item param bits - key length
+    \item param bits -- the key length
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_save_req(canl_ctx, canl_cred cred, X509_REQ **to)\end{verbatim}
-  This function saves certificate signing request into openssl object of type \textit{X509\_REQ}
+  This function saves certificate signing request into openssl 
+  object of type \textit{X509\_REQ}.
   \begin{itemize}
-    \item param cred - credentials context with certificate request
-    \item param to - save certificate request into
+    \item param cred -- the credentials context with certificate request
+    \item param to -- save the certificate request into
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_save_req(canl_ctx, canl_cred cred, X509_REQ **to)\end{verbatim}
   This function loads certificate signing request from openssl object of type \textit{X509\_REQ} into \CANL certificate context
   \begin{itemize}
-    \item param cred - credentials context, cert. request will be stored there
-    \item param to - load certificate request from
+    \item param cred -- the credentials context, the cert. request
+  will be stored there
+    \item param to -- load the certificate request from
   \end{itemize}
 
 \end{itemize}

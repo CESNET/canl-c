@@ -21,7 +21,7 @@
 
 For client-server authenticated connection we just use \CANL
 \textit{Main API} calls. In time of writing this paper 
-\CANL use \textit{openssl - SSL/TLS and cryptography toolkit}. 
+\CANL use \textit{openssl -- SSL/TLS and cryptography toolkit}. 
 However, core of the \CANL has been developed to be as independent
  on any cryptography toolkit as possible, so it may support 
 other libraries in the future.
@@ -32,25 +32,28 @@ use \textit{openssl API} calls or variable types directly
  (as a parameter or in their definitions):
 
 \begin{itemize}
-  \item \verb'canl_ctx canl_create_ctx()'--This function
+  \item \verb'canl_ctx canl_create_ctx()'
+
+  This function
   returns an initialized \textit{authentication context} object
   \item \verb'void CANL_CALLCONV canl_free_ctx(canl_ctx cc)'
 
   This function will free the \textit{authentication context}, releasing 
   all associated information.  The context must not be used after this call.
   \begin{itemize}
-    \item param cc - the \textit{authentication context} to free.
+    \item param cc -- the \textit{authentication context} to free
   \end{itemize}
   \item \textit{canl error code}
   \verb'canl_create_io_handler(canl_ctx cc, canl_io_handler *io)'
 
-  This function will create an \textit{i/o handler} from the authentication 
-  context. This handler shall be passed to all I/O-related functions.
+  This function will create an \textit{i/o handler} from the 
+\textit{authentication context}. This handler shall be passed to
+all I/O-related functions.
   \begin{itemize}
-    \item param cc - the \textit{authentication context}
-    \item param io -  return an initialized \textit{i/o context}, 
-or NULL if it did not succeed.
-    \item return - \CANL error code
+    \item param cc -- the \textit{authentication context}
+    \item param io --  return an initialized \textit{i/o context}, 
+or NULL if it did not succeed
+    \item return -- \CANL error code
   \end{itemize}
 
   \item \verb'canl_err_code canl_io_close(canl_ctx cc, canl_io_handler io)'
@@ -59,9 +62,9 @@ or NULL if it did not succeed.
   be reused by another connection. It is safe to call this 
   function on an io object which was connected.
   \begin{itemize}
-    \item param cc - The \textit{authentication context}
-    \item param io - The \textit{i/o context}
-    \item return - \textit{canl error code}
+    \item param cc -- the \textit{authentication context}
+    \item param io -- the \textit{i/o context}
+    \item return -- \textit{canl error code}
   \end{itemize}
   \item \begin{verbatim}canl_err_code canl_io_connect(canl_ctx cc, canl_io_handler io, 
 const char *host, const char *service, int port, gss_OID_set auth_mechs,
@@ -69,15 +72,15 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
   This function will try to connect to a server object, 
   doing authentication (if not forbidden)
   \begin{itemize}
-    \item param cc - The \textit{authentication context}
-    \item param io - The \textit{i/o context}
-    \item param host - The server to which to connect
-    \item param service - TODO DK
-    \item param port - The port on which the server is listening
-    \item param auth\_mechs - Authentication mechanism to use
-    \item flags - TODO
-    \item param timeout - The timeout after which to drop the connect attempt
-    \item return - \textit{canl error code}
+    \item param cc -- the \textit{authentication context}
+    \item param io -- the \textit{i/o context}
+    \item param host -- the server to which to connect
+    \item param service -- \TODO DK
+    \item param port -- the port on which the server is listening
+    \item param auth\_mechs -- authentication mechanism to use
+    \item flags -- TODO
+    \item param timeout -- the timeout after which to drop the connect attempt
+    \item return -- \textit{canl error code}
   \end{itemize}
   \item \begin{verbatim}canl_io_accept(canl_ctx cc, canl_io_handler io,int fd,
   struct sockaddr s_addr, int flags,canl_principal *peer,
@@ -86,10 +89,10 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
   setup a server to accept connections from clients, doing 
   authentication (if not forbidden)
   \begin{itemize}
-    \item param cc - The \textit{authentication context}
-    \item param io - The \textit{i/o context}
-    \item param fd - \TODO
-    \item param port - The port on which the server is listening
+    \item param cc -- the \textit{authentication context}
+    \item param io -- the \textit{i/o context}
+    \item param fd -- \TODO this param?
+    \item param port -- the port on which the server is listening
   \end{itemize}
 
 \end{itemize}
@@ -103,42 +106,37 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
   \textit{context}.  These credentials will become the default ones 
   for all API calls depending on this \textit{context}.
   \begin{itemize}
-    \item param cc - The \textit{authentication context}
-    \item param cert - The certificate to be set
-    \item param key - Its private key
-    \item param proxy - The proxy certificate to be set
-    \item param clb - A callback function which should return 
-    the password to the private key, if needed.
-    \item param pass - User specified data that will be passed 
+    \item param cc -- the \textit{authentication context}
+    \item param cert -- the certificate to be set
+    \item param key -- its private key
+    \item param proxy -- the proxy certificate to be set
+    \item param clb -- a callback function which should return 
+    the password to the private key, if needed
+    \item param pass -- user specified data that will be passed 
     as is to the callback function.  Note that the content of this 
     pointer will not be copied internally, and will be passed
     directly to the callback.  This means that altering the 
     data pointed by it will have
-    a direct effect on the behavior of the function. User specified 
-    data that will be passed as is to the callback function.  Note that
-    the content of this pointer will not be copied internally, and 
-    will be passed
-    directly to the callback.  This means that altering the data 
-    pointed by it will have a direct effect on the behavior of the function.
-    \item return - \textit{canl error code}
+    a direct effect on the behavior of the function.
+    \item return -- \textit{canl error code}
   \end{itemize}
   \item \verb'canl_err_code'
   \verb'canl_ctx_set_ca_dir(canl_ctx cc, const char *ca_dir)'
 
   Set certficate authority directory (openssl ca directory structure)
     \begin{itemize} 
-    \item param cc - The \textit{authentication context}
-    \item ca\_dir - The path that will be set.  It will not be 
-    checked whether this path actually contains the CAs or not.
-    \item return - \textit{canl error code}
+    \item param cc -- rhe \textit{authentication context}
+    \item ca\_dir -- rhe path that will be set.  It will not be 
+    checked whether this path actually contains the CAs or not
+    \item return -- \textit{canl error code}
     \end{itemize}
   \item \verb'canl_err_code'
   \verb'canl_ctx_set_crl_dir(canl_ctx cc, const char *crl_dir)'
     \begin{itemize} 
-    \item param cc - The \textit{authentication context}
-    \item crl\_dir - The path that will be set.  It will not be 
-    checked whether this path actually contains the CRLs or not.
-    \item return - \textit{canl error code}
+    \item param cc -- the \textit{authentication context}
+    \item crl\_dir -- the path that will be set.  It will not be 
+    checked whether this path actually contains the CRLs or not
+    \item return -- \textit{canl error code}
     \end{itemize}
 
 \end{itemize}
@@ -179,7 +177,7 @@ if (serv_cert || serv_key || proxy_cert){
 
 If using X509 auth. mechanism, we might set \textit{CA directory} and/or
  \textit{CRL directory} at this place. (If not set, default directories
-will be used \Ie those in proper env. variables )
+will be used, \ie those in proper env. variables )
 .
 .
 .

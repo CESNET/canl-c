@@ -23,7 +23,7 @@ seen as an API reference too, even though comments in
 the header files may give the reader better insights into that matter.
 
 Common Authentication Library (\CANL for short)
-CANL was designed to provide common security layer support in grid 
+was designed to provide common security layer support in grid 
 applications. It is largely based on existing code (VOMS, LB). Its 
 simple API can be devided by functionality into two parts:
 
@@ -31,7 +31,8 @@ simple API can be devided by functionality into two parts:
 \item \textit{\CANL Main API} is used to establish (secure) client-server
 connection with one or both sides authenticated, send or receive data.
 As will be described in~\ref{s:cs-auth-conn}, most of the \textit{Main API} 
-is not directly dependent on cryptography toolkit (SSL implementation) It is
+is not directly dependent on some chosen cryptography toolkit 
+(SSL implementation). It is
 also internally plugin-based and therefore other security mechanisms support can
 be added in future.
 \item \textit{\CANL Certificate API} allows certificate and proxy management \eg
@@ -65,10 +66,10 @@ All structures and objects passed in output of functions
 (even though pointers are used as a help)
 are dynamically allocated, so proper functions to free the allocated 
 memory has to be called. e.g. \verb'canl_free_ctx()' 
-deallocates members of the structure.
+deallocates members of the structure \verb'canl_ctx'.
 
 \marginpar{Opaque types}%
-Almost all types used in caNl are \textit{Opaque types}- i.e. their structure is 
+Almost all types used in caNl are \textit{Opaque types} -- i.e. their structure is 
 not exposed to users. To use and/or modify these structures API call has 
 to be used. Example of opaque type is {\tt canl\_ctx}.
 
@@ -131,8 +132,8 @@ There are two opaque data structures representing
 caNl \textit{Main API} context: {\tt canl\_ctx} and
  {\tt canl\_io\_handler} (see section~\ref{s:context}).
 {\tt canl\_ctx} must be initialized before any caNl API call.
-{\tt canl\_io\_handler} must be initialized before function call 
-representing io operation (e.g. \verb'canl_io_connect()') and after
+{\tt canl\_io\_handler} must be initialized before calling function
+representing io operation (\eg \verb'canl_io_connect()') and after
 {\tt canl\_ctx} initialization. 
 \begin{lstlisting}
 #include <canl.h>
@@ -151,8 +152,10 @@ that use this context as a parameter.
 #include <canl.h>
 #include <canl_cred.h>
 
-canl_ctx ctx = NULL;
+canl_ctx ctx;
+canl_cred c_cred;
 ctx = canl_create_ctx();
+canl_cred_new(ctx, &c_cred);
 \end{lstlisting}
 \marginpar{Obtaining error description}%
 {\tt canl\_ctx} stores details of all errors which has occurred since 
@@ -173,5 +176,5 @@ canl_free_ctx(my_ctx);
 \end{lstlisting}
 as for the Certificate API:
 \begin{lstlisting}
-canl_cred_free(ctx, signer);
+canl_cred_free(ctx, c_cred);
 \end{lstlisting}
