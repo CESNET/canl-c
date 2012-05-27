@@ -784,6 +784,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
         curtime = time(NULL);
     } while (TEST_SELECT(ret, ret2, locl_timeout, curtime, starttime, errorcode));
 
+    timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
     //TODO split ret2 and ret into 2 ifs to set approp. err. msg and check ag.
     if (ret2 <= 0 || ret <= 0) {
         if (timeout && (curtime - starttime >= locl_timeout)){
@@ -852,6 +853,8 @@ printf ("LIB: %s ;",ERR_lib_error_string(ssl_err));
 printf ("FUNC: %s ;",ERR_func_error_string(ssl_err));
 printf ("LIB: %s \n",ERR_reason_error_string(ssl_err));
 #endif
+
+timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
 
     //TODO split ret2 and ret into 2 ifs to set approp. error message
     if (ret2 <= 0 || ret <= 0) {
@@ -956,6 +959,8 @@ ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
     } while (ret <= 0 && do_continue);
 
 end:
+    curtime = time(NULL);
+    timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
     if (err) {
         errno = err;
         set_error (cc, err, POSIX_ERROR, "Error during SSL write"); 
@@ -1022,9 +1027,12 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
         }
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
 
+    tout->tv_sec = tout->tv_sec - (curtime - starttime);
     if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
         err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
+	    tout->tv_sec = 0;
+	    tout->tv_usec = 0;
             set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
                    " during read: timeout reached");
         }

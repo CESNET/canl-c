@@ -241,7 +241,7 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
     /* XXX timeouts missing */
     if (err) {
         return update_error(glb_cc, errno, POSIX_ERROR,
-			 "Failed to open network connection");
+			 "Failed to establish network connection");
     }
 
     io_cc->sock = sock;
