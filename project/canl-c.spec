@@ -1,3 +1,5 @@
+%global is_fedora %(rpm -q --quiet fedora-release && echo 1 || echo 0)
+
 Summary: @SUMMARY@
 Name: canl-c
 Version: @MAJOR@.@MINOR@.@REVISION@
@@ -14,6 +16,11 @@ BuildRequires: krb5-devel%{?_isa}
 BuildRequires: libtool
 BuildRequires: openssl-devel%{?_isa}
 BuildRequires: pkgconfig
+%if %is_fedora
+BuildRequires: texlive-latex
+%else
+BuildRequires: tetex-latex
+%endif
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 AutoReqProv: yes
 Source: http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-@VERSION@.src.tar.gz
@@ -77,6 +84,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
+%dir /usr/share/doc/%{name}-%{version}
+/usr/share/doc/%{name}-%{version}/*.pdf
 /usr/%{_lib}/libcanl_c.so.@MAJOR@.@MINOR@.@REVISION@
 /usr/%{_lib}/libcanl_c.so.@MAJOR@
 
