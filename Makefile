@@ -1,5 +1,5 @@
 top_srcdir=.
-stagedir=$(pwd)
+stagedir=$(shell pwd)
 PREFIX=
 prefix=/usr
 libdir=lib
@@ -74,7 +74,7 @@ version_info:=-version-info ${shell \
 major:=${shell \
 	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset}' }
 
-all: ${LIBCANL} server client proxy delegation 
+all: ${LIBCANL} server client proxy delegation doc
 
 doc: canl.pdf
 
@@ -145,6 +145,7 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/bin
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
+	mkdir -p ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-${module.version}
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 proxy \
@@ -155,13 +156,14 @@ install: all
 	${INSTALL} -m 644 ${top_srcdir}/src/canl.h \
 		${top_srcdir}/src/canl_ssl.h canl_err.h \
 		${DESTDIR}${PREFIX}${prefix}/include
+	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-${module.version}
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
 
 clean:
 	rm -rfv *.o *.lo ${LIBCANL} .libs client server proxy delegation \
-		${top_srcdir}/*.c ${top_srcdir}/*.h lex.backup stage \
+		*.c *.h lex.backup stage \
 		canl.aux canl.log canl.pdf canl.out canl.toc ver.tex \
 		canl.bbl canl.blg
 
