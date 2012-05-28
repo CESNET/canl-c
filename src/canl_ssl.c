@@ -883,15 +883,12 @@ ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	      void *buffer, size_t size, struct timeval *timeout)
 {
     int err = 0;
-    int ret = 0, nwritten=0;
+    int ret = 0, nwritten=0, ret2 = 0;
     const char *str;
     int fd = -1; 
     time_t starttime, curtime;
-    int do_continue = 0;
-    int expected = 0;
+    int expected = 0, error = 0;
     int locl_timeout;
-    int touted = 0;
-    int to = 0; // bool
     SSL *ssl = (SSL *) auth_ctx;
 
     if (cc == NULL)
@@ -910,73 +907,46 @@ ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
     curtime = starttime = time(NULL);
     if (timeout) {
         locl_timeout = timeout->tv_sec;
-        to = 1;
     }
     else {
-        to = 0;
         locl_timeout = -1;
     }
     ERR_clear_error();
 
     do {
         ret = do_select(fd, starttime, locl_timeout, expected);
+        curtime = time(NULL);
 
-        do_continue = 0;
         if (ret > 0) {
-            int v;
-            errno = 0;
-            ret = SSL_write(ssl, str + nwritten,
-                    strlen(str) - nwritten);
-            v = SSL_get_error(ssl, ret);
+            ret2 = SSL_write(ssl, str + nwritten,
+                    size - nwritten);
 
-            switch (v) {
-                case SSL_ERROR_NONE:
-                    nwritten += ret;
-                    if ((size_t)nwritten == strlen(str))
-                        do_continue = 0;
-                    else
-                        do_continue = 1;
-                    break;
-
-                case SSL_ERROR_WANT_READ:
-                case SSL_ERROR_WANT_WRITE:
-                    expected = v;
-                    ret = 1;
-                    do_continue = 1;
-                    break;
-
-                default:
-                    do_continue = 0;
+            if (ret2 <= 0) {
+                expected = error = SSL_get_error(ssl, ret2);
             }
         }
-        curtime = time(NULL);
-        if (to)
-            locl_timeout = locl_timeout - (curtime - starttime);
-        if (to && locl_timeout <= 0){
-            touted = 1;
+        nwritten += ret;
+        if ((size_t)nwritten == size)
             goto end;
-        }
-    } while (ret <= 0 && do_continue);
+    } while (TEST_SELECT(ret, ret2, locl_timeout, curtime, starttime, error));
 
 end:
     curtime = time(NULL);
-    timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
-    if (err) {
-        errno = err;
-        set_error (cc, err, POSIX_ERROR, "Error during SSL write"); 
-        return -1;
+    if (timeout)
+        timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
+    if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
+        err = -1; //TODO what to assign
+        if (locl_timeout != -1 && (curtime - starttime >= locl_timeout)){
+	    timeout->tv_sec = 0;
+	    timeout->tv_usec = 0;
+            return set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
+                   " during write: timeout reached");
+        }
+        else
+            return set_error(cc, err, UNKNOWN_ERROR, "Error during SSL write");
     }
-    if (touted){
-       err = ETIMEDOUT;
-       set_error(cc, err, POSIX_ERROR, "Connection stuck during"
-               " write: timeout reached"); 
-       return -1;
-    }
-    if (ret <=0){
-        err = -1;//TODO what to assign??????
-        set_error (cc, err, UNKNOWN_ERROR, "Error during SSL write");
-    }
-    return ret;
+
+    return ret2;
 }
 
 static canl_err_code
@@ -1019,7 +989,7 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
 
         if (ret > 0) {
             ret2 = SSL_read(ssl, str + nwritten,
-                    strlen(str) - nwritten);
+                    size - nwritten);
 
             if (ret2 <= 0) {
                 expected = error = SSL_get_error(ssl, ret2);
@@ -1027,7 +997,8 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
         }
     } while (TEST_SELECT(ret, ret2, timeout, curtime, starttime, error));
 
-    tout->tv_sec = tout->tv_sec - (curtime - starttime);
+    if (tout)
+        tout->tv_sec = tout->tv_sec - (curtime - starttime);
     if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
         err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
