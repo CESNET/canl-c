@@ -878,11 +878,10 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
 }
 
 /* this function has to return # bytes written or ret < 0 when sth went wrong*/
-static canl_err_code
+static size_t
 ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	      void *buffer, size_t size, struct timeval *timeout)
 {
-    int err = 0;
     int ret = 0, nwritten=0, ret2 = 0;
     const char *str;
     int fd = -1; 
@@ -892,14 +891,18 @@ ssl_write(glb_ctx *cc, io_handler *io, void *auth_ctx,
     SSL *ssl = (SSL *) auth_ctx;
 
     if (cc == NULL)
-	return EINVAL;
+        return -1;
 
-    if (io == NULL)
-	return set_error(cc, EINVAL, POSIX_ERROR,
-			 "Connection not established");
+    if (io == NULL) {
+        set_error(cc, EINVAL, POSIX_ERROR,
+                "Connection not established");
+        return -1;
+    }
 
-    if (ssl == NULL)
-	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
+    if (ssl == NULL) {
+	set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
+        return -1;
+    }
 
     fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     str = buffer;//TODO !!!!!! text.c_str();
@@ -935,25 +938,26 @@ end:
     if (timeout)
         timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
     if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
-        err = -1; //TODO what to assign
         if (locl_timeout != -1 && (curtime - starttime >= locl_timeout)){
-	    timeout->tv_sec = 0;
-	    timeout->tv_usec = 0;
-            return set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
-                   " during write: timeout reached");
+            timeout->tv_sec = 0;
+            timeout->tv_usec = 0;
+            set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
+                    " during write: timeout reached");
+            return -1;
         }
-        else
-            return set_error(cc, err, UNKNOWN_ERROR, "Error during SSL write");
+        else {
+            set_error(cc, 0, UNKNOWN_ERROR, "Error during SSL write");
+            return -1;
+        }
     }
 
     return ret2;
 }
 
-static canl_err_code
+static size_t
 ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	     void *buffer, size_t size, struct timeval *tout)
 {
-    int err = 0;
     int ret = 0, nwritten=0, ret2 = 0;
     char *str;
     int fd = -1;
@@ -963,14 +967,18 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
     SSL *ssl = (SSL *) auth_ctx;
 
     if (cc == NULL)
-	return EINVAL;
+	return -1;
 
-    if (io == NULL)
-	return set_error(cc, EINVAL, POSIX_ERROR,
-			 "Connection not established");
+    if (io == NULL) {
+	set_error(cc, EINVAL, POSIX_ERROR,
+                "Connection not established");
+        return -1;
+    }
 
-    if (ssl == NULL)
-	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
+    if (ssl == NULL) {
+	set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
+        return -1;
+    }
 
     fd = BIO_get_fd(SSL_get_rbio(ssl), NULL);
     str = buffer;//TODO !!!!!! text.c_str();
@@ -1000,19 +1008,20 @@ ssl_read(glb_ctx *cc, io_handler *io, void *auth_ctx,
     if (tout)
         tout->tv_sec = tout->tv_sec - (curtime - starttime);
     if (ret <= 0 || ret2 <= 0) { // what if ret2 == 0? conn closed?
-        err = -1; //TODO what to assign
         if (timeout != -1 && (curtime - starttime >= timeout)){
 	    tout->tv_sec = 0;
 	    tout->tv_usec = 0;
             set_error(cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
                    " during read: timeout reached");
+            return -1;
         }
-        else
-            set_error(cc, err, UNKNOWN_ERROR, "Error during SSL read");
+        else {
+            set_error(cc, 1, UNKNOWN_ERROR, "Error during SSL read");
+            return -1;
+        }
     }
-    else
-        err = ret2;
-    return err;
+
+    return ret2;
 }
 
 /* ret > 1 if connection does not exist or has been closed before

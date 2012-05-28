@@ -104,10 +104,10 @@ typedef struct canl_mech {
     canl_err_code (*close)
         (glb_ctx *, io_handler *, void *);
 
-    canl_err_code (*read)
+    size_t (*read)
         (glb_ctx *, io_handler *, void *, void *, size_t, struct timeval *);
 
-    canl_err_code (*write)
+    size_t (*write)
         (glb_ctx *, io_handler *, void *, void *, size_t, struct timeval *);
 
     canl_err_code (*get_peer)

@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
         printf("[SERVER] message \"%s\" sent successfully\n", buf);
     }
 
+    buf[0] = '\0';
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
     if (err <= 0) {
 	printf("[SERVER] Failed to receive reply from client: %s\n",
