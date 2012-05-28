@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     timeout.tv_sec = DEF_TIMEOUT;
     timeout.tv_usec = 0;
 
-    while ((opt = getopt(argc, argv, "hp:s:c:k:")) != -1) {
+    while ((opt = getopt(argc, argv, "hp:s:c:k:t:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
