@@ -7,6 +7,8 @@
 #include <canl_ssl.h>
 
 #define BUF_LEN 1000
+#define DEF_PORT 4321
+#define DEF_TIMEOUT 150
 
 int main(int argc, char *argv[])
 {
@@ -17,18 +19,22 @@ int main(int argc, char *argv[])
     int buf_len = 0;
     char *p_server = NULL;
     char *def_server = "www.linuxfoundation.org";
-    int opt, port = 80;
+    int opt, port = DEF_PORT;
     struct timeval timeout;
     char *serv_cert = NULL;
     char *serv_key = NULL;
     char *proxy_cert = NULL;
+
+    timeout.tv_sec = DEF_TIMEOUT;
+    timeout.tv_usec = 0;
 
     while ((opt = getopt(argc, argv, "hp:s:c:k:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h] "
-                        " [-s server] [-x proxy certificate] \n", argv[0]);
+                        " [-s server] [-x proxy certificate] "
+                        " [-t timeout] \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -45,10 +51,14 @@ int main(int argc, char *argv[])
             case 'x': 
                 proxy_cert = optarg;
                 break;
+            case 't':
+                timeout.tv_sec = atoi(optarg);
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-d ca_dir] [-h] "
-                        " [-s server] [-x proxy certificate] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h]"
+                        " [-s server] [-x proxy certificate]"
+                        " [-t timeout] \n", argv[0]);
                 exit(-1);
         }
     }
@@ -79,9 +89,6 @@ int main(int argc, char *argv[])
         }
     }
 
-   timeout.tv_sec = 150;
-   timeout.tv_usec = 0;
-
     err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0, &timeout);
     if (err) {
         printf("[CLIENT] connection to %s cannot be established: %s\n",
@@ -106,6 +113,7 @@ int main(int argc, char *argv[])
         buf[err] = '\0';
         printf("[CLIENT] message \"%s\" sent successfully\n", buf);
     }
+    buf[0] = '\0';
 
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
     if (err > 0) {

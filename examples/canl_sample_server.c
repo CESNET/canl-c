@@ -10,13 +10,15 @@
 
 #define BUF_LEN 1000
 #define BACKLOG 10
+#define DEF_PORT 4321
+#define DEF_TIMEOUT 150
 
 int main(int argc, char *argv[])
 {
     canl_ctx my_ctx;
     canl_io_handler my_io_h = NULL;
     int err = 0;
-    int opt, port = 4321;
+    int opt, port = DEF_PORT;
     char *serv_cert = NULL;
     char *serv_key = NULL;
     char *ca_dir = NULL;
@@ -25,12 +27,17 @@ int main(int argc, char *argv[])
     struct timeval timeout;
     canl_principal princ = NULL;
     char *name = NULL;
+    
+    timeout.tv_sec = DEF_TIMEOUT;
+    timeout.tv_usec = 0;
 
-    while ((opt = getopt(argc, argv, "hp:c:k:d:")) != -1) {
+
+    while ((opt = getopt(argc, argv, "hp:c:k:d:t:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] "
+                        "[-t timeout] \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -44,9 +51,13 @@ int main(int argc, char *argv[])
             case 'd':
                 ca_dir = optarg;
                 break;
+            case 't':
+                timeout.tv_sec = atoi(optarg);
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
-                        " [-k private key] [-d ca_dir] [-h] \n", argv[0]);
+                        " [-k private key] [-d ca_dir] [-h] "
+                        "[-t timeout] \n", argv[0]);
                 exit(-1);
         }
     }
@@ -138,9 +149,6 @@ int main(int argc, char *argv[])
         printf("Failed to accept network connection: %s", strerror(errno));
     }
 
-    timeout.tv_sec = 150;
-    timeout.tv_usec = 0;
-
     /* canl_create_io_handler has to be called for my_io_h*/
     /* TODO timeout in this function? and select around it*/
     err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 0, &princ, &timeout);
@@ -170,7 +178,7 @@ int main(int argc, char *argv[])
         printf("[SERVER] message \"%s\" sent successfully\n", buf);
     }
 
-    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, NULL);
+    err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
     if (err <= 0) {
 	printf("[SERVER] Failed to receive reply from client: %s\n",
 	       canl_get_error_message(my_ctx));
