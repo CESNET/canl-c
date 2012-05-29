@@ -33,7 +33,7 @@ print qq (/*
 #include "canl_locl.h"
 #include "canl_mech_ssl.h"
 
-struct canl_err_desc canl_err_descs[] = {);
+canl_err_desc canl_err_descs[] = {);
 
 open (DESC, $desc_file) or die ("Failed to open $desc_file: $!");
 while (<DESC>) {
@@ -67,4 +67,6 @@ make_c_line ($err_name, $err_dsc, $openssl_err_lib, $openssl_err_reason)
 
 print STDOUT qq (
 };
+
+int canl_err_descs_num = sizeof(canl_err_descs)/sizeof(*canl_err_descs);
 );

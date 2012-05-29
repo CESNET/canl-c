@@ -118,6 +118,9 @@ typedef struct canl_mech {
 /* Mechanism specific */
 extern canl_mech canl_mech_ssl;
 
+extern canl_err_desc canl_err_descs[];
+extern int canl_err_descs_num;
+
 struct canl_mech *
 find_mech(gss_OID oid);
 

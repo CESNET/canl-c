@@ -6,6 +6,8 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
         canl_err_origin err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 static canl_err_code update_error_msg(canl_ctx cc, const char *new_msg);
+static char *
+canl_strerror(const canl_err_code c_code);
 
 /* Save error message into err_msg
  * use NULL for empty err_format */
@@ -177,12 +179,33 @@ static void get_error_string(glb_ctx *cc, char *code_str)
                 code_str[ERR_CODE_LEN - 1] = '\0';
             }
             break;
+        case CANL_ERROR:
+            new_str = canl_strerror(cc->err_code);
+            if (new_str) {
+                strncpy(code_str, new_str,
+                        ERR_CODE_LEN);
+                code_str[ERR_CODE_LEN - 1] = '\0';
+            }
+            break;
         default:
 	    snprintf(code_str, ERR_CODE_LEN,
 		     "Unknown error origin (%u) of error %lu!",
 		     cc->err_orig, cc->err_code);
             break;
     }
+}
+
+static char *
+canl_strerror(const canl_err_code c_code)
+{
+    char *new_str = NULL;
+    int k = 0;
+    for (k = 0; k < canl_err_descs_num; k++) {
+        if (canl_err_descs[k].code == c_code) {
+            new_str = canl_err_descs[k].desc;
+        }
+    }
+    return new_str;
 }
 
 canl_err_code
