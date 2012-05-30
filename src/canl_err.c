@@ -6,8 +6,9 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
         canl_err_origin err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 static canl_err_code update_error_msg(canl_ctx cc, const char *new_msg);
-static char *
-canl_strerror(const canl_err_code c_code);
+static char *canl_strerror(const canl_err_code c_code);
+static canl_error canl_err_ssl_to_canl(const unsigned long ossl_lib,
+        const unsigned long ossl_reason);
 
 /* Save error message into err_msg
  * use NULL for empty err_format */
@@ -206,6 +207,23 @@ canl_strerror(const canl_err_code c_code)
         }
     }
     return new_str;
+}
+
+/*return appropriate CANL_ERROR according to openssl error code or -1 if
+no one found */
+static canl_error
+canl_err_ssl_to_canl(const unsigned long ossl_lib,
+        const unsigned long ossl_reason)
+{
+    canl_error ret_err = -1;
+    int k = 0;
+    for (k = 0; k < canl_err_descs_num; k++) {
+        if (canl_err_descs[k].openssl_lib == ossl_lib) {
+            if (canl_err_descs[k].openssl_reason == ossl_reason)
+                ret_err = canl_err_descs[k].code;
+        }
+    }
+    return ret_err;
 }
 
 canl_err_code

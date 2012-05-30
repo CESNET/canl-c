@@ -20,6 +20,7 @@
 
 #include "sslutils.h"
 #include "canl.h"
+#include "canl_err.h"
 
 typedef struct canl_err_desc {
     canl_error code;

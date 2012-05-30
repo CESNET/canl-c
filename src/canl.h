@@ -8,8 +8,6 @@
 extern "C" { 
 #endif
 
-#include <canl_err.h>
-
 #ifndef CANL_CALLCONV
 #define CANL_CALLCONV
 #endif
