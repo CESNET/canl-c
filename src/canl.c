@@ -49,16 +49,19 @@ canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
     glb_ctx *g_cc = cc;
     int err = 0;
 
-    if (!g_cc || io == NULL)
+    if (!g_cc) 
         return EINVAL;
-
+    if (!io)
+        return set_error(g_cc, EINVAL, POSIX_ERROR, "IO handler not"
+                " initialized");
+        
     /*create io handler*/
     new_io_h = (io_handler *) calloc(1, sizeof(*new_io_h));
     if (!new_io_h)
         return set_error(g_cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     /* allocate memory and initialize io content*/
-    if ((err = init_io_content(g_cc ,new_io_h))){
+    if ((err = init_io_content(g_cc, new_io_h))){
 	free(new_io_h);
 	return err;
     }
@@ -75,8 +78,8 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
 }
 
 canl_err_code
-canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, const char *service,
-	int port, gss_OID_set auth_mechs,
+canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, 
+        const char *service, int port, gss_OID_set auth_mechs, 
         int flags, struct timeval *timeout)
 {
     int err = 0;
@@ -482,13 +485,13 @@ find_mech(gss_OID oid)
     return &canl_mech_ssl;
 }
 
-canl_err_code 
+canl_err_code
 canl_princ_name(canl_ctx cc, const canl_principal princ, char **name)
 {
     struct _principal_int *p = (struct _principal_int *) princ;
 
     if (cc == NULL)
-	return -1;
+	return EINVAL;
     if (princ == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "Principal not initialized");
 

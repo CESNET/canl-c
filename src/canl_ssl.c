@@ -371,6 +371,10 @@ ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
                 return err;
         }
     }
+    if (err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
+                !m_ctx->cert_key->key))
+	update_error(cc, EINVAL, POSIX_ERROR, "No key or certificate"
+                " found");
 
     free(user_cert_fn);
     user_cert_fn = NULL;
@@ -447,13 +451,16 @@ ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
 	return EINVAL;
 
     if (ssl_ctx == NULL)
-	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
 
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
-    if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || !m_ctx->cert_key->key)) {
+    if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
+                !m_ctx->cert_key->key)) {
         if (user_proxy_fn && !access(user_proxy_fn, R_OK)) {
-            err = do_set_ctx_own_cert_file(cc, m_ctx, NULL, NULL, user_proxy_fn);
+            err = do_set_ctx_own_cert_file(cc, m_ctx, NULL, NULL,
+                    user_proxy_fn);
             if (err)
                 return err;
         }
@@ -472,6 +479,11 @@ ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
             }
         }
     }
+
+    if (err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
+                !m_ctx->cert_key->key))
+	update_error(cc, EINVAL, POSIX_ERROR, "No key or certificate"
+                " found");
 
     free(user_cert_fn);
     user_cert_fn = NULL;
