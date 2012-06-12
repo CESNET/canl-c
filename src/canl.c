@@ -1,5 +1,14 @@
 #include "canl_locl.h"
 
+#define tv_sub(a,b) {\
+    (a).tv_usec -= (b).tv_usec;\
+    (a).tv_sec -= (b).tv_sec;\
+    if ((a).tv_usec < 0) {\
+        (a).tv_sec--;\
+        (a).tv_usec += 1000000;\
+    }\
+}
+
 static struct canl_mech *mechs[] = {
     &canl_mech_ssl,
 };
@@ -206,12 +215,14 @@ end:
 static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
         int addrtype, int port, struct timeval *timeout)
 {
-    //struct timeval before,after,to;
     struct sockaddr_storage a;
     struct sockaddr_storage *p_a=&a;
     socklen_t a_len;
+    socklen_t err_len;
     int sock;
-    int err = 0;
+    int sock_err;
+
+    struct timeval before,after,to;
 
     struct sockaddr_in *p4 = (struct sockaddr_in *)p_a;
     struct sockaddr_in6 *p6 = (struct sockaddr_in6 *)p_a;
@@ -238,13 +249,61 @@ static int try_connect(glb_ctx *glb_cc, io_handler *io_cc, char *addr,
     sock = socket(a.ss_family, SOCK_STREAM, 0);
     if (sock == -1)
         return update_error(glb_cc, errno, POSIX_ERROR,
-			 "Failed to create network socket");
+                "Failed to create network socket");
 
-    err = connect(sock,(struct sockaddr *) &a, a_len);
-    /* XXX timeouts missing */
-    if (err) {
-        return update_error(glb_cc, errno, POSIX_ERROR,
-			 "Failed to establish network connection");
+/* TODO from L&B; do we need it?
+    opt = 1;
+    setsockopt(sock,IPPROTO_TCP,TCP_NODELAY,&opt,sizeof opt);
+*/
+
+    if (timeout) {
+        int flags = fcntl(sock, F_GETFL, 0);
+        if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0)
+            return update_error(glb_cc, errno, POSIX_ERROR,
+                    "Failed to set socket file status flags");
+        gettimeofday(&before,NULL);
+    }
+
+    if (connect(sock,(struct sockaddr *) &a, a_len) < 0) {
+        if (timeout && errno == EINPROGRESS) {
+            fd_set fds;
+            FD_ZERO(&fds);
+            FD_SET(sock, &fds);
+            /*TODO why don't we use timeout explicitly?*/
+            memcpy(&to, timeout, sizeof to);
+            gettimeofday(&before, NULL);
+            switch (select(sock+1, NULL, &fds, NULL, &to)) {
+                case -1: close(sock);
+                         return update_error(glb_cc, errno, POSIX_ERROR,
+                                 "Connection error");
+                case 0: close(sock);
+                        timeout->tv_sec = 0; 
+                        timeout->tv_usec = 0; 
+                        return update_error(glb_cc, errno, POSIX_ERROR,
+                                "Connection timeout reached");
+            }
+            gettimeofday(&after, NULL);
+            tv_sub(after, before);
+            tv_sub(*timeout, after);
+
+            err_len = sizeof sock_err;
+            if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &sock_err, &err_len)) {
+                close(sock);
+                return update_error(glb_cc, errno, POSIX_ERROR,
+                        "Cannost get socket options");
+            }
+            if (sock_err) {
+                close(sock);
+                errno = sock_err;
+                return update_error(glb_cc, errno, POSIX_ERROR,
+                        "Connection error");
+            }
+        }
+        else {
+            close(sock);
+            return update_error(glb_cc, errno, POSIX_ERROR,
+                    "Connection error");
+        }
     }
 
     io_cc->sock = sock;
