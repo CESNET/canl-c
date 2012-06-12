@@ -249,7 +249,7 @@ set_ocsp_store(canl_x509store_t *store)
     static canl_err_code
 ssl_initialize(glb_ctx *cc)
 {
-    mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **)cc->mech_ctx;
+    mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **) &cc->mech_ctx;
     int err = 0;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
     char *ca_cert_dirn = NULL;
