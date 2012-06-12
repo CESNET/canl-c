@@ -53,6 +53,7 @@ typedef struct _glb_ctx
     /* XXX Do we need to keep these two:? */
     canl_err_origin err_orig;
     long original_err_code;
+    void *mech_ctx;
 } glb_ctx;
 
 typedef struct _asyn_result {
@@ -76,10 +77,9 @@ typedef struct _io_handler
 
 typedef struct canl_mech {
     CANL_AUTH_MECHANISM mech;
-    void *glb_ctx;
 
     canl_err_code (*initialize)
-        (glb_ctx *, void **);
+        (glb_ctx *);
 
     canl_err_code (*set_flags)
         (glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags);
@@ -88,10 +88,10 @@ typedef struct canl_mech {
 	(glb_ctx *, void *);
 
     canl_err_code (*client_init)
-        (glb_ctx *, void *, void **);
+        (glb_ctx *, void **);
 
     canl_err_code (*server_init)
-        (glb_ctx *, void *, void **);
+        (glb_ctx *, void **);
 
     canl_err_code (*free_ctx)
 	(glb_ctx *, void *);

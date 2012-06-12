@@ -20,7 +20,7 @@ canl_ctx canl_create_ctx()
         return NULL;
 
     for (i = 0; i < sizeof(mechs)/sizeof(mechs[0]); i++)
-	mechs[i]->initialize(ctx, &mechs[i]->glb_ctx);
+	mechs[i]->initialize(ctx); /*TODO every mech must have its own ctx*/
 
     return ctx;
 }
@@ -121,7 +121,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
                 break;
             case TRY_AGAIN:
                 err = update_error(glb_cc, ETIMEDOUT, POSIX_ERROR,
-                        "Cannot resolve the server hostname (%s)", host);
+                        " Timeout reached when connecting to (%s)", host);
 		goto end;
             case NETDB_INTERNAL:
 		err = update_error(glb_cc, errno, POSIX_ERROR,
@@ -154,7 +154,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
 		if (err)
 		    continue;
 
-		err = mech->client_init(glb_cc, mech->glb_ctx, &ctx);
+		err = mech->client_init(glb_cc, &ctx);
 		if (err) {
 		    canl_io_close(glb_cc, io_cc);
 		    continue;
@@ -271,7 +271,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 
     io_cc->sock = new_fd;
 
-    err = mech->server_init(glb_cc, mech->glb_ctx, &conn_ctx);
+    err = mech->server_init(glb_cc, &conn_ctx);
     if (err)
         goto end;
 

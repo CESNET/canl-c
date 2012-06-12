@@ -247,9 +247,9 @@ set_ocsp_store(canl_x509store_t *store)
 
 
     static canl_err_code
-ssl_initialize(glb_ctx *cc, void **v_glb_ctx)
+ssl_initialize(glb_ctx *cc)
 {
-    mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **)v_glb_ctx;
+    mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **)cc->mech_ctx;
     int err = 0;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
     char *ca_cert_dirn = NULL;
@@ -346,10 +346,10 @@ ssl_set_dir(glb_ctx *cc, char **target, const char *ca_dir)
 }
 
 static canl_err_code
-ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
+ssl_server_init(glb_ctx *cc, void **ctx)
 {
-    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
-    SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
+    SSL_CTX *ssl_ctx = NULL; 
     SSL *ssl = NULL;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
     int err = 0;
@@ -358,8 +358,10 @@ ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
     if (cc == NULL)
 	return EINVAL;
 
-    if (ssl_ctx == NULL)
-	return set_error(cc, EINVAL, POSIX_ERROR, "SSL not initialized");
+    if (!m_ctx || !m_ctx->mech_ctx)
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
+    ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
 
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
@@ -438,21 +440,22 @@ ssl_server_init(glb_ctx *cc, void *v_ctx, void **ctx)
 }
 
 static canl_err_code
-ssl_client_init(glb_ctx *cc, void *v_ctx, void **ctx)
+ssl_client_init(glb_ctx *cc, void **ctx)
 {
-    mech_glb_ctx *m_ctx = (mech_glb_ctx *)v_ctx;
-    SSL_CTX *ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
+    SSL_CTX *ssl_ctx = NULL;
     SSL *ssl = NULL;
     int err = 0, i = 0;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
     user_cert_fn = user_key_fn = user_proxy_fn = NULL;
-
+    
     if (cc == NULL)
 	return EINVAL;
-
-    if (ssl_ctx == NULL)
+    
+    if (!m_ctx || !m_ctx->mech_ctx)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
                 " initialized");
+    ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
 
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
@@ -1127,8 +1130,11 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key, char *proxy,
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int err = 0;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
 
-    mech_glb_ctx *m_ctx = canl_mech_ssl.glb_ctx;
+    if (!m_ctx)
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
 
     if (!cc)
         return EINVAL;
@@ -1148,11 +1154,14 @@ canl_err_code
 canl_ctx_set_crl_dir(canl_ctx cc, const char *dir)
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
-    struct canl_mech *mech = find_mech(GSS_C_NO_OID); //TODO for now
-    mech_glb_ctx *m_ctx = (mech_glb_ctx *)mech->glb_ctx;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
     
     if (!cc)
         return EINVAL;
+    
+    if (!m_ctx)
+	return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
     
     return ssl_set_dir(glb_cc, &m_ctx->crl_dir, dir);
 }
@@ -1161,11 +1170,14 @@ canl_err_code
 canl_ctx_set_ca_dir(canl_ctx cc, const char *dir)
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
-    struct canl_mech *mech = find_mech(GSS_C_NO_OID); //TODO for now
-    mech_glb_ctx *m_ctx = (mech_glb_ctx *)mech->glb_ctx;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
     
     if (!cc)
         return EINVAL;
+    
+    if (!m_ctx)
+	return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
     
     return ssl_set_dir(glb_cc, &m_ctx->ca_dir, dir);
 }
@@ -1415,11 +1427,8 @@ error_exit:
     return 0;
 }
 
-mech_glb_ctx ssl_glb_ctx;
-
 canl_mech canl_mech_ssl = {
     TLS,
-    &ssl_glb_ctx,
     ssl_initialize,
     ssl_set_flags,
     ssl_finish,

@@ -105,10 +105,15 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd = (creds*) cred;
     int ret = 0;
-    mech_glb_ctx *m_ctx = (mech_glb_ctx*) canl_mech_ssl.glb_ctx;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
 
     if (!ctx)
         return EINVAL;
+
+    if (!m_ctx)
+        return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
+
     if (!crd || !m_ctx->cert_key)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
                 " not initialized" );
