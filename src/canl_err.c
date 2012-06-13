@@ -252,42 +252,44 @@ canl_get_error_message(canl_ctx cc)
   TODO go through ssl errors and assign appr. canl code
   ?preserve original one? */
 static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code, 
-				   canl_err_origin err_orig)
+        canl_err_origin err_orig)
 {
     cc->original_err_code = err_code;
     cc->err_orig = err_orig;
 
     switch (err_orig) {
-	case UNKNOWN_ERROR:
-	    cc->err_code = (err_code) ? CANL_ERR_unknown : 0;
-	    break;
-	case POSIX_ERROR:
-	    /* We don't use that many posix-like codes, perhaps we want to
-	     * map them to CANL codes. */
-	    cc->err_code = err_code;
-	    break;
-	case SSL_ERROR:
-	    /* XXX Add mapping based on canl_err_desc.c */
-	    /* TODO use err_code until mechanism mapping ssl_codes to 
-             * canl_code is implemented 
-             * cc->err_code = CANL_ERR_GeneralSSLError; */
+        case UNKNOWN_ERROR:
+            cc->err_code = (err_code) ? CANL_ERR_unknown : 0;
+            break;
+        case POSIX_ERROR:
+            /* We don't use that many posix-like codes, perhaps we want to
+             * map them to CANL codes. */
             cc->err_code = err_code;
-	    break;
-	case CANL_ERROR:
-	    cc->err_code = err_code;
-	    break;
-	case NETDB_ERROR:
-	    switch (cc->err_code) {
-		case HOST_NOT_FOUND:
-		    cc->err_code = CANL_ERR_HostNotFound;
-		    break;
-		default:
-		    cc->err_code = CANL_ERR_ResolverError;
-		    break;
-	    }
-	    break;
-	default:
-	    cc->err_code = CANL_ERR_unknown;
+            break;
+        case SSL_ERROR:
+            /* TODO What about CANL_ERR_GeneralSSLError ?*/
+            if ((cc->err_code = canl_err_ssl_to_canl(ERR_GET_LIB(err_code),
+                            ERR_GET_REASON(err_code))) != -1){
+                cc->err_orig = CANL_ERROR;
+            }
+            cc->err_code = err_code;
+            break;
+        case CANL_ERROR:
+            cc->err_code = err_code;
+            break;
+        case NETDB_ERROR:
+            switch (cc->err_code) {
+                case HOST_NOT_FOUND:
+                    cc->err_code = CANL_ERR_HostNotFound;
+                    break;
+                default:
+                    cc->err_code = CANL_ERR_ResolverError;
+                    break;
+            }
+            break;
+        default:
+            cc->err_code = CANL_ERR_unknown;
+            cc->err_orig = UNKNOWN_ERROR;
     }
 
     return cc->err_code;
