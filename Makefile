@@ -1,11 +1,14 @@
 top_srcdir=.
 stagedir=$(shell pwd)
+package=canl-c
 PREFIX=
 prefix=/usr
 libdir=lib
 
 -include Makefile.inc
 -include ${top_srcdir}/project/version.properties
+
+version=${module.version}
 
 VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/:${top_srcdir}/examples:${top_srcdir}/doc/src
 KPATH = TEXINPUTS=".:${top_srcdir}/doc/src//:"
@@ -22,6 +25,14 @@ BIBTEX = $(KPATHBIB) bibtex
 COMPILE=libtool --mode=compile ${CC} ${CFLAGS}
 LINK=libtool --mode=link ${CC} ${LDFLAGS}
 INSTALL=libtool --mode=install install
+
+SOURCES=\
+	doc/src/*.cls doc/src/*.tex doc/src/images/*.pdf \
+	examples/*.c \
+	src/canl_error_* src/*.c src/*.h src/*.pl \
+	src/proxy/*.c src/proxy/*.h src/proxy/*.in src/proxy/*.y src/proxy/*.l \
+	Makefile
+SOURCES_EXEC=src/*.pl
 
 CFLAGS_LIB=-fPIC -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -I.
 LFLAGS_LIB=-shared ${LIBCARES_LIBS} ${LIBSSL_LIBS}
@@ -70,9 +81,9 @@ LIBCANL=libcanl_c.la
 #
 offset=0
 version_info:=-version-info ${shell \
-	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset},$$F[2],$$F[1]' }
+	perl -e '$$,=":"; @F=split "\\.","${version}"; print $$F[0]+$$F[1]+${offset},$$F[2],$$F[1]' }
 major:=${shell \
-	perl -e '$$,=":"; @F=split "\\.","${module.version}"; print $$F[0]+$$F[1]+${offset}' }
+	perl -e '$$,=":"; @F=split "\\.","${version}"; print $$F[0]+$$F[1]+${offset}' }
 
 all: ${LIBCANL} server client proxy delegation doc
 
@@ -138,7 +149,7 @@ canl_err_desc.c: canl_error_codes canl_error_desc
 	${top_srcdir}/src/gen_err_desc.pl $^ > $@
 
 ver.tex:
-	printf "\134def\134version{${module.version}}\n" > ver.tex
+	printf "\134def\134version{${version}}\n" > ver.tex
 
 check:
 
@@ -146,7 +157,7 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/bin
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
-	mkdir -p ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${module.version}
+	mkdir -p ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 proxy \
@@ -157,7 +168,7 @@ install: all
 	${INSTALL} -m 644 ${top_srcdir}/src/canl.h \
 		${top_srcdir}/src/canl_ssl.h canl_err.h \
 		${DESTDIR}${PREFIX}${prefix}/include
-	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${module.version}
+	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
@@ -167,6 +178,9 @@ clean:
 		*.c *.h lex.backup stage \
 		canl.aux canl.log canl.pdf canl.out canl.toc ver.tex \
 		canl.bbl canl.blg
+	rm -rvf dist ${package}-*.tar.gz
 
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/
+
+.PHONY: all doc check install stage clean distclean dist distcheck
