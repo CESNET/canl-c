@@ -146,7 +146,7 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/bin
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
-	mkdir -p ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-${module.version}
+	mkdir -p ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${module.version}
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 proxy \
@@ -157,7 +157,7 @@ install: all
 	${INSTALL} -m 644 ${top_srcdir}/src/canl.h \
 		${top_srcdir}/src/canl_ssl.h canl_err.h \
 		${DESTDIR}${PREFIX}${prefix}/include
-	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-${module.version}
+	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${module.version}
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
