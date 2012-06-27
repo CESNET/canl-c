@@ -5,6 +5,8 @@ PREFIX=
 prefix=/usr
 libdir=lib
 
+default: all
+
 -include Makefile.inc
 -include ${top_srcdir}/project/version.properties
 
@@ -183,4 +185,4 @@ clean:
 distclean:
 	rm -rvf Makefile.inc config.status project/changelog *.spec debian/
 
-.PHONY: all doc check install stage clean distclean dist distcheck
+.PHONY: default all doc check install stage clean distclean dist distcheck
