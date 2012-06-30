@@ -61,6 +61,7 @@ static int set_ocsp_url(char *url);
 static int set_ocsp_issuer(X509 *issuer);
 static canl_x509store_t * store_dup(canl_x509store_t *store_from);
 static X509_STORE * canl_create_x509store(canl_x509store_t *store);
+static canl_error get_verify_result(unsigned long ssl_err, const SSL *ssl);
 
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
@@ -776,6 +777,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
+    canl_error canl_err = 0;
 
     /* do not take tv_usec into account in this function*/
     if (timeout)
@@ -807,8 +809,15 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
             update_error (cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck during"
 		   " handshake: timeout reached");
         }
-        else if (ret2 < 0 && ssl_err)
-            update_error(cc, ssl_err, e_orig, "Error during SSL handshake");
+        else if (ret2 < 0 && ssl_err){
+            canl_err = get_verify_result(ssl_err, ssl);
+            if (canl_err)
+                update_error (cc, canl_err, CANL_ERROR,
+                        "Error during SSL handshake");
+            else
+                update_error(cc, ssl_err, SSL_ERROR,
+                        "Error during SSL handshake");
+        }
         else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
             update_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed"
                     " by the other side");
@@ -830,6 +839,7 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
+    canl_error canl_err = 0;
 
     /* do not take tv_usec into account in this function*/
     if (timeout)
@@ -881,8 +891,15 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
         else if (ret2 == 0)
             set_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed by"
 		    " the other side");
-        else if (ret2 < 0 && ssl_err)
-            set_error (cc, ssl_err, SSL_ERROR, "Error during SSL handshake");
+        else if (ret2 < 0 && ssl_err){
+            canl_err = get_verify_result(ssl_err, ssl);
+            if (canl_err)
+                set_error(cc, canl_err, CANL_ERROR,
+                        "Error during SSL handshake");
+            else
+                set_error(cc, ssl_err, SSL_ERROR,
+                        "Error during SSL handshake");
+        }
 	else
             /*ret2 < 0 && !ssl_err*/
             set_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake"
@@ -890,6 +907,24 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
         return 1;
     }
     return 0;
+}
+
+static canl_error
+get_verify_result(unsigned long ssl_err, const SSL *ssl)
+{
+    long result = 0;
+    canl_error canl_err = 0;
+
+    result = SSL_get_verify_result(ssl);
+    switch (result) {
+        case X509_V_ERR_CERT_CHAIN_TOO_LONG:
+            canl_err = CANL_ERR_pathLenghtExtended;
+            break;
+        default:
+            break;
+    }
+
+    return canl_err;
 }
 
 /* this function has to return # bytes written or ret < 0 when sth went wrong*/
