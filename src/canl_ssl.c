@@ -772,7 +772,6 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
-    int err = 0;
     canl_err_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
@@ -805,17 +804,18 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
         if (timeout && (curtime - starttime >= locl_timeout)){
             timeout->tv_sec=0;
             timeout->tv_usec=0;
-            err = ETIMEDOUT; 
-            update_error (cc, err, POSIX_ERROR, "Connection stuck during"
+            update_error (cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck during"
 		   " handshake: timeout reached");
         }
         else if (ret2 < 0 && ssl_err)
-            return update_error(cc, ssl_err, e_orig, "Error during SSL handshake");
+            update_error(cc, ssl_err, e_orig, "Error during SSL handshake");
         else if (ret2 == 0)//TODO is 0 (conn closed by the other side) error?
             update_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed"
                     " by the other side");
         else
-            update_error (cc, err, UNKNOWN_ERROR, "Error during SSL handshake");
+            /*ret2 < 0 && !ssl_err*/
+            update_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake"
+                    " in communication with the server");
         return 1;
     }
     return 0;
@@ -827,7 +827,6 @@ static int do_ssl_accept(glb_ctx *cc, io_handler *io,
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
-    int err = 0;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -876,8 +875,7 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
         if (timeout && (curtime - starttime >= locl_timeout)){
             timeout->tv_sec=0;
             timeout->tv_usec=0;
-            err = ETIMEDOUT;
-            set_error (cc, err, POSIX_ERROR, "Connection stuck"
+            set_error (cc, ETIMEDOUT, POSIX_ERROR, "Connection stuck"
                     " during handshake: timeout reached"); 
         }
         else if (ret2 == 0)
@@ -886,7 +884,9 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
         else if (ret2 < 0 && ssl_err)
             set_error (cc, ssl_err, SSL_ERROR, "Error during SSL handshake");
 	else
-	    set_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake");
+            /*ret2 < 0 && !ssl_err*/
+            set_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake"
+                    " in communication with the server");
         return 1;
     }
     return 0;

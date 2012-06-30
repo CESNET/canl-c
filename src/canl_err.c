@@ -7,7 +7,7 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
 static void get_error_string(glb_ctx *cc, char *code_str);
 static canl_err_code update_error_msg(canl_ctx cc, const char *new_msg);
 static char *canl_strerror(const canl_err_code c_code);
-static canl_error canl_err_ssl_to_canl(const unsigned long ossl_lib,
+static int canl_err_ssl_to_canl(const unsigned long ossl_lib,
         const unsigned long ossl_reason);
 
 /* Save error message into err_msg
@@ -211,11 +211,11 @@ canl_strerror(const canl_err_code c_code)
 
 /*return appropriate CANL_ERROR according to openssl error code or -1 if
 no one found */
-static canl_error
+static int
 canl_err_ssl_to_canl(const unsigned long ossl_lib,
         const unsigned long ossl_reason)
 {
-    canl_error ret_err = -1;
+    int ret_err = -1;
     int k = 0;
     for (k = 0; k < canl_err_descs_num; k++) {
         if (canl_err_descs[k].openssl_lib == ossl_lib) {
@@ -254,6 +254,7 @@ canl_get_error_message(canl_ctx cc)
 static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code, 
         canl_err_origin err_orig)
 {
+    int ret = 0;
     cc->original_err_code = err_code;
     cc->err_orig = err_orig;
 
@@ -268,8 +269,9 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
             break;
         case SSL_ERROR:
             /* TODO What about CANL_ERR_GeneralSSLError ?*/
-            if ((cc->err_code = canl_err_ssl_to_canl(ERR_GET_LIB(err_code),
+            if ((ret = canl_err_ssl_to_canl(ERR_GET_LIB(err_code),
                             ERR_GET_REASON(err_code))) != -1){
+                cc->err_code = ret;
                 cc->err_orig = CANL_ERROR;
             }
             cc->err_code = err_code;
