@@ -917,8 +917,34 @@ get_verify_result(unsigned long ssl_err, const SSL *ssl)
 
     result = SSL_get_verify_result(ssl);
     switch (result) {
+        case X509_V_OK:
+            return 0; 
         case X509_V_ERR_CERT_CHAIN_TOO_LONG:
             canl_err = CANL_ERR_pathLenghtExtended;
+            break;
+        case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+            canl_err = CANL_ERR_noIssuerPublicKey;
+            break;
+        case X509_V_ERR_UNABLE_TO_DECRYPT_CERT_SIGNATURE:
+            canl_err = CANL_ERR_signatureNotVerified;
+            break;
+        case X509_V_ERR_CERT_NOT_YET_VALID:
+            canl_err = CANL_ERR_certificateNotYetValid;
+            break;
+        case X509_V_ERR_CERT_HAS_EXPIRED:
+            canl_err = CANL_ERR_certificateExpired;
+            break;
+        case X509_V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION:
+            canl_err = CANL_ERR_unknownCriticalExt;
+            break;
+        case X509_V_ERR_CERT_REVOKED:
+            canl_err = CANL_ERR_certRevoked;
+            break;
+        case X509_V_ERR_UNABLE_TO_GET_CRL:
+            canl_err = CANL_ERR_noValidCrlFound;
+            break;
+        case X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED:
+            canl_err = CANL_ERR_proxyLength;
             break;
         default:
             break;
