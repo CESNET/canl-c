@@ -89,7 +89,7 @@ static int init_io_content(glb_ctx *cc, io_handler *io)
 canl_err_code
 canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host, 
         const char *service, int port, gss_OID_set auth_mechs, 
-        int flags, struct timeval *timeout)
+        int flags, canl_principal *peer, struct timeval *timeout)
 {
     int err = 0;
     io_handler *io_cc = (io_handler*) io;
@@ -169,16 +169,23 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
 		    continue;
 		}
 
-		err = mech->connect(glb_cc, io_cc, ctx, timeout, host); //TODO timeout
+		err = mech->connect(glb_cc, io_cc, ctx, timeout, host);
 		if (err) {
 		    canl_io_close(glb_cc, io_cc);
 		    mech->free_ctx(glb_cc, ctx);
 		    ctx = NULL;
-		    continue;
-		}
-		io_cc->conn_ctx = ctx;
-		done = 1;
-		break;
+                    continue;
+                }
+                io_cc->conn_ctx = ctx;
+                done = 1;
+                /*TODO Not mandatory peer certificate for now*/
+                /*    if (peer) {
+                      err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
+                      if (err)
+                      goto end;
+                      }
+                 */
+                break;
 	    }
 	    if (err == ETIMEDOUT)
 		goto end;

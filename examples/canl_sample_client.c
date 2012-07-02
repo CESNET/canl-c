@@ -89,7 +89,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0, &timeout);
+    err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0,
+            NULL, &timeout);
     if (err) {
         printf("[CLIENT] connection to %s cannot be established: %s\n",
 	       p_server, canl_get_error_message(my_ctx));
