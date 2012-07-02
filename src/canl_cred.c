@@ -7,6 +7,10 @@
 #define LIFETIME_TRESHOLD 10*24*60*60 //10 days
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
+extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, proxy_verify_desc * pvd);
+extern void proxy_verify_ctx_init(proxy_verify_ctx_desc * pvxd);
+static proxy_verify_desc *setup_initializers(char *cadir);
+static void destroy_initializers(void *data);
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack)
 {
@@ -630,6 +634,65 @@ canl_cred_load_req(canl_ctx ctx, canl_cred cred_out, const X509_REQ *req_in)
     return 0;
 }
 
+/*TODO ENOSYS for now*/
+canl_err_code CANL_CALLCONV
+canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
+        char *cadir)
+{
+    proxy_verify_desc *pvd = NULL; /* verification context */
+    
+    pvd = setup_initializers(cadir);    
+    proxy_verify_cert_chain(ucert, cert_chain, pvd);
+
+    destroy_initializers(pvd);
+    return ENOSYS;
+}
+
+static proxy_verify_desc *setup_initializers(char *cadir)
+{
+    proxy_verify_ctx_desc *pvxd = NULL;
+    proxy_verify_desc *pvd = NULL;
+
+    pvd  = (proxy_verify_desc*)     malloc(sizeof(proxy_verify_desc));
+    pvxd = (proxy_verify_ctx_desc *)malloc(sizeof(proxy_verify_ctx_desc));
+    pvd->cert_store = NULL;
+
+
+    if (!pvd || !pvxd) {
+        free(pvd);
+        free(pvxd);
+        return NULL;
+    }
+
+    proxy_verify_ctx_init(pvxd);
+    proxy_verify_init(pvd, pvxd);
+
+    pvd->pvxd->certdir = cadir;
+
+    return pvd;
+
+}
+
+static void destroy_initializers(void *data)
+{
+    proxy_verify_desc *pvd = (proxy_verify_desc *)data;
+
+    if (pvd) {
+        if (pvd->pvxd)
+            proxy_verify_ctx_release(pvd->pvxd);
+
+        free(pvd->pvxd);
+        pvd->pvxd = NULL;
+        proxy_verify_release(pvd);
+
+        /* X509_STORE_CTX_free segfaults if passed a NULL store_ctx */
+        if (pvd->cert_store)
+            X509_STORE_CTX_free(pvd->cert_store);
+        pvd->cert_store = NULL;
+
+        free(pvd);
+    }
+}
 
 #if 0
 canl_err_code CANL_CALLCONV

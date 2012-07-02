@@ -92,6 +92,11 @@ canl_cred_save_req(canl_ctx, canl_cred, X509_REQ **);
 canl_err_code CANL_CALLCONV
 canl_cred_load_req(canl_ctx, canl_cred, const X509_REQ *);
 
+/* Routines to verify cert. chain */
+canl_err_code CANL_CALLCONV
+canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
+                  char *cadir);
+
 #if 0
 canl_err_code CANL_CALLCONV
 canl_req_get_pair(canl_ctx, canl_x509_req, EVP_PKEY **);
