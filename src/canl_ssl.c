@@ -1257,7 +1257,7 @@ ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
 
     cert = SSL_get_peer_certificate(ssl);
     if (cert == NULL)
-	return set_error(cc, CANL_ERR_NoClientCertificate, CANL_ERROR, "No peer certificate");
+	return set_error(cc, CANL_ERR_NoPeerCertificate, CANL_ERROR, "No peer certificate");
 
     princ = calloc(1, sizeof(*princ));
     if (princ == NULL)

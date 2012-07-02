@@ -100,7 +100,10 @@ totalPathLength
 trustAnchorIssuerError
 trustDNInvalid
 trustPubKeyError
+# 
+# Recently added error codes without appropriate desc.
+# 
 GeneralSSLError
 HostNotFound
 ResolverError
-NoClientCertificate
+NoPeerCertificate

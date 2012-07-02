@@ -103,6 +103,7 @@ certificateNotYetValid.category=X509_BASIC
 
 certificateExpired=Certificate has expired at: {0}
 certificateExpired.category=X509_BASIC
+certificateExpired.openssl_code=ERR_LIB_SSL,SSL_R_SSLV3_ALERT_CERTIFICATE_EXPIRED
 
 noCACert=CA certificate was not found for the chain
 noCACert.category=X509_CHAIN
@@ -115,6 +116,7 @@ unknownCriticalExt.category=X509_BASIC
 
 certRevoked=Certificate was revoked at: {0}, the reason reported is: {1}
 certRevoked.category=CRL
+certRevoked.openssl_code=ERR_LIB_SSL,SSL_R_SSLV3_ALERT_CERTIFICATE_REVOKED
 
 noBaseCRL=Base CRL for the delta CRL was not found
 noBaseCRL.category=CRL
