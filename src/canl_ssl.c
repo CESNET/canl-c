@@ -1251,6 +1251,9 @@ ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
     X509 *cert = NULL;
     X509_NAME *subject = NULL;
     int ret;
+    BIO *name_out = BIO_new(BIO_s_mem());
+    long name_len = 0;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
 
     if (peer == NULL)
 	return set_error(cc, EINVAL, POSIX_ERROR, "invalid parameter value");
@@ -1264,11 +1267,32 @@ ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
 	return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     subject = X509_get_subject_name(cert);
-    princ->name = strdup(X509_NAME_oneline(subject, NULL, 0));
-    if (princ->name == NULL) {
-	ret = set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
-	goto end;
+    if (CANL_DN_OSSL & m_ctx->flags)
+        ret = X509_NAME_print_ex(name_out, subject, 0, 0);
+    else
+        ret = X509_NAME_print_ex(name_out, subject, 0, XN_FLAG_RFC2253);
+    if (!ret){
+        ret = set_error(cc, CANL_ERR_unknown, CANL_ERROR,
+                "Cannot extract subject name out of"
+                " the peer's certificate"); //TODO error code
+        goto end;
     }
+    name_len = BIO_ctrl_pending(name_out);
+    if (name_len) {
+        princ->name = (char *) malloc((name_len +1) * sizeof(char));
+        if (princ->name == NULL) {
+            ret = set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
+            goto end;
+        }
+    }
+    else {
+        ret = set_error(cc, CANL_ERR_unknown, CANL_ERROR,
+                "Zero subject name length"); //TODO error code
+        goto end;
+    }
+
+    BIO_read(name_out, princ->name, name_len);
+    princ->name[name_len] = '\0';
 
     *peer = princ;
     princ = NULL;
@@ -1278,6 +1302,7 @@ end:
     if (princ)
 	free(princ);
 
+    BIO_vfree(name_out);
     return ret;
 }
 
