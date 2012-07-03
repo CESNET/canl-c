@@ -55,6 +55,7 @@ proxyNoIssuerSubject.category=INVALID_PROXY_CERT
 
 proxySubjectInconsistent=Proxy certificate issuer field is different than the issuing certificate subject field set.
 proxySubjectInconsistent.category=INCONSISTENT_PROXY_CHAIN
+proxySubjectInconsistent.openssl_code=ERR_USER_LIB_PRXYERR_NUMBER,PRXYERR_R_BAD_PROXY_ISSUER
 
 proxyIssuerNoDsig=Proxy certificate issuer has no digital signature creation right
 proxyIssuerNoDsig.category=INCONSISTENT_PROXY_CHAIN
@@ -100,6 +101,7 @@ signatureNotVerified.category=X509_BASIC
 
 certificateNotYetValid=Certificate is not yet valid. Will be from: {0}
 certificateNotYetValid.category=X509_BASIC
+certificateNotYetValid.openssl_code=ERR_USER_LIB_PRXYERR_NUMBER,PRXYERR_R_CERT_NOT_YET_VALID
 
 certificateExpired=Certificate has expired at: {0}
 certificateExpired.category=X509_BASIC
@@ -113,6 +115,7 @@ noCertSign.category=X509_CHAIN
 
 unknownCriticalExt=Unknown critical extension was found: {0}
 unknownCriticalExt.category=X509_BASIC
+unknownCriticalExt.openssl_code=ERR_USER_LIB_PRXYERR_NUMBER,PRXYERR_R_UNKNOWN_CRIT_EXT
 
 certRevoked=Certificate was revoked at: {0}, the reason reported is: {1}
 certRevoked.category=CRL
