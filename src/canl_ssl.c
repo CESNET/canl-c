@@ -50,7 +50,6 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io,
         SSL *ssl, struct timeval *timeout);
 static int check_hostname_cert(glb_ctx *cc, io_handler *io,
         SSL *ssl, const char *host);
-static BIO *my_connect_ssl(char *host, int port, SSL_CTX **ctx);
 static BIO *my_connect(char *host, int port, int ssl, SSL_CTX **ctx);
 static int set_ocsp_sign_cert(X509 *sign_cert);
 static int set_ocsp_sign_key(EVP_PKEY *sign_key);
@@ -1351,6 +1350,7 @@ canl_create_x509store(canl_x509store_t *store)
     return NULL;
 }
 
+/*TODO error codes in this function has to be passed to canl_ctx somehow*/
 int do_ocsp_verify (canl_ocsprequest_t *data)
 {
     OCSP_REQUEST *req = NULL;
@@ -1361,54 +1361,61 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     char *host = NULL, *path = NULL, *port = NULL;
     OCSP_CERTID *id = NULL;
     char *chosenurl = NULL;
-    BIO *bio = NULL;
+    BIO *conn_bio = NULL;
     SSL_CTX *ctx = NULL;
     canl_ocspresult_t result = 0;
     ASN1_GENERALIZEDTIME  *producedAt, *thisUpdate, *nextUpdate;
+
+    if (!data || !data->cert) { // TODO || !data->issuer ?
+        result = EINVAL; //TODO error code
+        return result;
+    }
+
     /*get url from cert or use some implicit value*/
 
-    /*get connection parameters out of url*/
+    /*get connection parameters out of the chosenurl.
+     Determine whether to use encrypted (ssl) connection (based on the url
+     format). Url is http[s]://host where host consists of 
+     DN [:port] and [path]*/
     if (!OCSP_parse_url(chosenurl, &host, &port, &path, &ssl)) {
         result = CANL_OCSPRESULT_ERROR_BADOCSPADDRESS;
         goto end;
     }
+    /*Make new OCSP_REQUEST*/
     if (!(req = OCSP_REQUEST_new())) {
         result = CANL_OCSPRESULT_ERROR_OUTOFMEMORY;
         goto end;
     }
 
+    /*map a cert and its issuer to an ID*/
     id = OCSP_cert_to_id(0, data->cert, data->issuer);
 
-    /* Add id and nonce*/
+    /* Add an id and nonce to the request*/
     if (!id || !OCSP_request_add0_id(req, id))
         goto end;
     if (USENONCE)
         OCSP_request_add1_nonce(req, 0, -1);
 
-    /* sign the request */
-       if (data->sign_cert && data->sign_key &&
-       !OCSP_request_sign(req, data->sign_cert, data->sign_key, 
-       EVP_sha1(), 0, 0)) {
-       result = CANL_OCSPRESULT_ERROR_SIGNFAILURE;
-       goto end;
-       }
-    
-    ctx = SSL_CTX_new(SSLv3_client_method());
-    if (ctx == NULL) {
-        result = CANL_OCSPRESULT_ERROR_OUTOFMEMORY;
+    /* sign the request
+       Default hash algorithm is sha1(), might be changed.
+       Do not add additional certificates to request
+       Do not use flags (e.g. like -no_certs for command line ) now */
+    if (data->sign_cert && data->sign_key &&
+            !OCSP_request_sign(req, data->sign_cert, data->sign_key, 
+                EVP_sha1(), 0, 0)) {
+        result = CANL_OCSPRESULT_ERROR_SIGNFAILURE;
         goto end;
     }
-    //SSL_CTX_set_cert_store(ctx, store);
-    SSL_CTX_set_verify(ctx,SSL_VERIFY_PEER,NULL);
+
 
     /* establish a connection to the OCSP responder */
-    if (!(bio = my_connect(host, atoi(port), ssl, &ctx))) {
+    if (!(conn_bio = my_connect(host, atoi(port), ssl, &ctx))) {
         result = CANL_OCSPRESULT_ERROR_CONNECTFAILURE;
         goto end;
     }
 
     /* send the request and get a response */
-    resp = OCSP_sendreq_bio(bio, path, req);
+    resp = OCSP_sendreq_bio(conn_bio, path, req);
     if ((rc = OCSP_response_status(resp)) != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
         switch (rc) {
             case OCSP_RESPONSE_STATUS_MALFORMEDREQUEST:
@@ -1424,6 +1431,8 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         }
         goto end;
     }
+    if (conn_bio)
+        BIO_free_all(conn_bio);
 
     /* verify the response */
     result = CANL_OCSPRESULT_ERROR_INVALIDRESPONSE;
@@ -1469,48 +1478,62 @@ end:
     if (basic) OCSP_BASICRESP_free(basic);
     if (ctx) SSL_CTX_free(ctx);   /* this does X509_STORE_free(store) */
 
-    return 0;
-}
-
-static BIO *
-my_connect_ssl(char *host, int port, SSL_CTX **ctx) {
-      BIO *conn = 0;
-
-        if (!(conn = BIO_new_ssl_connect(*ctx))) goto error_exit;
-          BIO_set_conn_hostname(conn, host);
-            BIO_set_conn_int_port(conn, &port);
-
-              if (BIO_do_connect(conn) <= 0) goto error_exit;
-                return conn;
-
-error_exit:
-                  if (conn) BIO_free_all(conn);
-                    return 0;
+    return result;
 }
 
 static BIO *
 my_connect(char *host, int port, int ssl, SSL_CTX **ctx) {
     BIO *conn;
-    SSL *ssl_ptr;
+    SSL_CTX *ctx_in = NULL;
+    
+    if (!(conn = BIO_new_connect(host)))
+        goto error_exit;
+    BIO_set_conn_int_port(conn, &port);
 
-    if (ssl) {
-        if (!(conn = my_connect_ssl(host, port, ctx))) goto error_exit;
-        BIO_get_ssl(conn, &ssl_ptr);
-        /*TODO figure out, how to check cert without canl_ctx
-        if (!check_hostname_cert(SSL_get_peer_certificate(ssl_ptr), host))
-            goto error_exit;*/
-        if (SSL_get_verify_result(ssl_ptr) != X509_V_OK) goto error_exit;
-        return conn;
+    if (ssl){
+        BIO *sbio;
+        /*TODO what method to use? default is SSLv3 for now*/
+        ctx_in = SSL_CTX_new(SSLv3_client_method());
+        if (ctx_in == NULL) {
+            goto error_exit;
+        }
+        //SSL_CTX_set_cert_store(ctx_in, store);
+        /*TODO verify using OCSP? Infinite loop
+          SSL_CTX_set_mode(ctx_in, SSL_MODE_AUTO_RETRY); ? - return only after
+          the handshake and successful completion*/
+        SSL_CTX_set_verify(ctx_in, SSL_VERIFY_PEER, NULL);
+
+        sbio = BIO_new_ssl(ctx_in, 1);
+        conn = BIO_push(sbio, conn);
+        /*
+           BIO_get_ssl(conn, &ssl_ptr);
+
+           TODO figure out, how to check cert without canl_ctx
+
+           if (!check_hostname_cert(SSL_get_peer_certificate(ssl_ptr), host))
+           goto error_exit;
+
+           TODO verify certs in OCSP at this place? openssl CL tool does not do
+           that.
+           if (SSL_get_verify_result(ssl_ptr) != X509_V_OK)
+           goto error_exit;
+         */
+
+        *ctx = ctx_in;
     }
 
-    if (!(conn = BIO_new_connect(host))) goto error_exit;
-    BIO_set_conn_int_port(conn, &port);
-    if (BIO_do_connect(conn) <= 0) goto error_exit;
+    if (BIO_do_connect(conn) <= 0)
+        goto error_exit;
     return conn;
 
 error_exit:
-    if (conn) BIO_free_all(conn);
-    return 0;
+    if (conn)
+        BIO_free_all(conn);
+    if (*ctx) {
+        SSL_CTX_free(*ctx);
+        *ctx = NULL;
+    }
+    return NULL;
 }
 
 canl_mech canl_mech_ssl = {
