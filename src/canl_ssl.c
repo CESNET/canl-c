@@ -50,7 +50,8 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io,
         SSL *ssl, struct timeval *timeout);
 static int check_hostname_cert(glb_ctx *cc, io_handler *io,
         SSL *ssl, const char *host);
-static BIO *my_connect(char *host, int port, int ssl, SSL_CTX **ctx);
+static OCSP_RESPONSE *send_request(OCSP_REQUEST *req, char *host, char *path,
+        int port, int ssl, int req_timeout);
 static int set_ocsp_sign_cert(X509 *sign_cert);
 static int set_ocsp_sign_key(EVP_PKEY *sign_key);
 static int set_ocsp_cert(X509 *cert);
@@ -71,8 +72,10 @@ static canl_ocsprequest_t *ocspreq = NULL;
   canl_x509store_t *store, X509 *sign_cert, EVP_PKEY *sign_key, 
   long skew, long maxage) {
  */ 
+static OCSP_RESPONSE *
+query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout);
 
-    static int
+static int
 set_ocsp_cert(X509 *cert)
 {
 
@@ -1351,6 +1354,7 @@ canl_create_x509store(canl_x509store_t *store)
 }
 
 /*TODO error codes in this function has to be passed to canl_ctx somehow*/
+/*Timeout shoult be in data structure*/
 int do_ocsp_verify (canl_ocsprequest_t *data)
 {
     OCSP_REQUEST *req = NULL;
@@ -1361,10 +1365,9 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     char *host = NULL, *path = NULL, *port = NULL;
     OCSP_CERTID *id = NULL;
     char *chosenurl = NULL;
-    BIO *conn_bio = NULL;
-    SSL_CTX *ctx = NULL;
     canl_ocspresult_t result = 0;
     ASN1_GENERALIZEDTIME  *producedAt, *thisUpdate, *nextUpdate;
+    int timeout = -1; // -1 means no timeout - use blocking I/O
 
     if (!data || !data->cert) { // TODO || !data->issuer ?
         result = EINVAL; //TODO error code
@@ -1409,13 +1412,12 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
 
 
     /* establish a connection to the OCSP responder */
-    if (!(conn_bio = my_connect(host, atoi(port), ssl, &ctx))) {
+    if (!(resp = send_request(req, host, path, atoi(port), ssl, timeout))) {
         result = CANL_OCSPRESULT_ERROR_CONNECTFAILURE;
         goto end;
     }
 
     /* send the request and get a response */
-    resp = OCSP_sendreq_bio(conn_bio, path, req);
     if ((rc = OCSP_response_status(resp)) != OCSP_RESPONSE_STATUS_SUCCESSFUL) {
         switch (rc) {
             case OCSP_RESPONSE_STATUS_MALFORMEDREQUEST:
@@ -1431,8 +1433,6 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         }
         goto end;
     }
-    if (conn_bio)
-        BIO_free_all(conn_bio);
 
     /* verify the response */
     result = CANL_OCSPRESULT_ERROR_INVALIDRESPONSE;
@@ -1476,18 +1476,19 @@ end:
     if (req) OCSP_REQUEST_free(req);
     if (resp) OCSP_RESPONSE_free(resp);
     if (basic) OCSP_BASICRESP_free(basic);
-    if (ctx) SSL_CTX_free(ctx);   /* this does X509_STORE_free(store) */
 
     return result;
 }
 
-static BIO *
-my_connect(char *host, int port, int ssl, SSL_CTX **ctx) {
+static OCSP_RESPONSE *
+send_request(OCSP_REQUEST *req, char *host, char *path,  int port, int ssl,
+        int req_timeout) {
     BIO *conn;
     SSL_CTX *ctx_in = NULL;
-    
+    OCSP_RESPONSE *resp = NULL;
+
     if (!(conn = BIO_new_connect(host)))
-        goto error_exit;
+        goto end;
     BIO_set_conn_int_port(conn, &port);
 
     if (ssl){
@@ -1495,11 +1496,12 @@ my_connect(char *host, int port, int ssl, SSL_CTX **ctx) {
         /*TODO what method to use? default is SSLv3 for now*/
         ctx_in = SSL_CTX_new(SSLv3_client_method());
         if (ctx_in == NULL) {
-            goto error_exit;
+            goto end;
         }
         //SSL_CTX_set_cert_store(ctx_in, store);
         /*TODO verify using OCSP? Infinite loop
-          SSL_CTX_set_mode(ctx_in, SSL_MODE_AUTO_RETRY); ? - return only after
+           !!!!!!!!!!!!!!!!!!!!!!!§
+           SSL_CTX_set_mode(ctx_in, SSL_MODE_AUTO_RETRY); ? - return only after
           the handshake and successful completion*/
         SSL_CTX_set_verify(ctx_in, SSL_VERIFY_PEER, NULL);
 
@@ -1511,29 +1513,141 @@ my_connect(char *host, int port, int ssl, SSL_CTX **ctx) {
            TODO figure out, how to check cert without canl_ctx
 
            if (!check_hostname_cert(SSL_get_peer_certificate(ssl_ptr), host))
-           goto error_exit;
+           goto end;
 
            TODO verify certs in OCSP at this place? openssl CL tool does not do
            that.
            if (SSL_get_verify_result(ssl_ptr) != X509_V_OK)
-           goto error_exit;
+           goto end;
          */
-
-        *ctx = ctx_in;
     }
 
-    if (BIO_do_connect(conn) <= 0)
-        goto error_exit;
-    return conn;
+    resp = query_responder(conn, path, req, req_timeout);
 
-error_exit:
+end:
     if (conn)
         BIO_free_all(conn);
-    if (*ctx) {
-        SSL_CTX_free(*ctx);
-        *ctx = NULL;
+    if (ctx_in)
+        SSL_CTX_free(ctx_in);
+    return resp;
+}
+
+/*TODO the timeout variable should be modified if TO is reached.
+  Somehow retur error codes! */
+    static OCSP_RESPONSE *
+query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout)
+{
+    OCSP_RESPONSE *rsp = NULL;
+    
+/*openssl does support non blocking BIO for OCSP_send_request*/
+#if SSLEAY_VERSION_NUMBER >=  0x0090808fL
+    int fd;
+    int rv;
+    OCSP_REQ_CTX *ctx = NULL;
+    fd_set confds;
+    struct timeval tv;
+    
+    /*If timeout is set, the nonblocking I/O flag is set*/
+    if (req_timeout != -1)
+        BIO_set_nbio(conn, 1);
+
+    rv = BIO_do_connect(conn);
+    if ((rv <= 0) && ((req_timeout == -1) || !BIO_should_retry(conn)))
+    {
+        /*connect failed*/
+        return NULL;
     }
-    return NULL;
+
+    if (BIO_get_fd(conn, &fd) <= 0)
+    {
+        /*Cannot get the socket*/
+        goto err;
+    }
+
+    if (req_timeout != -1 && rv <= 0)
+    {
+        /*try connecting untill timeout is reached*/
+        FD_ZERO(&confds);
+        FD_SET(fd, &confds);
+        tv.tv_usec = 0;
+        tv.tv_sec = req_timeout;
+        rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
+        if (rv == 0)
+        {
+            /*Timeout reached*/
+            return NULL;
+        }
+    }
+
+
+    /*Prepare OCSP_REQ_CTX*/
+    ctx = OCSP_sendreq_new(conn, path, NULL, -1);
+    if (!ctx)
+        return NULL;
+    if (!OCSP_REQ_CTX_set1_req(ctx, req))
+        goto err;
+
+    /*send the OCSP request and wait for the response*/
+    for (;;)
+    {
+        rv = OCSP_sendreq_nbio(&rsp, ctx);
+        if (rv != -1)
+            break;
+
+        /* Blocking I/O flag set
+         TODO - might end in an infinite loop? - what about
+         SSL_MODE_AUTO_RETRY ?? */
+        if (req_timeout == -1) 
+            continue;
+        FD_ZERO(&confds);
+        openssl_fdset(fd, &confds);
+        tv.tv_usec = 0;
+        tv.tv_sec = req_timeout;
+        if (BIO_should_read(conn))
+            rv = select(fd + 1, (void *)&confds, NULL, NULL, &tv);
+        else if (BIO_should_write(conn))
+            rv = select(fd + 1, NULL, (void *)&confds, NULL, &tv);
+        else
+        {
+            /* Unexpected retry condition */
+            goto err;
+        }
+        if (rv == 0)
+        {
+            /*Timeout on request */
+            break;
+        }
+        if (rv == -1)
+        {
+            /*Select error*/
+            break;
+        }
+
+    }
+
+#else
+    /*openssl does not support non blocking BIO for OCSP_send_request*/
+
+    if (BIO_do_connect(conn) <= 0)
+    {
+        /*Error connecting BIO*/
+        goto err;
+    }
+
+    rsp = OCSP_sendreq_bio(conn, path, req);
+    if (!rsp) {
+        /*no response from the server*/
+        goto err;
+    }
+
+#endif
+
+err:
+#if SSLEAY_VERSION_NUMBER >=  0x0090808fL
+    if (ctx)
+        OCSP_REQ_CTX_free(ctx);
+#endif 
+    return rsp;
 }
 
 canl_mech canl_mech_ssl = {
