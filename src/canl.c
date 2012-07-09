@@ -360,7 +360,8 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 end:
     if (err) {
         (io_cc)->sock = -1;
-	mech->free_ctx(glb_cc, conn_ctx);
+        if (conn_ctx)
+            mech->free_ctx(glb_cc, conn_ctx);
     }
 
     return err;
