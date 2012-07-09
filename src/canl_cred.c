@@ -8,9 +8,8 @@
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, proxy_verify_desc * pvd);
-extern void proxy_verify_ctx_init(proxy_verify_ctx_desc * pvxd);
-static proxy_verify_desc *setup_initializers(char *cadir);
-static void destroy_initializers(void *data);
+extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
+extern void pvd_destroy_initializers(void *data);
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack)
 {
@@ -641,14 +640,14 @@ canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
 {
     proxy_verify_desc *pvd = NULL; /* verification context */
     
-    pvd = setup_initializers(cadir);    
+    pvd = pvd_setup_initializers(cadir);    
     proxy_verify_cert_chain(ucert, cert_chain, pvd);
 
-    destroy_initializers(pvd);
+    pvd_destroy_initializers(pvd);
     return ENOSYS;
 }
 
-static proxy_verify_desc *setup_initializers(char *cadir)
+proxy_verify_desc *pvd_setup_initializers(char *cadir)
 {
     proxy_verify_ctx_desc *pvxd = NULL;
     proxy_verify_desc *pvd = NULL;
@@ -673,7 +672,7 @@ static proxy_verify_desc *setup_initializers(char *cadir)
 
 }
 
-static void destroy_initializers(void *data)
+void pvd_destroy_initializers(void *data)
 {
     proxy_verify_desc *pvd = (proxy_verify_desc *)data;
 

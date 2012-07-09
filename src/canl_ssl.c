@@ -63,6 +63,10 @@ static canl_x509store_t * store_dup(canl_x509store_t *store_from);
 static X509_STORE * canl_create_x509store(canl_x509store_t *store);
 static canl_error get_verify_result(unsigned long ssl_err, const SSL *ssl);
 
+static void setup_SSL_proxy_handler(SSL *ssl, char *cadir);
+extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
+extern void pvd_destroy_initializers(char *cadir);
+
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
 #endif
@@ -564,12 +568,20 @@ ssl_client_init(glb_ctx *cc, void **ctx)
     return 0;
 }
 
+void setup_SSL_proxy_handler(SSL *ssl, char *cadir)
+{
+    SSL_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX,
+            pvd_setup_initializers(cadir));
+}
+
 static canl_err_code
 ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	        struct timeval *timeout, const char * host)
 {
     SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
+
 
     if (!cc) {
         return EINVAL;
@@ -584,7 +596,7 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
+    setup_SSL_proxy_handler(auth_ctx, m_ctx->ca_dir);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_connect(cc, io, ssl, timeout); 
@@ -684,6 +696,7 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
 {
     SSL *ssl = (SSL *) auth_ctx;
     int err = 0, flags;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
 
     if (!cc) {
         return EINVAL;
@@ -698,7 +711,7 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    //setup_SSL_proxy_handler(cc->ssl_ctx, cacertdir);
+    setup_SSL_proxy_handler(auth_ctx, m_ctx->ca_dir);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_accept(cc, io, ssl, timeout);
