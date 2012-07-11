@@ -1929,27 +1929,11 @@ proxy_verify_callback(
         default:
             break;
         }                       
-        /* if already failed, skip the rest, but add error messages */
+        /* if already failed, skip the rest */
         if (!ok)
-        {
-            if (ctx->error==X509_V_ERR_CERT_NOT_YET_VALID)
-            {
-                PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CERT_NOT_YET_VALID);
-                ERR_set_continue_needed();
-            }
-            else if (ctx->error==X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
-            {
-                PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_LOCAL_CA_UNKNOWN); 
-                ERR_set_continue_needed();
-            }
-            else if (ctx->error==X509_V_ERR_CERT_HAS_EXPIRED)
-            {
-                PRXYerr(PRXYERR_F_VERIFY_CB, PRXYERR_R_REMOTE_CRED_EXPIRED); 
-                ERR_set_continue_needed();
-            }
-
             goto fail_verify;
-        }
+
+        /*openssl failed, but we checked it ourselves and it was OK*/
         ctx->error = 0;
         return(ok);
     }
@@ -1978,7 +1962,6 @@ proxy_verify_callback(
     if (ret < 0)
     {
         PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_BAD_PROXY_ISSUER);
-        ERR_set_continue_needed();
         ctx->error = X509_V_ERR_CERT_SIGNATURE_FAILURE;
         goto fail_verify;
     }
@@ -2009,7 +1992,6 @@ proxy_verify_callback(
             /* i.e. there is still another cert on the chain */
             /* indicating we are trying to sign it! */
             PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_LPROXY_MISSED_USED);
-            ERR_set_continue_needed();
             ctx->error = X509_V_ERR_CERT_SIGNATURE_FAILURE;
             goto fail_verify;
           }
@@ -2056,7 +2038,6 @@ proxy_verify_callback(
             if (X509_CRL_verify(crl, key) <= 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_SIGNATURE_FAILURE);
-                ERR_set_continue_needed();
                 ctx->error = X509_V_ERR_CRL_SIGNATURE_FAILURE;
                 goto fail_verify;
             }
@@ -2067,7 +2048,6 @@ proxy_verify_callback(
             if (i == 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_NEXT_UPDATE_FIELD);
-                ERR_set_continue_needed();                
                 ctx->error = X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD;
                 goto fail_verify;
             }
@@ -2076,7 +2056,6 @@ proxy_verify_callback(
             if (i < 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_HAS_EXPIRED);
-                ERR_set_continue_needed();
                 ctx->error = X509_V_ERR_CRL_HAS_EXPIRED;
                 goto fail_verify;
             }
@@ -2093,22 +2072,8 @@ proxy_verify_callback(
                 if(!ASN1_INTEGER_cmp(revoked->serialNumber,
                                      X509_get_serialNumber(ctx->current_cert)))
                 {
-                    long serial;
-                    char buf[256];
-                    char *s;
                     PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CERT_REVOKED);
-                    serial = ASN1_INTEGER_get(revoked->serialNumber);
-                    sprintf(buf,"%ld (0x%lX)",serial,serial);
-                    s = X509_NAME_oneline(X509_get_subject_name(
-                                              ctx->current_cert),NULL,0);
-                    
-                    ERR_add_error_data(4,"Serial number = ",buf,
-                                       " Subject=",s);
-
                     ctx->error = X509_V_ERR_CERT_REVOKED;
-                    ERR_set_continue_needed();
-                    free(s);
-                    s = NULL;
                     goto fail_verify;
                 }
             }
@@ -2186,6 +2151,7 @@ proxy_verify_callback(
     if (ca_policy_file_path != NULL)
     {
         free(ca_policy_file_path);
+        ca_policy_file_path = NULL;
     }
 
     if (!check_critical_extensions(ctx->current_cert, itsaproxy)) {
@@ -2213,7 +2179,6 @@ proxy_verify_callback(
                 && ((i - pvd->proxy_depth) > (cert->ex_pathlen + 1))
                 && (cert->ex_flags & EXFLAG_BCONS)) 
             {
-                ctx->current_cert = cert; /* point at failing cert */
                 ctx->error = X509_V_ERR_PATH_LENGTH_EXCEEDED;
                 goto fail_verify;
             }
