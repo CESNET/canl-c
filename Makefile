@@ -93,7 +93,7 @@ doc: canl.pdf
 
 ${LIBCANL}:\
 	canl_err_desc.lo canl.lo canl_err.lo canl_dns.lo canl_ssl.lo \
-	canl_cert.lo canl_cred.lo\
+	canl_cert.lo canl_cred.lo canl_ocsp.lo\
 	doio.lo evaluate.lo list.lo normalize.lo proxycertinfo.lo\
 	scutils.lo sslutils.lo data.lo namespaces_parse.lo namespaces_lex.lo\
 	signing_policy_parse.lo signing_policy_lex.lo
