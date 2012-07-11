@@ -61,7 +61,9 @@ static int set_ocsp_url(char *url);
 static int set_ocsp_issuer(X509 *issuer);
 static canl_x509store_t * store_dup(canl_x509store_t *store_from);
 static X509_STORE * canl_create_x509store(canl_x509store_t *store);
-static canl_error get_verify_result(unsigned long ssl_err, const SSL *ssl);
+
+static canl_error map_verify_result(unsigned long ssl_err, const SSL *ssl);
+static canl_error map_proxy_error(int reason);
 
 static void setup_SSL_proxy_handler(SSL *ssl, char *cadir);
 extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
@@ -825,7 +827,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
 		   " handshake: timeout reached");
         }
         else if (ret2 < 0 && ssl_err){
-            canl_err = get_verify_result(ssl_err, ssl);
+            canl_err = map_verify_result(ssl_err, ssl);
             if (canl_err)
                 update_error (cc, canl_err, CANL_ERROR,
                         "Error during SSL handshake");
@@ -907,7 +909,7 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
             set_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed by"
 		    " the other side");
         else if (ret2 < 0 && ssl_err){
-            canl_err = get_verify_result(ssl_err, ssl);
+            canl_err = map_verify_result(ssl_err, ssl);
             if (canl_err)
                 set_error(cc, canl_err, CANL_ERROR,
                         "Error during SSL handshake");
@@ -925,11 +927,21 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
 }
 
 static canl_error
-get_verify_result(unsigned long ssl_err, const SSL *ssl)
+map_verify_result(unsigned long ssl_err, const SSL *ssl)
 {
     long result = 0;
     canl_error canl_err = 0;
+    int err_lib = 0;
 
+    /*Try PRXYERR codes first*/
+    if ((err_lib = ERR_GET_LIB(ssl_err)) == ERR_USER_LIB_PRXYERR_NUMBER) {
+        canl_err = map_proxy_error(ERR_GET_REASON(ssl_err));
+    }
+
+    if (canl_err)
+        return canl_err;
+
+    /*Then openssl verify error codes*/
     result = SSL_get_verify_result(ssl);
     switch (result) {
         case X509_V_OK:
@@ -965,6 +977,37 @@ get_verify_result(unsigned long ssl_err, const SSL *ssl)
             break;
     }
 
+    return canl_err;
+}
+
+/*go through PRXYERR reasons and map them on canl error codes*/
+static canl_error
+map_proxy_error(int reason)
+{
+    canl_error canl_err = 0;
+    switch (reason) {
+        case PRXYERR_R_UNKNOWN_CRIT_EXT:
+            canl_err = CANL_ERR_unknownCriticalExt;
+            break;
+        case PRXYERR_R_CA_POLICY_VIOLATION: //TODO map
+            break;
+        case PRXYERR_R_CERT_REVOKED:
+            canl_err = CANL_ERR_certRevoked;
+        case PRXYERR_R_CRL_HAS_EXPIRED: //TODO map
+            break;
+        case PRXYERR_R_CRL_NEXT_UPDATE_FIELD: //TODO map
+            break;
+        case PRXYERR_R_CRL_SIGNATURE_FAILURE: //TODO map
+            break;
+        case PRXYERR_R_LPROXY_MISSED_USED: //TODO map
+            break;
+        case PRXYERR_R_BAD_PROXY_ISSUER:
+//          canl_err = CANL_ERR_certWrongProxyIssuer; //TODO does not exist yet
+            break;
+        case PRXYERR_R_BAD_MAGIC: //Todo map
+            break;
+    }
+    
     return canl_err;
 }
 
