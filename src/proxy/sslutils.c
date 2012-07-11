@@ -2139,8 +2139,6 @@ proxy_verify_callback(
                 if (result != SUCCESS_PERMIT)
                 {
                     PRXYerr(PRXYERR_F_VERIFY_CB, PRXYERR_R_CA_POLICY_VIOLATION);
-
-                    ctx->error = X509_V_ERR_INVALID_PURPOSE; 
                                 
                     if (error_string != NULL)
                     {
@@ -2237,59 +2235,6 @@ fail_verify:
     if (objset)
       X509_OBJECT_free_contents(&obj);
 
-    if (ctx->current_cert)
-    {
-        char *subject_s = NULL;
-        char *issuer_s = NULL;
-                
-        subject_s = X509_NAME_oneline(
-            X509_get_subject_name(ctx->current_cert),NULL,0);
-        issuer_s = X509_NAME_oneline(
-            X509_get_issuer_name(ctx->current_cert),NULL,0);
-        
-        switch (ctx->error)
-        {
-            case X509_V_OK:
-            case X509_V_ERR_INVALID_PURPOSE:
-            case X509_V_ERR_APPLICATION_VERIFICATION:
-                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CB_ERROR_MSG);
-                 ERR_add_error_data(6, 
-                    "\n        File=", 
-                    ca_policy_file_path ? ca_policy_file_path : "UNKNOWN",
-                    "\n        subject=",
-                    subject_s ? subject_s : "UNKNOWN",
-                    "\n        issuer =",
-                    issuer_s ? issuer_s : "UNKNOWN");
-            break;
-            case X509_V_ERR_CERT_NOT_YET_VALID:
-            case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-            case X509_V_ERR_CERT_HAS_EXPIRED:
-                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CB_ERROR_MSG);
-                 ERR_add_error_data(4, 
-                    "\n        subject=",
-                    subject_s ? subject_s : "UNKNOWN",
-                    "\n        issuer =",
-                    issuer_s ? issuer_s : "UNKNOWN");
-            break;
-            case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CA_UNKNOWN);
-                    ERR_add_error_data(2, "\n        issuer =",
-                    issuer_s ? issuer_s : "UNKNOWN");
-            break;
-
-            default:
-                PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CB_CALLED_WITH_ERROR);
-                ERR_add_error_data(6,"\n        error =",
-                    X509_verify_cert_error_string(ctx->error),
-                    "\n        subject=",
-                    subject_s ? subject_s : "UNKNOWN",
-                    "\n        issuer =",
-                    issuer_s ? issuer_s : "UNKNOWN");
-        }
-
-        free(subject_s);
-        free(issuer_s);
-    }
     if (ca_policy_file_path != NULL)
     {
         free(ca_policy_file_path);
