@@ -38,6 +38,8 @@ static OCSP_RESPONSE *send_request(OCSP_REQUEST *req, char *host, char *path,
 static OCSP_RESPONSE *
 query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout);
 
+static char *get_ocsp_url_from_aia(X509 * cert, char** urls);
+
 static int
 set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
 {
@@ -217,6 +219,69 @@ canl_create_x509store(canl_x509store_t *store)
     return NULL;
 }
 
+/* Extract an url of given ocsp responder out of the AIA extension.
+   
+   Newer openssl libs support OPENSSL_STRING type and X509_get1_ocsp()
+   funcion which can easily do that. We may use it in future.
+   aia = X509_get1_ocsp(x);
+   return sk_OPENSSL_STRING_value(aia, 0);
+
+   Returns string of the form: URI1 \0 URI2 \0 ... URIN \0\0 
+   (without spaces)
+ */
+static char *get_ocsp_url_from_aia(X509 * cert, char** urls)
+{ 
+    BIO* mem=NULL; 
+    ACCESS_DESCRIPTION* ad=NULL;
+    STACK_OF(ACCESS_DESCRIPTION)* ads=NULL;
+    int adsnum;
+    int crit = 0;
+    int idx = 0;
+    int i;
+
+    if(!cert||!urls)
+        return NULL;
+
+    *urls=NULL;
+
+    mem=BIO_new(BIO_s_mem());
+    if(!mem)
+        goto cleanup;
+
+    ads=(STACK_OF(ACCESS_DESCRIPTION)*)X509_get_ext_d2i(cert,
+            NID_info_access, &crit, &idx);
+    if(!ads)
+        goto cleanup;
+    adsnum=sk_ACCESS_DESCRIPTION_num(ads);
+
+    for(i=0; i<adsnum; i++){
+        ad=sk_ACCESS_DESCRIPTION_value(ads, i);
+        if(!ad)
+            continue;
+        if(OBJ_obj2nid(ad->method) == NID_ad_OCSP){
+            if(GENERAL_NAME_print(mem, ad->location)<=0)
+                goto cleanup;
+
+            BIO_write(mem, "\0", 1);
+        }
+    }
+
+    BIO_write(mem, "\0\0", 2);
+    BIO_flush(mem);
+
+    BIO_get_mem_data(mem, urls);
+    BIO_set_close(mem, BIO_NOCLOSE);
+
+cleanup:
+
+    if(ads)
+        sk_ACCESS_DESCRIPTION_free(ads);
+    if(mem)
+        BIO_free(mem);
+
+    return *urls;
+} 
+
 /*TODO error codes in this function has to be passed to canl_ctx somehow*/
 /*Timeout shoult be in data structure*/
 int do_ocsp_verify (canl_ocsprequest_t *data)
@@ -239,11 +304,18 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     }
 
     /*get url from cert or use some implicit value*/
+    if (data->url)
+        host = data->url;
+    else
+        if (!get_ocsp_url_from_aia(data->cert, &host)) {
+            result = CANL_OCSPRESULT_ERROR_NOAIAOCSPURI;
+            goto end;
+        }
 
     /*get connection parameters out of the chosenurl.
-     Determine whether to use encrypted (ssl) connection (based on the url
-     format). Url is http[s]://host where host consists of 
-     DN [:port] and [path]*/
+      Determine whether to use encrypted (ssl) connection (based on the url
+      format). Url is http[s]://host where host consists of 
+      DN [:port] and [path]*/
     if (!OCSP_parse_url(chosenurl, &host, &port, &path, &ssl)) {
         result = CANL_OCSPRESULT_ERROR_BADOCSPADDRESS;
         goto end;
