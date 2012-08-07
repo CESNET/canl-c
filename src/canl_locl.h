@@ -116,23 +116,6 @@ typedef struct canl_mech {
 
 } canl_mech;
 
-typedef struct {
-    char *ca_dir;
-    char *ca_file;
-    char *crl_dir;
-} canl_x509store_t;
-
-typedef struct {
-    char            *url;
-    X509            *cert;
-    X509            *issuer;
-    canl_x509store_t *store;
-    X509            *sign_cert;
-    EVP_PKEY        *sign_key;
-    long            skew;
-    long            maxage;
-} canl_ocsprequest_t;
-
 /* Mechanism specific */
 extern canl_mech canl_mech_ssl;
 

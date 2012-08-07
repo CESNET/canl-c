@@ -59,7 +59,8 @@ EXTERN_C_BEGIN
 #include <sys/types.h>
 #include "openssl/crypto.h"
 
-
+//canl headers
+#include "canl_ocsp.h"
 
 #if defined(__GNUC__)
 #if (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4))

@@ -1821,6 +1821,7 @@ proxy_verify_callback(
     char *                              cert_dir            = NULL;
     EVP_PKEY *key = NULL;
     int       objset = 0;
+    canl_ocsprequest_t *ocsp_data = NULL;
 
     /*
      * If we are being called recursivly to check delegate
@@ -2188,6 +2189,7 @@ proxy_verify_callback(
     /*
        OCSP check
      */
+//    do_ocsp_verify (ocsp_data);
 
     EVP_PKEY_free(key);
 

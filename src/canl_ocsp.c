@@ -1,37 +1,9 @@
-#include "canl_locl.h"
+#include "canl_ocsp.h"
 #include "canl_mech_ssl.h"
 #include <openssl/ocsp.h>
 
 #define USENONCE 0
 
-typedef enum {
-    CANL_OCSPRESULT_ERROR_NOSTATUS          = -17,
-    CANL_OCSPRESULT_ERROR_INVTIME           = -16,
-    CANL_OCSPRESULT_ERROR_VERIFYRESPONSE    = -15,
-    CANL_OCSPRESULT_ERROR_NOTCONFIGURED     = -14,
-    CANL_OCSPRESULT_ERROR_NOAIAOCSPURI      = -13,
-    CANL_OCSPRESULT_ERROR_INVALIDRESPONSE   = -12,
-    CANL_OCSPRESULT_ERROR_CONNECTFAILURE    = -11,
-    CANL_OCSPRESULT_ERROR_SIGNFAILURE       = -10,
-    CANL_OCSPRESULT_ERROR_BADOCSPADDRESS    = -9,
-    CANL_OCSPRESULT_ERROR_OUTOFMEMORY       = -8,
-    CANL_OCSPRESULT_ERROR_UNKNOWN           = -7,
-    CANL_OCSPRESULT_ERROR_UNAUTHORIZED      = -6,
-    CANL_OCSPRESULT_ERROR_SIGREQUIRED       = -5,
-    CANL_OCSPRESULT_ERROR_TRYLATER          = -3,
-    CANL_OCSPRESULT_ERROR_INTERNALERROR     = -2,
-    CANL_OCSPRESULT_ERROR_MALFORMEDREQUEST  = -1,
-    CANL_OCSPRESULT_CERTIFICATE_VALID       = 0,
-    CANL_OCSPRESULT_CERTIFICATE_REVOKED     = 1
-} canl_ocspresult_t;
-
-static int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert);
-static int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key);
-static int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert);
-static int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew);
-static int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage);
-static int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url);
-static int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer);
 static canl_x509store_t * store_dup(canl_x509store_t *store_from);
 static X509_STORE * canl_create_x509store(canl_x509store_t *store);
 
@@ -43,8 +15,89 @@ query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout);
 
 static char *get_ocsp_url_from_aia(X509 * cert, char** urls);
 
-static int
-set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
+int ocsprequest_init(canl_ocsprequest_t **ocspreq)
+{
+    if (!ocspreq)
+        return 1;
+    if (*ocspreq) {
+        ocsprequest_free(*ocspreq);
+    }
+    else {
+        *ocspreq = calloc(1, sizeof(**ocspreq));
+        if (!(*ocspreq))
+            return 1;
+    }
+
+    return 0;
+}
+
+int canl_x509store_init(canl_x509store_t **cs)
+{
+    if (!cs)
+        return 1;
+    if (*cs) {
+        canl_x509store_free(*cs);
+    }
+    else {
+        *cs = calloc(1, sizeof(**cs));
+        if (!(*cs))
+            return 1;
+    }
+
+    return 0;
+}
+
+void ocsprequest_free(canl_ocsprequest_t *or)
+{
+    if (!or)
+        return;
+    if (or->url){
+        free(or->url);
+        or->url = NULL;
+    }
+    if (or->cert){
+        X509_free(or->cert);
+        or->cert = NULL;
+    }
+    if (or->issuer){
+        X509_free(or->issuer);
+        or->issuer = NULL;
+    }
+    if (or->store){
+        canl_x509store_free((or->store)); 
+        or->store = NULL;
+    }
+    if (or->sign_cert){
+        X509_free(or->sign_cert);
+        or->sign_cert = NULL;
+    }
+    if (or->sign_key){
+        EVP_PKEY_free(or->sign_key);
+        or->sign_key = NULL;
+    }
+    or->skew = 0;
+    or->maxage = 0;
+}
+
+void canl_x509store_free(canl_x509store_t *cs)
+{
+    if (!cs)
+        return;
+    if (cs->ca_dir){
+        free(cs->ca_dir);
+        cs->ca_dir = NULL;
+    }
+    if (cs->crl_dir){
+        free(cs->crl_dir);
+        cs->crl_dir = NULL;
+    }
+    if (cs->ca_file){
+        free(cs->ca_file);
+        cs->ca_file = NULL;
+    }
+}
+
+int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
 {
 
     if (!ocspreq)
@@ -64,8 +117,7 @@ set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
     return 0;
 }
 
-    static int 
-set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
+int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
 {
 
     int len = 0;
@@ -88,8 +140,7 @@ set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
     return 0;
 }
 
-    static int 
-set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
+int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
 {
 
     if (!ocspreq)
@@ -108,8 +159,7 @@ set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
     return 0;
 }
 
-    static int 
-set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
+int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
 {
 
     if (!ocspreq)
@@ -128,8 +178,7 @@ set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
     return 0;
 }
 
-    static int
-set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
+int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
 {
 
     if (!ocspreq)
@@ -147,8 +196,7 @@ set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
     }
     return 0;
 }
-    static int
-set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
+int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
 {
 
     if (!ocspreq)
@@ -159,8 +207,7 @@ set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
         ocspreq->skew = skew;
     return 0;
 }
-    static int
-set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage)
+int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage)
 {
 
     if (!ocspreq)
@@ -200,7 +247,7 @@ store_dup(canl_x509store_t *store_from)
     return store_to;
 }
 
-    static int
+static int
 set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store)
 {
 
@@ -221,7 +268,6 @@ canl_create_x509store(canl_x509store_t *c_store)
 {
     X509_STORE *store = NULL;
     X509_LOOKUP *lookup = NULL;
-
 
     if (!c_store)
         return NULL;
