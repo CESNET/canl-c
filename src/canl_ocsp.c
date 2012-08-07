@@ -5,6 +5,8 @@
 #define USENONCE 0
 
 typedef enum {
+    CANL_OCSPRESULT_ERROR_NOSTATUS          = -17,
+    CANL_OCSPRESULT_ERROR_INVTIME           = -16,
     CANL_OCSPRESULT_ERROR_VERIFYRESPONSE    = -15,
     CANL_OCSPRESULT_ERROR_NOTCONFIGURED     = -14,
     CANL_OCSPRESULT_ERROR_NOAIAOCSPURI      = -13,
@@ -411,9 +413,6 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         goto end;
     if (USENONCE && OCSP_check_nonce(req, basic) <= 0) 
         goto end;
-    /*TODO make the store*/ 
-    if (data->store)
-        goto end;
     store = canl_create_x509store(data->store);
     if (!store)
         goto end;
@@ -429,10 +428,15 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     }
 
     if (!OCSP_resp_find_status(basic, id, &status, &reason, &producedAt,
-                &thisUpdate, &nextUpdate))
+                &thisUpdate, &nextUpdate)){
+        result = CANL_OCSPRESULT_ERROR_NOSTATUS;
         goto end;
-    if (!OCSP_check_validity(thisUpdate, nextUpdate, data->skew, data->maxage))
+    }
+    if (!OCSP_check_validity(thisUpdate, nextUpdate, 
+                data->skew, data->maxage)) {
+        result = CANL_OCSPRESULT_ERROR_INVTIME;
         goto end;
+    }
 
     /* All done.  Set the return code based on the status from the response. */
     if (status == V_OCSP_CERTSTATUS_REVOKED) {
@@ -449,6 +453,10 @@ end:
     if (req) OCSP_REQUEST_free(req);
     if (resp) OCSP_RESPONSE_free(resp);
     if (basic) OCSP_BASICRESP_free(basic);
+    if (verify_other)
+        sk_X509_pop_free(verify_other, X509_free);
+    if (store)
+        X509_STORE_free(store);
 
     return result;
 }
