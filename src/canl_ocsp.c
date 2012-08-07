@@ -513,15 +513,13 @@ end:
     return resp;
 }
 
+#if SSLEAY_VERSION_NUMBER >=  0x0090808fL
 /*TODO the timeout variable should be modified if TO is reached.
   Somehow retur error codes! */
     static OCSP_RESPONSE *
 query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout)
 {
     OCSP_RESPONSE *rsp = NULL;
-    
-/*openssl does support non blocking BIO for OCSP_send_request*/
-#if SSLEAY_VERSION_NUMBER >=  0x0090808fL
     int fd;
     int rv;
     OCSP_REQ_CTX *ctx = NULL;
@@ -605,8 +603,23 @@ query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout)
         }
 
     }
+err:
+    if (ctx)
+        OCSP_REQ_CTX_free(ctx);
+    return rsp;
+}
+#endif
 
-#else
+#if SSLEAY_VERSION_NUMBER < 0x0090808fL
+/*TODO the timeout variable should be modified if TO is reached.
+  Somehow retur error codes! */
+    static OCSP_RESPONSE *
+query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout)
+{
+    OCSP_RESPONSE *rsp = NULL;
+    
+/*openssl does support non blocking BIO for OCSP_send_request*/
+
     /*openssl does not support non blocking BIO for OCSP_send_request*/
 
     if (BIO_do_connect(conn) <= 0)
@@ -621,13 +634,7 @@ query_responder(BIO *conn, char *path, OCSP_REQUEST *req, int req_timeout)
         goto err;
     }
 
-#endif
-
 err:
-#if SSLEAY_VERSION_NUMBER >=  0x0090808fL
-    if (ctx)
-        OCSP_REQ_CTX_free(ctx);
-#endif 
     return rsp;
 }
-
+#endif
