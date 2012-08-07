@@ -5,6 +5,7 @@
 #define USENONCE 0
 
 typedef enum {
+    CANL_OCSPRESULT_ERROR_VERIFYRESPONSE    = -15,
     CANL_OCSPRESULT_ERROR_NOTCONFIGURED     = -14,
     CANL_OCSPRESULT_ERROR_NOAIAOCSPURI      = -13,
     CANL_OCSPRESULT_ERROR_INVALIDRESPONSE   = -12,
@@ -329,6 +330,8 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     canl_ocspresult_t result = 0;
     ASN1_GENERALIZEDTIME  *producedAt, *thisUpdate, *nextUpdate;
     int timeout = -1; // -1 means no timeout - use blocking I/O
+    unsigned long verify_flags = 0;
+    STACK_OF(X509) *verify_other = NULL;
 
     if (!data || !data->cert) { // TODO || !data->issuer ?
         result = EINVAL; //TODO error code
@@ -414,10 +417,16 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     store = canl_create_x509store(data->store);
     if (!store)
         goto end;
-    /*TODO check the second parametr (responder_cert) and the last one*/
-    if ((rc = OCSP_basic_verify(basic, 0, store, 0)) <= 0)
-        if ((rc = OCSP_basic_verify(basic, NULL, store, 0)) <= 0)
-            goto end;
+    /* The second parametr (verify_other) and the last one may be used
+     when OCSP API is fully defined*/
+    rc = OCSP_basic_verify(basic, verify_other, store, verify_flags);
+    if (rc < 0)
+        rc = OCSP_basic_verify(basic, NULL, store, 0);
+    if (rc <= 0) {
+        /*response verify failure*/
+        result = CANL_OCSPRESULT_ERROR_VERIFYRESPONSE;
+        goto end;
+    }
 
     if (!OCSP_resp_find_status(basic, id, &status, &reason, &producedAt,
                 &thisUpdate, &nextUpdate))
@@ -434,13 +443,6 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         /*TODO myproxy_log("OCSP status valid"); */
     }
 end:
-    /*TODO check what's this 
-      if (result < 0 && result != CANL_OCSPRESULT_ERROR_NOTCONFIGURED) {
-      ssl_error_to_verror();
-      TODO myproxy_log("OCSP check failed");
-      myproxy_log_verror();
-      } */
-
     if (host) OPENSSL_free(host);
     if (port) OPENSSL_free(port);
     if (path) OPENSSL_free(path);
