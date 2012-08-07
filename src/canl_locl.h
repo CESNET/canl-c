@@ -118,6 +118,7 @@ typedef struct canl_mech {
 
 typedef struct {
     char *ca_dir;
+    char *ca_file;
     char *crl_dir;
 } canl_x509store_t;
 

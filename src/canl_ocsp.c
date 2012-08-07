@@ -214,9 +214,41 @@ set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store)
 }
 
 static X509_STORE *
-canl_create_x509store(canl_x509store_t *store)
+canl_create_x509store(canl_x509store_t *c_store)
 {
-    return NULL;
+    X509_STORE *store = NULL;
+    X509_LOOKUP *lookup = NULL;
+
+
+    if (!c_store)
+        return NULL;
+    if(!(store = X509_STORE_new()))
+        goto end; 
+    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
+    if (lookup == NULL)
+        goto end;
+    if (c_store->ca_file) {
+        if(!X509_LOOKUP_load_file(lookup, c_store->ca_file, X509_FILETYPE_PEM)) { 
+            goto end; 
+        } 
+    }
+    else X509_LOOKUP_load_file(lookup, NULL, X509_FILETYPE_DEFAULT); 
+
+    lookup=X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir()); 
+    if (lookup == NULL)
+        goto end; 
+    if (c_store->ca_dir) {
+        if(!X509_LOOKUP_add_dir(lookup, c_store->ca_dir, X509_FILETYPE_PEM)) { 
+            goto end;
+        }
+    }
+    else X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT); 
+
+    ERR_clear_error(); 
+    return store; 
+end: 
+    X509_STORE_free(store); 
+    return NULL; 
 }
 
 /* Extract an url of given ocsp responder out of the AIA extension.
@@ -377,7 +409,10 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     if (USENONCE && OCSP_check_nonce(req, basic) <= 0) 
         goto end;
     /*TODO make the store*/ 
-    if (data->store && !(store = canl_create_x509store(data->store)))
+    if (data->store)
+        goto end;
+    store = canl_create_x509store(data->store);
+    if (!store)
         goto end;
     /*TODO check the second parametr (responder_cert) and the last one*/
     if ((rc = OCSP_basic_verify(basic, 0, store, 0)) <= 0)

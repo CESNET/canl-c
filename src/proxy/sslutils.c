@@ -2185,6 +2185,10 @@ proxy_verify_callback(
         }
     }
 
+    /*
+       OCSP check
+     */
+
     EVP_PKEY_free(key);
 
     if (objset)
