@@ -307,7 +307,7 @@ end:
    aia = X509_get1_ocsp(x);
    return sk_OPENSSL_STRING_value(aia, 0);
 
-   Returns string of the form: URI1 \0 URI2 \0 ... URIN \0\0 
+   Returns string of the form: URI:uri1 \0 URI:uri2 \0 ... URI:urin \0\0 
    (without spaces)
  */
 static char *get_ocsp_url_from_aia(X509 * cert, char** urls)
@@ -375,6 +375,7 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     char *host = NULL, *path = NULL, *port = NULL;
     OCSP_CERTID *id = NULL;
     char *chosenurl = NULL;
+    char *tr_chosenurl = NULL;
     canl_ocspresult_t result = 0;
     ASN1_GENERALIZEDTIME  *producedAt, *thisUpdate, *nextUpdate;
     int timeout = -1; // -1 means no timeout - use blocking I/O
@@ -395,12 +396,18 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
             result = CANL_OCSPRESULT_ERROR_NOAIAOCSPURI;
             goto end;
         }
+    /* It is necessary to truncate chosenurl for URI:*/
+    tr_chosenurl = strstr(chosenurl, "URI:");
+    if (tr_chosenurl)
+        tr_chosenurl += 4;
+    else
+        tr_chosenurl = chosenurl;
 
-    /*get connection parameters out of the chosenurl.
+    /*get connection parameters out of the tr_chosenurl.
       Determine whether to use encrypted (ssl) connection (based on the url
       format). Url is http[s]://host where host consists of 
       DN [:port] and [path]*/
-    if (!OCSP_parse_url(chosenurl, &host, &port, &path, &ssl)) {
+    if (!OCSP_parse_url(tr_chosenurl, &host, &port, &path, &ssl)) {
         result = CANL_OCSPRESULT_ERROR_BADOCSPADDRESS;
         goto end;
     }
@@ -494,12 +501,18 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         /*TODO myproxy_log("OCSP status valid"); */
     }
 end:
-    if (host) OPENSSL_free(host);
-    if (port) OPENSSL_free(port);
-    if (path) OPENSSL_free(path);
-    if (req) OCSP_REQUEST_free(req);
-    if (resp) OCSP_RESPONSE_free(resp);
-    if (basic) OCSP_BASICRESP_free(basic);
+    if (host)
+        OPENSSL_free(host);
+    if (port)
+        OPENSSL_free(port);
+    if (path)
+        OPENSSL_free(path);
+    if (req)
+        OCSP_REQUEST_free(req);
+    if (resp)
+        OCSP_RESPONSE_free(resp);
+    if (basic)
+        OCSP_BASICRESP_free(basic);
     if (chosenurl)
         free(chosenurl);
     if (verify_other)
