@@ -54,4 +54,6 @@ void ocsprequest_free(canl_ocsprequest_t *or);
 int canl_x509store_init(canl_x509store_t **cs);
 void canl_x509store_free(canl_x509store_t *cs);
 
+int do_ocsp_verify (canl_ocsprequest_t *data);
+
 #endif

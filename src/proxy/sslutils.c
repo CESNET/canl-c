@@ -2189,7 +2189,16 @@ proxy_verify_callback(
     /*
        OCSP check
      */
-//    do_ocsp_verify (ocsp_data);
+    if (!ocsp_data)
+        ocsprequest_init(&ocsp_data);
+    if (ocsp_data) {
+        if (ctx->current_cert)
+            set_ocsp_cert(ocsp_data, ctx->current_cert);
+        if (ctx->current_issuer)
+            set_ocsp_issuer(ocsp_data, ctx->current_issuer);
+        do_ocsp_verify (ocsp_data);
+        /* TODO sign key and cert */
+    }
 
     EVP_PKEY_free(key);
 

@@ -387,10 +387,11 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     }
 
     /*get url from cert or use some implicit value*/
+    /*TODO duplicate the value*/
     if (data->url)
-        host = data->url;
+        chosenurl = strdup(data->url);
     else
-        if (!get_ocsp_url_from_aia(data->cert, &host)) {
+        if (!get_ocsp_url_from_aia(data->cert, &chosenurl)) {
             result = CANL_OCSPRESULT_ERROR_NOAIAOCSPURI;
             goto end;
         }
@@ -499,6 +500,8 @@ end:
     if (req) OCSP_REQUEST_free(req);
     if (resp) OCSP_RESPONSE_free(resp);
     if (basic) OCSP_BASICRESP_free(basic);
+    if (chosenurl)
+        free(chosenurl);
     if (verify_other)
         sk_X509_pop_free(verify_other, X509_free);
     if (store)

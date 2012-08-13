@@ -51,7 +51,7 @@ LFLAGS_PRX=-L. -lcanl_c
 CFLAGS_DEL=-Wall -g -I${top_srcdir}/src -I.
 LFLAGS_DEL=-L. -lcanl_c -lcrypto 
 
-HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h canl_mech_ssl.h
+HEAD_CANL=canl.h canl_locl.h canl_err.h canl_cred.h canl_ssl.h canl_mech_ssl.h canl_ocsp.h
 
 SRC_CLI=canl_sample_client.c
 HEAD_CLI=canl.h
