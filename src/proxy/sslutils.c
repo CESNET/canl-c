@@ -2081,13 +2081,13 @@ proxy_verify_callback(
         }
 #endif /* X509_V_ERR_CERT_REVOKED */
 
+        cert_dir = pvd->pvxd->certdir ? pvd->pvxd->certdir :
+            getenv(X509_CERT_DIR);
         /* Do not need to check self signed certs against ca_policy_file */
 
         if (X509_NAME_cmp(X509_get_subject_name(ctx->current_cert),
                           X509_get_issuer_name(ctx->current_cert)))
         {
-            cert_dir = pvd->pvxd->certdir ? pvd->pvxd->certdir :
-                getenv(X509_CERT_DIR);
 
             {
                 char * error_string = NULL;
@@ -2196,6 +2196,16 @@ proxy_verify_callback(
             set_ocsp_cert(ocsp_data, ctx->current_cert);
         if (ctx->current_issuer)
             set_ocsp_issuer(ocsp_data, ctx->current_issuer);
+        if (cert_dir){
+            canl_x509store_t *c_store = NULL;
+            if (!canl_x509store_init(&c_store)) {
+                c_store->ca_dir = strdup(cert_dir);
+                set_ocsp_store(ocsp_data, c_store);
+                canl_x509store_free(c_store);
+                c_store = NULL;
+            }
+        }
+
         do_ocsp_verify (ocsp_data);
         /* TODO sign key and cert */
     }

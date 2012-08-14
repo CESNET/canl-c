@@ -59,8 +59,23 @@ ssl_initialize(glb_ctx *cc)
         return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     err = proxy_get_filenames(0, &ca_cert_fn, &ca_cert_dirn, NULL, NULL, NULL);
-    if (!err && (ca_cert_fn || ca_cert_dirn))
-	SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
+    if (!err){
+        /* set ca dir and ca file to SSL_CTX*/
+        if (ca_cert_fn || ca_cert_dirn)
+            SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
+        /* set ca dir and/or ca file to canl glb_ctx*/
+        if (!(*m_glb_ctx)->ca_file && ca_cert_fn && !access(ca_cert_fn, R_OK)) {
+            err = canl_ctx_set_ca_fn(cc, ca_cert_fn);
+            if (err)
+                return err;
+        }
+        if (!(*m_glb_ctx)->ca_dir && ca_cert_dirn && !access(ca_cert_dirn, R_OK)) {
+            err = canl_ctx_set_ca_dir(cc, ca_cert_dirn);
+            if (err)
+                return err;
+        }
+    }
+
 
     if (ca_cert_fn)
 	free(ca_cert_fn);
@@ -1074,6 +1089,22 @@ canl_ctx_set_ca_dir(canl_ctx cc, const char *dir)
                 " initialized");
     
     return ssl_set_dir(glb_cc, &m_ctx->ca_dir, dir);
+}
+
+canl_err_code
+canl_ctx_set_ca_fn(canl_ctx cc, const char *fn)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
+    
+    if (!cc)
+        return EINVAL;
+    
+    if (!m_ctx)
+	return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
+    
+    return ssl_set_dir(glb_cc, &m_ctx->ca_file, fn);
 }
 
 static canl_err_code

@@ -233,21 +233,21 @@ store_dup(canl_x509store_t *store_from)
     if (store_from->ca_dir) {
         int len = strlen(store_from->ca_dir);
         store_to->ca_dir = (char *) malloc((len + 1) * sizeof (char));    
-        if (store_to->ca_dir)
+        if (!store_to->ca_dir)
             return NULL;
         strncpy (store_to->ca_dir, store_from->ca_dir, len + 1);
     }
     if (store_from->crl_dir) {
         int len = strlen(store_from->crl_dir);
         store_to->crl_dir = (char *) malloc((len + 1) * sizeof (char));    
-        if (store_to->crl_dir)
+        if (!store_to->crl_dir)
             return NULL;
         strncpy (store_to->crl_dir, store_from->crl_dir, len + 1);
     }
     return store_to;
 }
 
-static int
+int
 set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store)
 {
 
@@ -256,6 +256,8 @@ set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store)
     if (!ocspreq)
         return 1;
     if (store){
+        if (ocspreq->store)
+            canl_x509store_free(ocspreq->store);
         ocspreq->store = store_dup(store);
         if (!ocspreq->store)
             return 1;

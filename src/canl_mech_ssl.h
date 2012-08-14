@@ -19,6 +19,7 @@ typedef struct _mech_glb_ctx
     void *mech_ctx; //like SSL_CTX *
     unsigned int flags;
     char  *ca_dir;
+    char  *ca_file;
     char  *crl_dir;
     cert_key_store *cert_key;
 } mech_glb_ctx;
