@@ -577,6 +577,12 @@ end:
     return resp;
 }
 
+#ifdef OPENSSL_SYSNAME_WIN32
+#define openssl_fdset(a,b) FD_SET((unsigned int)a, b)
+#else
+#define openssl_fdset(a,b) FD_SET(a, b)
+#endif
+
 #if SSLEAY_VERSION_NUMBER >=  0x0090808fL
 /*TODO the timeout variable should be modified if TO is reached.
   Somehow retur error codes! */
