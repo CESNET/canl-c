@@ -583,7 +583,7 @@ end:
 #define openssl_fdset(a,b) FD_SET(a, b)
 #endif
 
-#if SSLEAY_VERSION_NUMBER >=  0x0090808fL
+#if SSLEAY_VERSION_NUMBER >=  0x0090900fL
 /*TODO the timeout variable should be modified if TO is reached.
   Somehow retur error codes! */
     static OCSP_RESPONSE *
@@ -680,7 +680,7 @@ err:
 }
 #endif
 
-#if SSLEAY_VERSION_NUMBER < 0x0090808fL
+#if SSLEAY_VERSION_NUMBER < 0x0090900fL
 /*TODO the timeout variable should be modified if TO is reached.
   Somehow retur error codes! */
     static OCSP_RESPONSE *
