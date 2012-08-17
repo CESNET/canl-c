@@ -96,6 +96,8 @@ Description:
 #ifdef USE_PKCS11
 #include "scutils.h"
 #endif
+/* Maximum leeway in validity period: default 5 minutes */
+#define MAX_VALIDITY_PERIOD     (5 * 60)
 
 static int fix_add_entry_asn1_set_param = 0;
 
@@ -2205,6 +2207,8 @@ proxy_verify_callback(
                 c_store = NULL;
             }
         }
+        set_ocsp_skew(ocsp_data, MAX_VALIDITY_PERIOD);
+        set_ocsp_maxage(ocsp_data, -1);
 
         do_ocsp_verify (ocsp_data);
         /* TODO sign key and cert */
