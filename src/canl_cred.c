@@ -396,6 +396,7 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
     int n_certs = 0;
     int i = 0;
     X509 *cert_from_chain = NULL;
+    int cert_in_chain = 0;
 
     if (!ctx)
         return EINVAL;
@@ -432,13 +433,31 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
 
     ERR_clear_error();
 
-    /*new cert + priv key + chain*/
-    ret = PEM_write_X509(cert_file, crd->c_cert);
-    if (!ret) {
-        ssl_err = ERR_get_error();
-        ret = set_error(cc, ssl_err, SSL_ERROR, "Error while writing"
-               " the certificate to the file");
-        goto end;
+    /*new cert + priv key + chain
+      if the new cert is empty, take it from the chain*/
+    if (crd->c_cert){
+        ret = PEM_write_X509(cert_file, crd->c_cert);
+        if (!ret) {
+            ssl_err = ERR_get_error();
+            if (ssl_err)
+                ret = set_error(cc, ssl_err, SSL_ERROR, "Error while writing"
+                        " the certificate to the file");
+            goto end;
+        }
+    }
+    else if (crd->c_cert_chain){
+        cert_from_chain = sk_X509_value(crd->c_cert_chain, 0);
+        if (cert_from_chain) {
+            ret = PEM_write_X509(cert_file, cert_from_chain);
+            if (!ret) {
+                ssl_err = ERR_get_error();
+                if (ssl_err)
+                    ret = set_error(cc, ssl_err, SSL_ERROR, "Error "
+                            " while writing the certificate to the file");
+                goto end;
+            }
+            cert_in_chain = 1;
+        }
     }
     ret = PEM_write_PrivateKey(cert_file, crd->c_key, NULL, NULL, 0, 0, NULL);
     if (!ret) {
@@ -449,7 +468,7 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
     }
 
     n_certs = sk_X509_num(crd->c_cert_chain);
-    for (i = 0; i <  n_certs; i++){
+    for (i = cert_in_chain; i <  n_certs; i++){
         cert_from_chain = sk_X509_value(crd->c_cert_chain, i);
         if (cert_from_chain) {
             ret = PEM_write_X509(cert_file, cert_from_chain);
@@ -474,12 +493,12 @@ canl_cred_save_proxyfile(canl_ctx ctx, canl_cred cred, const char *proxy_file)
 end:
     if (fclose(cert_file)){
         ret = errno;
-        update_error(cc, ret, POSIX_ERROR, "cannot close file with certificate");
+        update_error(cc, ret, POSIX_ERROR, "cannot close file"
+                " with certificate");
         return errno;
     }
 
     return ret;
-
 }
 
 canl_err_code CANL_CALLCONV
