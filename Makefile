@@ -169,6 +169,7 @@ install: all
 	${INSTALL} -m 755 ${LIBCANL} ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	${INSTALL} -m 644 ${top_srcdir}/src/canl.h \
 		${top_srcdir}/src/canl_ssl.h canl_err.h \
+		${top_srcdir}/src/canl_cred.h \
 		${DESTDIR}${PREFIX}${prefix}/include
 	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
 
