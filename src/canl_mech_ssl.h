@@ -29,6 +29,6 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx,
 int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key);
 int set_cert_file(glb_ctx *cc, X509 **to, const char *cert);
 int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *cert);
-int pkey_dup(EVP_PKEY **to, EVP_PKEY *from);
+void pkey_dup(EVP_PKEY **to, EVP_PKEY *from);
 
 #endif

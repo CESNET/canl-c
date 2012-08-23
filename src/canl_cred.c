@@ -107,7 +107,6 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *crd = (creds*) cred;
-    int ret = 0;
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
 
     if (!ctx)
@@ -130,11 +129,8 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
         }
     }
 
-    if (crd->c_key) {
-        if ((ret = pkey_dup(&m_ctx->cert_key->key, crd->c_key))) {
-            return ret;
-        }
-    }
+    if (crd->c_key)
+        pkey_dup(&m_ctx->cert_key->key, crd->c_key);
 
     if (crd->c_cert)
         m_ctx->cert_key->cert = X509_dup(crd->c_cert);
@@ -143,11 +139,10 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
     return 0;
 }
 
-int pkey_dup(EVP_PKEY **to, EVP_PKEY *from)
+void pkey_dup(EVP_PKEY **to, EVP_PKEY *from)
 {
     CRYPTO_add(&from->references,1,CRYPTO_LOCK_EVP_PKEY);
     *to = from;
-    return 0;
 }
 
 canl_err_code CANL_CALLCONV
@@ -168,6 +163,27 @@ canl_cred_load_priv_key_file(canl_ctx ctx, canl_cred cred, const char *pkey_file
         return set_error(cc, EINVAL, POSIX_ERROR, "Invalid filename");
 
     ret = set_key_file(cc, &crd->c_key, pkey_file);
+
+    return ret;
+}
+
+canl_err_code CANL_CALLCONV
+canl_cred_save_priv_key(canl_ctx ctx, canl_cred cred, EVP_PKEY **pkey)
+{
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    int ret = 0;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
+                " not initialized" );
+    if (!pkey)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid private key"
+                " parameter");
+    pkey_dup(pkey, crd->c_key);
 
     return ret;
 }

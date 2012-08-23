@@ -40,6 +40,8 @@ canl_ctx_set_cred(canl_ctx, canl_cred);
 canl_err_code CANL_CALLCONV
 canl_cred_load_priv_key_file(canl_ctx, canl_cred, const char *,
 			     canl_password_callback, void *);
+canl_err_code CANL_CALLCONV
+canl_cred_save_priv_key(canl_ctx, canl_cred, EVP_PKEY **);
 
 canl_err_code CANL_CALLCONV
 canl_cred_load_priv_key_pkcs11(canl_ctx, canl_cred, const char *,
