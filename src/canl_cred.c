@@ -189,6 +189,27 @@ canl_cred_save_priv_key(canl_ctx ctx, canl_cred cred, EVP_PKEY **pkey)
 }
 
 canl_err_code CANL_CALLCONV
+canl_cred_load_priv_key(canl_ctx ctx, canl_cred cred, EVP_PKEY *pkey)
+{
+    glb_ctx *cc = (glb_ctx*) ctx;
+    creds *crd = (creds*) cred;
+    int ret = 0;
+
+    if (!ctx)
+        return EINVAL;
+
+    if (!cred)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
+                " not initialized" );
+    if (!pkey)
+        return set_error(cc, EINVAL, POSIX_ERROR, "Invalid private key"
+                " parameter");
+    pkey_dup(&crd->c_key, pkey);
+
+    return ret;
+}
+
+canl_err_code CANL_CALLCONV
 canl_cred_load_chain(canl_ctx ctx, canl_cred cred, STACK_OF(X509) *cert_stack)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
@@ -379,7 +400,7 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
                 (key_size <= DEF_KEY_LEN_LONGER))
             return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Cannot" 
                     "sign cert. request -the key is too short with "
-                   " respect to cert. lifetime");
+                   "respect to cert. lifetime");
     }
 
     /*TODO flags - limited,version*/

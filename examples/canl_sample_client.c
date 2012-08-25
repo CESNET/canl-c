@@ -17,6 +17,7 @@ int main(int argc, char *argv[])
     int err = 0;
     char buf[BUF_LEN];
     int buf_len = 0;
+    char *ca_dir = NULL;
     char *p_server = NULL;
     char *def_server = "www.linuxfoundation.org";
     int opt, port = DEF_PORT;
@@ -50,6 +51,9 @@ int main(int argc, char *argv[])
                 break;
             case 'x': 
                 proxy_cert = optarg;
+                break;
+            case 'd':
+                ca_dir = optarg;
                 break;
             case 't':
                 timeout.tv_sec = atoi(optarg);

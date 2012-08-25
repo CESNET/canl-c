@@ -580,7 +580,6 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
     time_t starttime, curtime;
     int ret = -1, ret2 = -1;
     unsigned long ssl_err = 0;
-    canl_err_origin e_orig = UNKNOWN_ERROR;
     long errorcode = 0;
     int expected = 0;
     int locl_timeout = -1;
@@ -600,7 +599,6 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
             ret2 = SSL_connect(ssl);
             if (ret2 < 0) {
                 ssl_err = ERR_get_error();
-                e_orig = SSL_ERROR;
             }
             expected = errorcode = SSL_get_error(ssl, ret2);
         }
