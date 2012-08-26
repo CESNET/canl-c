@@ -62,7 +62,10 @@ ssl_initialize(glb_ctx *cc)
     if (!err){
         /* set ca dir and ca file to SSL_CTX*/
         if (ca_cert_fn || ca_cert_dirn)
-            SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn, ca_cert_dirn);
+            if (!SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_fn,
+                        ca_cert_dirn))
+                err = set_error(cc, ERR_get_error(), SSL_ERROR,
+                        "Cannot set verify locations");
         /* set ca dir and/or ca file to canl glb_ctx*/
         if (!(*m_glb_ctx)->ca_file && ca_cert_fn && !access(ca_cert_fn, R_OK)) {
             err = canl_ctx_set_ca_fn(cc, ca_cert_fn);
@@ -78,24 +81,19 @@ ssl_initialize(glb_ctx *cc)
 
 
     if (ca_cert_fn)
-	free(ca_cert_fn);
+        free(ca_cert_fn);
     if (ca_cert_dirn)
-	free(ca_cert_dirn);
+        free(ca_cert_dirn);
 
     //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
     err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
     if (!err) {
-	err = set_error(cc, ERR_get_error(), SSL_ERROR,
-			"No cipher to use");
-	goto end;
+        err = set_error(cc, ERR_get_error(), SSL_ERROR,
+                "Error setting cipher list");
+        goto end;
     }
     /* XXX: should be only defined on the SSL level: */
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
-
-    //SSL_CTX_set_purpose(ssl_ctx, X509_PURPOSE_ANY);
-    //SSL_CTX_set_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);
-    // TODO proxy_verify_callback, verify_none only for testing !!!!!!!
-    //SSL_CTX_set_verify_depth(ctx, 100);
 
     (*m_glb_ctx)->mech_ctx = ssl_ctx;
     ssl_ctx = NULL;
@@ -113,7 +111,6 @@ ssl_set_flags(glb_ctx *cc, unsigned int *mech_flags,  unsigned int flags)
 {
     if (cc == NULL)
         return EINVAL;
-
 
     *mech_flags = (flags | *mech_flags);
 
@@ -327,8 +324,6 @@ ssl_client_init(glb_ctx *cc, void **ctx)
 
     SSL_set_connect_state(ssl);
 
-
-
     SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
     if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
         SSL_set_options(ssl, SSL_OP_NO_SSLv2);
@@ -349,7 +344,7 @@ ssl_client_init(glb_ctx *cc, void **ctx)
 	    }
 	}
                /*Make sure the key and certificate file match
-         * not mandatory on client side*/
+                * not mandatory on client side*/
         if (m_ctx->cert_key->cert && m_ctx->cert_key->key)
             if ( (err = SSL_check_private_key(ssl)) != 1)
                 return set_error(cc, ERR_get_error(), SSL_ERROR, "Private key"
