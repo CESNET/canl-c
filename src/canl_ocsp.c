@@ -372,7 +372,7 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     OCSP_REQUEST *req = NULL;
     OCSP_RESPONSE *resp = NULL;
     OCSP_BASICRESP *basic = NULL;
-    X509_STORE *store = 0;
+    X509_STORE *store = NULL;
     int rc = 0, reason = 0, ssl = 0, status = 0;
     char *host = NULL, *path = NULL, *port = NULL;
     OCSP_CERTID *id = NULL;
@@ -469,11 +469,12 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         goto end;
     if (USENONCE && OCSP_check_nonce(req, basic) <= 0) 
         goto end;
+    /* TODO is this compulsory? */
     store = canl_create_x509store(data->store);
     if (!store)
         goto end;
-    /* The second parametr (verify_other) and the last one may be used
-     when OCSP API is fully defined*/
+    
+    /* The last param. may be used when OCSP API is fully defined*/
     rc = OCSP_basic_verify(basic, verify_other, store, verify_flags);
     if (rc < 0)
         rc = OCSP_basic_verify(basic, NULL, store, 0);

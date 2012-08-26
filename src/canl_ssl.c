@@ -187,12 +187,12 @@ ssl_server_init(glb_ctx *cc, void **ctx)
 	return set_error(cc, ERR_get_error(), SSL_ERROR,
 		         "Failed to create SSL connection context");
 
-    /* TODO !!!!!!!!!!
-     *  if SSL_VERIFY_NONE, then we cannot extract peer cert. of ssl
-     *  if SSL_VERIFY_PEER, then client cert verification is mandatory!!!*/
-    SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
+    if (CANL_SSL_VERIFY_NONE & m_ctx->flags)
+        SSL_set_verify(ssl, SSL_VERIFY_NONE, proxy_verify_callback);
+    else
+        SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
     
-    if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
+    if (!(CANL_SSL_ACCEPT_SSLv2 & m_ctx->flags))
         SSL_set_options(ssl, SSL_OP_NO_SSLv2);
 
 
@@ -323,9 +323,13 @@ ssl_client_init(glb_ctx *cc, void **ctx)
 		         "Failed to create SSL connection context");
 
     SSL_set_connect_state(ssl);
+    
+    if (CANL_SSL_VERIFY_NONE & m_ctx->flags)
+        SSL_set_verify(ssl, SSL_VERIFY_NONE, proxy_verify_callback);
+    else
+        SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
 
-    SSL_set_verify(ssl, SSL_VERIFY_PEER, proxy_verify_callback);
-    if (!(CANL_ACCEPT_SSLv2 & m_ctx->flags))
+    if (!(CANL_SSL_ACCEPT_SSLv2 & m_ctx->flags))
         SSL_set_options(ssl, SSL_OP_NO_SSLv2);
 
     if (m_ctx->cert_key) {
@@ -1052,6 +1056,24 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key, char *proxy,
     return err;
 }
 
+
+canl_err_code 
+canl_ctx_set_ssl_flags(canl_ctx cc, unsigned int flags)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
+
+    if (!m_ctx)
+	return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
+
+    if (!cc)
+        return EINVAL;
+
+    m_ctx->flags |= flags;
+    return 0;
+}
+
 canl_err_code
 canl_ctx_set_crl_dir(canl_ctx cc, const char *dir)
 {
@@ -1124,7 +1146,7 @@ ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
 	return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
     subject = X509_get_subject_name(cert);
-    if (CANL_DN_OSSL & m_ctx->flags)
+    if (CANL_SSL_DN_OSSL & m_ctx->flags)
         ret = X509_NAME_print_ex(name_out, subject, 0, 0);
     else
         ret = X509_NAME_print_ex(name_out, subject, 0, XN_FLAG_RFC2253);

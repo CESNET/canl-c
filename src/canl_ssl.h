@@ -8,11 +8,12 @@ extern "C" {
 #endif
 
 typedef enum canl_ctx_ssl_flags {
-    CANL_ACCEPT_SSLv2		= 0x0001,
-    CANL_DN_OSSL		= 0x0002,
+    CANL_SSL_ACCEPT_SSLv2       = 0x0001,
+    CANL_SSL_DN_OSSL            = 0x0002,
+    CANL_SSL_VERIFY_NONE        = 0x0004,
 } canl_ctx_ssl_flags;
 
-canl_ctx CANL_CALLCONV
+canl_err_code CANL_CALLCONV
 canl_ctx_set_ssl_flags(canl_ctx, unsigned int);
 
 canl_err_code CANL_CALLCONV
