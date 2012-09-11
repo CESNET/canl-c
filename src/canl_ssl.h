@@ -2,6 +2,7 @@
 #define _CANL_SSL_H
 
 #include <canl.h>
+#include <openssl/ssl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +35,11 @@ canl_ctx_set_pkcs11_lib(canl_ctx, const char *);
 
 canl_err_code CANL_CALLCONV
 canl_ctx_set_pkcs11_init_args(canl_ctx, const char *);
+
+/* Set canl cert verification callbacks into SSL_CTX.
+   Do not use SSL_CTX stored in canl_ctx */
+canl_err_code CANL_CALLCONV
+canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, void *user_data);
 
 #ifdef __cplusplus
 }

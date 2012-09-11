@@ -1116,10 +1116,26 @@ canl_ctx_set_ca_fn(canl_ctx cc, const char *fn)
         return EINVAL;
     
     if (!m_ctx)
-	return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
+	return set_error(glb_cc, EINVAL, POSIX_ERROR, "Mech context not"
                 " initialized");
     
     return ssl_set_dir(glb_cc, &m_ctx->ca_file, fn);
+}
+
+canl_err_code CANL_CALLCONV
+canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, void *user_data)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    if (!cc)
+        return EINVAL;
+    if (!ssl_ctx)
+        return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
+
+    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback,
+            user_data);
+
+    return 0;
 }
 
 static canl_err_code
