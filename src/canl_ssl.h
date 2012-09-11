@@ -39,7 +39,7 @@ canl_ctx_set_pkcs11_init_args(canl_ctx, const char *);
 /* Set canl cert verification callbacks into SSL_CTX.
    Do not use SSL_CTX stored in canl_ctx */
 canl_err_code CANL_CALLCONV
-canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, void *user_data);
+canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode);
 
 #ifdef __cplusplus
 }

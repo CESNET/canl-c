@@ -1123,7 +1123,7 @@ canl_ctx_set_ca_fn(canl_ctx cc, const char *fn)
 }
 
 canl_err_code CANL_CALLCONV
-canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, void *user_data)
+canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode)
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
     if (!cc)
@@ -1132,8 +1132,9 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, void *user_data)
         return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
                 " initialized");
 
-    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback,
-            user_data);
+    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, NULL);
+
+    SSL_CTX_set_verify(ssl_ctx, ver_mode, proxy_verify_callback);
 
     return 0;
 }
