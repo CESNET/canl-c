@@ -147,9 +147,9 @@ ssl_server_init(glb_ctx *cc, void **ctx)
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
     SSL_CTX *ssl_ctx = NULL; 
     SSL *ssl = NULL;
-    char *user_cert_fn, *user_key_fn, *user_proxy_fn;
+    char *user_cert_fn, *user_key_fn; 
     int err = 0;
-    user_cert_fn = user_key_fn = user_proxy_fn = NULL;
+    user_cert_fn = user_key_fn = NULL;
  
     if (cc == NULL)
 	return EINVAL;
@@ -159,28 +159,34 @@ ssl_server_init(glb_ctx *cc, void **ctx)
                 " initialized");
     ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
 
-    err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
+    err = proxy_get_filenames(0, NULL, NULL, NULL,
             &user_cert_fn, &user_key_fn);
-    if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || !m_ctx->cert_key->key)) {
+    if (!err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
+                !m_ctx->cert_key->key)) {
         if (user_cert_fn && user_key_fn && !access(user_cert_fn, R_OK) && 
                 !access(user_key_fn, R_OK)) {
-            err = do_set_ctx_own_cert_file(cc, m_ctx, user_cert_fn, user_key_fn, NULL);
-            if (err)
+            err = do_set_ctx_own_cert_file(cc, m_ctx,
+                    user_cert_fn, user_key_fn, NULL);
+            if (err) {
+                free(user_cert_fn);
+                free(user_key_fn);
                 return err;
+            }
         }
     }
-    if (err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
+    if (user_cert_fn){
+	free(user_cert_fn);
+	user_cert_fn = NULL;
+    }
+    if (user_key_fn){
+	free(user_key_fn);
+	user_key_fn = NULL;
+    }
+    if (err || (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
                 !m_ctx->cert_key->key))
-	update_error(cc, EINVAL, POSIX_ERROR, "No key or certificate"
-                " found");
+	return set_error(cc, CANL_ERR_NoCertFound, CANL_ERROR,
+                "No key or certificate found");
 
-    free(user_cert_fn);
-    user_cert_fn = NULL;
-    free(user_key_fn);
-    user_key_fn = NULL;
-    //TODO where to use proxy on server side
-    free(user_proxy_fn);
-    user_proxy_fn = NULL;
 
     ssl = SSL_new(ssl_ctx);
     if (ssl == NULL)
@@ -222,7 +228,8 @@ ssl_server_init(glb_ctx *cc, void **ctx)
         }
     }
     else {
-        set_error(cc, err, UNKNOWN_ERROR, "server key or certificate missing");
+        set_error(cc, CANL_ERR_NoCertFound, CANL_ERROR,
+		"server key or certificate missing");
         return 1;
     }
     /*Make sure the key and certificate file match*/
@@ -261,35 +268,41 @@ ssl_client_init(glb_ctx *cc, void **ctx)
             err = do_set_ctx_own_cert_file(cc, m_ctx, NULL, NULL,
                     user_proxy_fn);
             if (err)
-                return err;
+                goto err;
         }
         else {
             if (user_cert_fn && !access(user_cert_fn, R_OK)) {
                 err = do_set_ctx_own_cert_file(cc, m_ctx, 
                         user_cert_fn, NULL, NULL);
                 if (err)
-                    return err;
+                    goto err;
             }
             if (user_key_fn && !access(user_key_fn, R_OK)) {
                 err = do_set_ctx_own_cert_file(cc, m_ctx,
                         NULL, user_key_fn, NULL);
                 if (err)
-                    return err;
+                    goto err;
             }
         }
     }
 
-    if (err && (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
+    if (err || (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
                 !m_ctx->cert_key->key))
-	update_error(cc, EINVAL, POSIX_ERROR, "No key or certificate"
-                " found");
+        update_error(cc, CANL_ERR_NoCertFound, CANL_ERROR,
+                "No key or certificate found");
 
-    free(user_cert_fn);
-    user_cert_fn = NULL;
-    free(user_key_fn);
-    user_key_fn = NULL;
-    free(user_proxy_fn);
-    user_proxy_fn = NULL;
+    if (user_cert_fn){
+        free(user_cert_fn);
+        user_cert_fn = NULL;
+    }
+    if (user_key_fn){
+        free(user_key_fn);
+        user_key_fn = NULL;
+    }
+    if (user_proxy_fn) {
+        free(user_proxy_fn);
+        user_proxy_fn = NULL;
+    }
 
     if (m_ctx->cert_key && m_ctx->cert_key->chain) {
         /*
@@ -357,6 +370,20 @@ ssl_client_init(glb_ctx *cc, void **ctx)
 
     *ctx = ssl;
     return 0;
+err:
+    if (user_cert_fn){
+        free(user_cert_fn);
+        user_cert_fn = NULL;
+    }
+    if (user_key_fn){
+        free(user_key_fn);
+        user_key_fn = NULL;
+    }
+    if (user_proxy_fn) {
+        free(user_proxy_fn);
+        user_proxy_fn = NULL;
+    }
+    return err;
 }
 
 void setup_SSL_proxy_handler(SSL *ssl, char *cadir)
@@ -387,7 +414,7 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    setup_SSL_proxy_handler(auth_ctx, m_ctx->ca_dir);
+    setup_SSL_proxy_handler(ssl, m_ctx->ca_dir);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_connect(cc, io, ssl, timeout); 
@@ -502,7 +529,7 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    setup_SSL_proxy_handler(auth_ctx, m_ctx->ca_dir);
+    setup_SSL_proxy_handler(ssl, m_ctx->ca_dir);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_accept(cc, io, ssl, timeout);
@@ -1131,7 +1158,11 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode)
     if (!ssl_ctx)
         return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
                 " initialized");
-
+    //mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
+    
+    /*SSL should be passed to this funcion 
+    setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
+    */
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, NULL);
 
     SSL_CTX_set_verify(ssl_ctx, ver_mode, proxy_verify_callback);
