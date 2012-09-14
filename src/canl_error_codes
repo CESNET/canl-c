@@ -107,3 +107,5 @@ GeneralSSLError
 HostNotFound
 ResolverError
 NoPeerCertificate
+NoKeyFound
+NoCertFound
