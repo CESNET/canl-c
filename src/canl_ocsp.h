@@ -17,6 +17,7 @@ typedef struct {
     EVP_PKEY        *sign_key;
     long            skew;
     long            maxage;
+    int             timeout;
 } canl_ocsprequest_t;
 
 typedef enum {

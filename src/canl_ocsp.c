@@ -99,7 +99,6 @@ void canl_x509store_free(canl_x509store_t *cs)
 
 int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
 {
-
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
@@ -119,7 +118,6 @@ int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
 
 int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
 {
-
     int len = 0;
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
@@ -142,7 +140,6 @@ int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
 
 int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
 {
-
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
@@ -161,7 +158,6 @@ int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
 
 int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
 {
-
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
@@ -180,7 +176,6 @@ int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
 
 int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
 {
-
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
@@ -196,9 +191,9 @@ int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
     }
     return 0;
 }
+
 int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
 {
-
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
@@ -207,15 +202,26 @@ int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
         ocspreq->skew = skew;
     return 0;
 }
+
 int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage)
 {
-
     if (!ocspreq)
         ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
         return 1;
     if (maxage)
         ocspreq->maxage = maxage;
+    return 0;
+}
+
+int set_ocsp_timeout(canl_ocsprequest_t *ocspreq, int timeout)
+{
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (timeout)
+        ocspreq->timeout = timeout;
     return 0;
 }
 
