@@ -1814,6 +1814,7 @@ proxy_verify_callback(
     X509_REVOKED *                      revoked;
 #endif
     SSL *                               ssl = NULL;
+    SSL_CTX *                           ssl_ctx = NULL;
     proxy_verify_desc *                 pvd;
     int                                 itsaproxy = 0;
     int                                 i;
@@ -1835,13 +1836,15 @@ proxy_verify_callback(
      * in the SSL, and its magic number should be PVD_MAGIC_NUMBER 
      */
     if (!(pvd = (proxy_verify_desc *)
-         X509_STORE_CTX_get_ex_data(ctx,
-                                    PVD_STORE_EX_DATA_IDX)))
+                X509_STORE_CTX_get_ex_data(ctx,
+                    PVD_STORE_EX_DATA_IDX)))
     {
         ssl = (SSL *)X509_STORE_CTX_get_app_data(ctx);
-        if (ssl)
-          pvd = (proxy_verify_desc *)SSL_get_ex_data(ssl,
-                                                     PVD_SSL_EX_DATA_IDX);
+        if (ssl) {
+            ssl_ctx = SSL_get_SSL_CTX(ssl);
+            pvd = (proxy_verify_desc *)SSL_get_ex_data(ssl,
+                    PVD_SSL_EX_DATA_IDX);
+        }
     }
 
     /*

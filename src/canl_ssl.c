@@ -17,7 +17,7 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
 static canl_error map_verify_result(unsigned long ssl_err, const SSL *ssl);
 static canl_error map_proxy_error(int reason);
 
-static void setup_SSL_proxy_handler(SSL *ssl, char *cadir);
+static void setup_SSL_proxy_handler(SSL_CTX *ssl, char *cadir);
 extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
 extern void pvd_destroy_initializers(char *cadir);
 
@@ -386,9 +386,9 @@ err:
     return err;
 }
 
-void setup_SSL_proxy_handler(SSL *ssl, char *cadir)
+void setup_SSL_proxy_handler(SSL_CTX *ssl, char *cadir)
 {
-    SSL_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX,
+    SSL_CTX_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX,
             pvd_setup_initializers(cadir));
 }
 
@@ -397,6 +397,7 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
 	        struct timeval *timeout, const char * host)
 {
     SSL *ssl = (SSL *) auth_ctx;
+    SSL_CTX *ssl_ctx = NULL;
     int err = 0, flags;
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
 
@@ -414,7 +415,8 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    setup_SSL_proxy_handler(ssl, m_ctx->ca_dir);
+    ssl_ctx = SSL_get_SSL_CTX(ssl);
+    setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_connect(cc, io, ssl, timeout); 
@@ -513,6 +515,7 @@ static canl_err_code
 ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
 {
     SSL *ssl = (SSL *) auth_ctx;
+    SSL_CTX *ssl_ctx = NULL;
     int err = 0, flags;
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
 
@@ -529,7 +532,8 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
     flags = fcntl(io->sock, F_GETFL, 0);
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
-    setup_SSL_proxy_handler(ssl, m_ctx->ca_dir);
+    ssl_ctx = SSL_get_SSL_CTX(ssl);
+    setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_accept(cc, io, ssl, timeout);
@@ -1158,11 +1162,9 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode)
     if (!ssl_ctx)
         return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
                 " initialized");
-    //mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
     
-    /*SSL should be passed to this funcion 
     setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
-    */
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, NULL);
 
     SSL_CTX_set_verify(ssl_ctx, ver_mode, proxy_verify_callback);
