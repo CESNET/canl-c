@@ -1842,7 +1842,7 @@ proxy_verify_callback(
         ssl = (SSL *)X509_STORE_CTX_get_app_data(ctx);
         if (ssl) {
             ssl_ctx = SSL_get_SSL_CTX(ssl);
-            pvd = (proxy_verify_desc *)SSL_get_ex_data(ssl,
+            pvd = (proxy_verify_desc *)SSL_CTX_get_ex_data(ssl_ctx,
                     PVD_SSL_EX_DATA_IDX);
         }
     }
