@@ -12,6 +12,7 @@ typedef struct {
     char            *url;
     X509            *cert;
     X509            *issuer;
+    STACK_OF(X509)  *cert_chain;
     canl_x509store_t *store;
     X509            *sign_cert;
     EVP_PKEY        *sign_key;
@@ -50,6 +51,7 @@ int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage);
 int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url);
 int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer);
 int set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store);
+int set_ocsp_chain(canl_ocsprequest_t *ocspreq, STACK_OF(X509) *chain);
 
 int ocsprequest_init(canl_ocsprequest_t **ocspreq);
 void ocsprequest_free(canl_ocsprequest_t *or);

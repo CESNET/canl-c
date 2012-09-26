@@ -225,6 +225,17 @@ int set_ocsp_timeout(canl_ocsprequest_t *ocspreq, int timeout)
     return 0;
 }
 
+int set_ocsp_chain(canl_ocsprequest_t *ocspreq, STACK_OF(X509) *chain)
+{
+    if (!ocspreq)
+        ocspreq = calloc(1, sizeof(*ocspreq));
+    if (!ocspreq)
+        return 1;
+    if (chain)
+        ocspreq->cert_chain = chain;
+    return 0;
+}
+
 static canl_x509store_t * 
 store_dup(canl_x509store_t *store_from)
 {
@@ -388,7 +399,6 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     ASN1_GENERALIZEDTIME  *producedAt, *thisUpdate, *nextUpdate;
     int timeout = -1; // -1 means no timeout - use blocking I/O
     unsigned long verify_flags = 0;
-    STACK_OF(X509) *verify_other = NULL;
 
     if (!data || !data->cert) { // TODO || !data->issuer ?
         result = EINVAL; //TODO error code
@@ -481,7 +491,7 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
         goto end;
     
     /* The last param. may be used when OCSP API is fully defined*/
-    rc = OCSP_basic_verify(basic, verify_other, store, verify_flags);
+    rc = OCSP_basic_verify(basic, data->cert_chain, store, verify_flags);
     if (rc < 0)
         rc = OCSP_basic_verify(basic, NULL, store, 0);
     if (rc <= 0) {
@@ -524,8 +534,6 @@ end:
         OCSP_BASICRESP_free(basic);
     if (chosenurl)
         free(chosenurl);
-    if (verify_other)
-        sk_X509_pop_free(verify_other, X509_free);
     if (store)
         X509_STORE_free(store);
 
