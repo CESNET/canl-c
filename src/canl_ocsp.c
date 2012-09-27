@@ -100,8 +100,6 @@ void canl_x509store_free(canl_x509store_t *cs)
 int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
 {
     if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
-    if (!ocspreq)
         return 1;
 
     if (cert) {
@@ -119,8 +117,6 @@ int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
 int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
 {
     int len = 0;
-    if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
         return 1;
 
@@ -141,8 +137,6 @@ int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
 int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
 {
     if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
-    if (!ocspreq)
         return 1;
     if (issuer) {
         if (!ocspreq->issuer) {
@@ -158,8 +152,6 @@ int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
 
 int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
 {
-    if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
         return 1;
     if (sign_cert) {
@@ -177,8 +169,6 @@ int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert)
 int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
 {
     if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
-    if (!ocspreq)
         return 1;
     if (sign_key) {
         if (!ocspreq->sign_key) {
@@ -195,8 +185,6 @@ int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
 int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
 {
     if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
-    if (!ocspreq)
         return 1;
     if (skew)
         ocspreq->skew = skew;
@@ -205,8 +193,6 @@ int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
 
 int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage)
 {
-    if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
         return 1;
     if (maxage)
@@ -217,8 +203,6 @@ int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage)
 int set_ocsp_timeout(canl_ocsprequest_t *ocspreq, int timeout)
 {
     if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
-    if (!ocspreq)
         return 1;
     if (timeout)
         ocspreq->timeout = timeout;
@@ -227,8 +211,6 @@ int set_ocsp_timeout(canl_ocsprequest_t *ocspreq, int timeout)
 
 int set_ocsp_chain(canl_ocsprequest_t *ocspreq, STACK_OF(X509) *chain)
 {
-    if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
         return 1;
     if (chain)
@@ -267,9 +249,6 @@ store_dup(canl_x509store_t *store_from)
 int
 set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store)
 {
-
-    if (!ocspreq)
-        ocspreq = calloc(1, sizeof(*ocspreq));
     if (!ocspreq)
         return 1;
     if (store){
