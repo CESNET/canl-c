@@ -4,7 +4,6 @@
 
 #define USENONCE 0
 
-static canl_x509store_t * store_dup(canl_x509store_t *store_from);
 static X509_STORE * canl_create_x509store(canl_x509store_t *store);
 
 static OCSP_RESPONSE *send_request(OCSP_REQUEST *req, char *host, char *path,
@@ -19,99 +18,17 @@ int ocsprequest_init(canl_ocsprequest_t **ocspreq)
 {
     if (!ocspreq)
         return 1;
-    if (*ocspreq) {
-        ocsprequest_free(*ocspreq);
-    }
-    else {
-        *ocspreq = calloc(1, sizeof(**ocspreq));
-        if (!(*ocspreq))
-            return 1;
-    }
-
-    return 0;
-}
-
-int canl_x509store_init(canl_x509store_t **cs)
-{
-    if (!cs)
-        return 1;
-    if (*cs) {
-        canl_x509store_free(*cs);
-    }
-    else {
-        *cs = calloc(1, sizeof(**cs));
-        if (!(*cs))
-            return 1;
-    }
-
-    return 0;
-}
-
-void ocsprequest_free(canl_ocsprequest_t *or)
-{
-    if (!or)
-        return;
-    if (or->url){
-        free(or->url);
-        or->url = NULL;
-    }
-    if (or->cert){
-        X509_free(or->cert);
-        or->cert = NULL;
-    }
-    if (or->issuer){
-        X509_free(or->issuer);
-        or->issuer = NULL;
-    }
-    if (or->store){
-        canl_x509store_free((or->store)); 
-        or->store = NULL;
-    }
-    if (or->sign_cert){
-        X509_free(or->sign_cert);
-        or->sign_cert = NULL;
-    }
-    if (or->sign_key){
-        EVP_PKEY_free(or->sign_key);
-        or->sign_key = NULL;
-    }
-    or->skew = 0;
-    or->maxage = 0;
-}
-
-void canl_x509store_free(canl_x509store_t *cs)
-{
-    if (!cs)
-        return;
-    if (cs->ca_dir){
-        free(cs->ca_dir);
-        cs->ca_dir = NULL;
-    }
-    if (cs->crl_dir){
-        free(cs->crl_dir);
-        cs->crl_dir = NULL;
-    }
-    if (cs->ca_file){
-        free(cs->ca_file);
-        cs->ca_file = NULL;
-    }
-}
-
-int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert)
-{
-    if (!ocspreq)
+    *ocspreq = calloc(1, sizeof(**ocspreq));
+    if (!(*ocspreq))
         return 1;
 
-    if (cert) {
-        if (!ocspreq->cert) {
-            X509_free(ocspreq->cert);
-            ocspreq->cert = NULL;
-        }
-        ocspreq->cert = X509_dup(cert);
-        if (!ocspreq->cert)
-            return 1;
-    }
     return 0;
+}
+
+void ocsprequest_free(canl_ocsprequest_t *ocspreq)
+{
+    if (ocspreq)
+        free(ocspreq);
 }
 
 int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
@@ -130,22 +47,6 @@ int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url)
         if (!ocspreq->url)
             return 1;
         strncpy(ocspreq->url, url, len + 1);
-    }
-    return 0;
-}
-
-int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer)
-{
-    if (!ocspreq)
-        return 1;
-    if (issuer) {
-        if (!ocspreq->issuer) {
-            X509_free (ocspreq->issuer);
-            ocspreq->issuer = NULL;
-        }
-        ocspreq->issuer = X509_dup(issuer);
-        if (!ocspreq->issuer)
-            return 1;
     }
     return 0;
 }
@@ -177,85 +78,6 @@ int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key)
         }
         pkey_dup(&ocspreq->sign_key, sign_key);
         if (!ocspreq->sign_key)
-            return 1;
-    }
-    return 0;
-}
-
-int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew)
-{
-    if (!ocspreq)
-        return 1;
-    if (skew)
-        ocspreq->skew = skew;
-    return 0;
-}
-
-int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage)
-{
-    if (!ocspreq)
-        return 1;
-    if (maxage)
-        ocspreq->maxage = maxage;
-    return 0;
-}
-
-int set_ocsp_timeout(canl_ocsprequest_t *ocspreq, int timeout)
-{
-    if (!ocspreq)
-        return 1;
-    if (timeout)
-        ocspreq->timeout = timeout;
-    return 0;
-}
-
-int set_ocsp_chain(canl_ocsprequest_t *ocspreq, STACK_OF(X509) *chain)
-{
-    if (!ocspreq)
-        return 1;
-    if (chain)
-        ocspreq->cert_chain = chain;
-    return 0;
-}
-
-static canl_x509store_t * 
-store_dup(canl_x509store_t *store_from)
-{
-    canl_x509store_t *store_to = NULL;
-    if (!store_from)
-        return NULL;
-
-    store_to = calloc(1, sizeof(*store_to));
-    if (!store_to)
-        return NULL;
-
-    if (store_from->ca_dir) {
-        int len = strlen(store_from->ca_dir);
-        store_to->ca_dir = (char *) malloc((len + 1) * sizeof (char));    
-        if (!store_to->ca_dir)
-            return NULL;
-        strncpy (store_to->ca_dir, store_from->ca_dir, len + 1);
-    }
-    if (store_from->crl_dir) {
-        int len = strlen(store_from->crl_dir);
-        store_to->crl_dir = (char *) malloc((len + 1) * sizeof (char));    
-        if (!store_to->crl_dir)
-            return NULL;
-        strncpy (store_to->crl_dir, store_from->crl_dir, len + 1);
-    }
-    return store_to;
-}
-
-int
-set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store)
-{
-    if (!ocspreq)
-        return 1;
-    if (store){
-        if (ocspreq->store)
-            canl_x509store_free(ocspreq->store);
-        ocspreq->store = store_dup(store);
-        if (!ocspreq->store)
             return 1;
     }
     return 0;
@@ -465,7 +287,7 @@ int do_ocsp_verify (canl_ocsprequest_t *data)
     if (USENONCE && OCSP_check_nonce(req, basic) <= 0) 
         goto end;
     /* TODO is this compulsory? */
-    store = canl_create_x509store(data->store);
+    store = canl_create_x509store(&data->store);
     if (!store)
         goto end;
     

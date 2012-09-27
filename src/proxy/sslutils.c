@@ -2198,31 +2198,28 @@ proxy_verify_callback(
         ocsprequest_init(&ocsp_data);
     if (ocsp_data) {
         if (ctx->current_cert)
-            set_ocsp_cert(ocsp_data, ctx->current_cert);
+            ocsp_data->cert = ctx->current_cert;
         if (ctx->current_issuer)
-            set_ocsp_issuer(ocsp_data, ctx->current_issuer);
-        if (cert_dir){
-            canl_x509store_t *c_store = NULL;
-            if (!canl_x509store_init(&c_store)) {
-                c_store->ca_dir = strdup(cert_dir);
-                set_ocsp_store(ocsp_data, c_store);
-                canl_x509store_free(c_store);
-                c_store = NULL;
-            }
-        }
-        set_ocsp_skew(ocsp_data, MAX_VALIDITY_PERIOD);
-        set_ocsp_maxage(ocsp_data, -1);
-        set_ocsp_chain(ocsp_data, ctx->chain);
+            ocsp_data->issuer = ctx->current_issuer;
+        if (cert_dir)
+            ocsp_data->store.ca_dir = cert_dir;
+
+        ocsp_data->skew = MAX_VALIDITY_PERIOD;
+        ocsp_data->maxage = -1;
+        if (ctx->chain)
+            ocsp_data->cert_chain = ctx->chain;
         /*Timeout should be set here 
-	set_ocsp_timeout(pvd->timeout, -1); */
+          ocsp_data->timeout = -1; */
         do_ocsp_verify (ocsp_data);
         /* TODO sign key and cert */
+        ocsprequest_free(ocsp_data);
+        ocsp_data = NULL;
     }
 
     EVP_PKEY_free(key);
 
     if (objset)
-      X509_OBJECT_free_contents(&obj);
+        X509_OBJECT_free_contents(&obj);
 
     return(ok);
 

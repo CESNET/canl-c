@@ -13,7 +13,7 @@ typedef struct {
     X509            *cert;
     X509            *issuer;
     STACK_OF(X509)  *cert_chain;
-    canl_x509store_t *store;
+    canl_x509store_t store;
     X509            *sign_cert;
     EVP_PKEY        *sign_key;
     long            skew;
@@ -45,18 +45,10 @@ typedef enum {
 /* Methods to access canl_ocsprequest_t */
 int set_ocsp_sign_cert(canl_ocsprequest_t *ocspreq, X509 *sign_cert);
 int set_ocsp_sign_key(canl_ocsprequest_t *ocspreq, EVP_PKEY *sign_key);
-int set_ocsp_cert(canl_ocsprequest_t *ocspreq, X509 *cert);
-int set_ocsp_skew(canl_ocsprequest_t *ocspreq, int skew);
-int set_ocsp_maxage(canl_ocsprequest_t *ocspreq, int maxage);
 int set_ocsp_url(canl_ocsprequest_t *ocspreq, char *url);
-int set_ocsp_issuer(canl_ocsprequest_t *ocspreq, X509 *issuer);
-int set_ocsp_store(canl_ocsprequest_t *ocspreq, canl_x509store_t *store);
-int set_ocsp_chain(canl_ocsprequest_t *ocspreq, STACK_OF(X509) *chain);
 
 int ocsprequest_init(canl_ocsprequest_t **ocspreq);
-void ocsprequest_free(canl_ocsprequest_t *or);
-int canl_x509store_init(canl_x509store_t **cs);
-void canl_x509store_free(canl_x509store_t *cs);
+void ocsprequest_free(canl_ocsprequest_t *ocspreq);
 
 int do_ocsp_verify (canl_ocsprequest_t *data);
 
