@@ -2196,6 +2196,7 @@ proxy_verify_callback(
      */
     if (!ocsp_data)
         ocsprequest_init(&ocsp_data);
+    ret = 0;
     if (ocsp_data) {
         if (ctx->current_cert)
             ocsp_data->cert = ctx->current_cert;
@@ -2210,16 +2211,19 @@ proxy_verify_callback(
             ocsp_data->cert_chain = ctx->chain;
         /*Timeout should be set here 
           ocsp_data->timeout = -1; */
-        do_ocsp_verify (ocsp_data);
+        ret = do_ocsp_verify (ocsp_data);
         /* TODO sign key and cert */
         ocsprequest_free(ocsp_data);
         ocsp_data = NULL;
     }
 
     EVP_PKEY_free(key);
-
     if (objset)
         X509_OBJECT_free_contents(&obj);
+
+    if (ret != 0)
+        if (ret != CANL_OCSPRESULT_ERROR_NOAIAOCSPURI)
+            ok = 0;
 
     return(ok);
 

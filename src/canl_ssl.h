@@ -25,6 +25,9 @@ canl_err_code CANL_CALLCONV
 canl_ctx_set_ca_dir(canl_ctx, const char *);
 
 canl_err_code CANL_CALLCONV
+canl_ctx_set_crl_dir(canl_ctx, const char *);
+
+canl_err_code CANL_CALLCONV
 canl_ctx_set_ca_fn(canl_ctx, const char *);
 
 canl_err_code CANL_CALLCONV
