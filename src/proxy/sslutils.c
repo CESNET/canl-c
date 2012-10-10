@@ -1820,8 +1820,7 @@ proxy_verify_callback(
     int                                 i;
     int                                 ret;
     time_t                              goodtill;
-    char *                              ca_policy_file_path = NULL;
-    char *                              cert_dir            = NULL;
+    char *                              cert_dir = NULL;
     EVP_PKEY *key = NULL;
     int       objset = 0;
     canl_ocsprequest_t *ocsp_data = NULL;
@@ -2154,12 +2153,6 @@ proxy_verify_callback(
 
     pvd->cert_depth++;
 
-    if (ca_policy_file_path != NULL)
-    {
-        free(ca_policy_file_path);
-        ca_policy_file_path = NULL;
-    }
-
     if (!check_critical_extensions(ctx->current_cert, itsaproxy)) {
       PRXYerr(PRXYERR_F_VERIFY_CB, PRXYERR_R_UNKNOWN_CRIT_EXT);
       ctx->error = X509_V_ERR_CERT_REJECTED;
@@ -2234,11 +2227,6 @@ fail_verify:
 
     if (objset)
       X509_OBJECT_free_contents(&obj);
-
-    if (ca_policy_file_path != NULL)
-    {
-        free(ca_policy_file_path);
-    }
 
     return(0);
 }
