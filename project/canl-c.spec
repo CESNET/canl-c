@@ -1,5 +1,3 @@
-%global is_fedora %(rpm -q --quiet fedora-release && echo 1 || echo 0)
-
 Name:           canl-c
 Version:        @MAJOR@.@MINOR@.@REVISION@
 Release:        @AGE@%{?dist}
@@ -20,8 +18,8 @@ BuildRequires:  krb5-devel%{?_isa}
 BuildRequires:  libtool
 BuildRequires:  openssl-devel%{?_isa}
 BuildRequires:  pkgconfig
-%if %is_fedora
-BuildRequires:  texlive-latex
+%if %{?fedora}%{!?fedora:0} >= 9 || %{?rhel}%{!?rhel:0} >= 6
+BuildRequires:  tex(latex)
 %else
 BuildRequires:  tetex-latex
 %endif
