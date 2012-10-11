@@ -689,18 +689,22 @@ canl_cred_load_req(canl_ctx ctx, canl_cred cred_out, const X509_REQ *req_in)
     return 0;
 }
 
-/*TODO ENOSYS for now*/
 canl_err_code CANL_CALLCONV
 canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
         char *cadir)
 {
+    int ret = 0;
     proxy_verify_desc *pvd = NULL; /* verification context */
     
     pvd = pvd_setup_initializers(cadir);    
-    proxy_verify_cert_chain(ucert, cert_chain, pvd);
-
+    ret = proxy_verify_cert_chain(ucert, cert_chain, pvd);
     pvd_destroy_initializers(pvd);
-    return ENOSYS;
+    if (ret)
+        /* This will be ommited when proxy_verify_cert sets errors itself or
+           propagate them out. */
+        return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Certificate chain"
+                " validation failed") // TODO error code check
+    return 0;
 }
 
 proxy_verify_desc *pvd_setup_initializers(char *cadir)
