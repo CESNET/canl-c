@@ -1,51 +1,50 @@
 %global is_fedora %(rpm -q --quiet fedora-release && echo 1 || echo 0)
 
-Summary: @SUMMARY@
-Name: canl-c
-Version: @MAJOR@.@MINOR@.@REVISION@
-Release: @AGE@%{?dist}
-Url: @URL@
-License: ASL 2.0
-Vendor: EMI
-Group: System Environment/Libraries
-BuildRequires: bison
-BuildRequires: c-ares-devel%{?_isa}
-BuildRequires: chrpath
-BuildRequires: flex
-BuildRequires: krb5-devel%{?_isa}
-BuildRequires: libtool
-BuildRequires: openssl-devel%{?_isa}
-BuildRequires: pkgconfig
-%if %is_fedora
-BuildRequires: texlive-latex
-%else
-BuildRequires: tetex-latex
-%endif
-BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-Source: http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-@VERSION@.src.tar.gz
+Name:           canl-c
+Version:        @MAJOR@.@MINOR@.@REVISION@
+Release:        @AGE@%{?dist}
+Summary:        @SUMMARY@
 
+Group:          System Environment/Libraries
+License:        ASL 2.0
+Vendor:         EMI
+Url:            @URL@
+Source:         http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-@VERSION@.src.tar.gz
+BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+
+BuildRequires:  bison
+BuildRequires:  c-ares-devel%{?_isa}
+BuildRequires:  chrpath
+BuildRequires:  flex
+BuildRequires:  krb5-devel%{?_isa}
+BuildRequires:  libtool
+BuildRequires:  openssl-devel%{?_isa}
+BuildRequires:  pkgconfig
+%if %is_fedora
+BuildRequires:  texlive-latex
+%else
+BuildRequires:  tetex-latex
+%endif
 
 %description
 @DESCRIPTION@
 
 
-%package devel
-Summary: Development files for EMI caNl
-Group: Development/Libraries
-Requires: %{name}%{?_isa} = %{version}-%{release}
-Requires: krb5-devel%{?_isa}
+%package        devel
+Summary:        Development files for EMI caNl
+Group:          Development/Libraries
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+Requires:       krb5-devel%{?_isa}
 
-
-%description devel
+%description    devel
 This package contains development libraries and header files for EMI caNL.
 
 
-%package examples
-Summary: Example programs of EMI caNl
-Group: System Environment/Base
+%package        examples
+Summary:        Example programs of EMI caNl
+Group:          System Environment/Base
 
-
-%description examples
+%description    examples
 This package contains client and server examples of EMI caNL.
 
 
@@ -88,12 +87,10 @@ rm -rf $RPM_BUILD_ROOT
 /usr/%{_lib}/libcanl_c.so.@MAJOR@.@MINOR@.@REVISION@
 /usr/%{_lib}/libcanl_c.so.@MAJOR@
 
-
 %files devel
 %defattr(-,root,root)
 /usr/include/*.h
 /usr/%{_lib}/libcanl_c.so
-
 
 %files examples
 %defattr(-,root,root)
