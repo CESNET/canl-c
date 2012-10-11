@@ -22,7 +22,6 @@ BuildRequires: texlive-latex
 BuildRequires: tetex-latex
 %endif
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
-AutoReqProv: yes
 Source: http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-@VERSION@.src.tar.gz
 
 
