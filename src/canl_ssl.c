@@ -14,7 +14,8 @@ static int do_ssl_accept( glb_ctx *cc, io_handler *io,
 static int check_hostname_cert(glb_ctx *cc, io_handler *io,
         SSL *ssl, const char *host);
 
-static canl_error map_verify_result(unsigned long ssl_err, const SSL *ssl);
+canl_error map_verify_result(unsigned long ssl_err,
+        const X509_STORE_CTX *store_ctx, SSL *ssl);
 static canl_error map_proxy_error(int reason);
 
 static void setup_SSL_proxy_handler(SSL_CTX *ssl, char *cadir);
@@ -645,7 +646,7 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
 		   " handshake: timeout reached");
         }
         else if (ret2 < 0 && ssl_err){
-            canl_err = map_verify_result(ssl_err, ssl);
+            canl_err = map_verify_result(ssl_err, NULL, ssl);
             if (canl_err)
                 update_error (cc, canl_err, CANL_ERROR,
                         "Error during SSL handshake");
@@ -727,7 +728,7 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
             set_error (cc, ECONNREFUSED, POSIX_ERROR, "Connection closed by"
 		    " the other side");
         else if (ret2 < 0 && ssl_err){
-            canl_err = map_verify_result(ssl_err, ssl);
+            canl_err = map_verify_result(ssl_err, NULL, ssl);
             if (canl_err)
                 set_error(cc, canl_err, CANL_ERROR,
                         "Error during SSL handshake");
@@ -744,26 +745,34 @@ timeout->tv_sec = timeout->tv_sec - (curtime - starttime);
     return 0;
 }
 
-static canl_error
-map_verify_result(unsigned long ssl_err, const SSL *ssl)
+canl_error
+map_verify_result(unsigned long ssl_err, const X509_STORE_CTX *store_ctx,
+        SSL *ssl)
 {
     long result = 0;
     canl_error canl_err = 0;
     int err_lib = 0;
 
     /*Try PRXYERR codes first*/
-    if ((err_lib = ERR_GET_LIB(ssl_err)) == ERR_USER_LIB_PRXYERR_NUMBER) {
-        canl_err = map_proxy_error(ERR_GET_REASON(ssl_err));
-    }
+    if (ssl_err)
+        if ((err_lib = ERR_GET_LIB(ssl_err)) == ERR_USER_LIB_PRXYERR_NUMBER) {
+            canl_err = map_proxy_error(ERR_GET_REASON(ssl_err));
+            if (canl_err)
+                return canl_err;
+        }
 
-    if (canl_err)
-        return canl_err;
+    /*Then try to get verify error out of X509_STORE_CTX or SSL*/
+    if (store_ctx)
+        result = X509_STORE_CTX_get_error(store_ctx);
+    else if (ssl)
+        result = SSL_get_verify_result(ssl);
+    else
+        return 0;
 
-    /*Then openssl verify error codes*/
-    result = SSL_get_verify_result(ssl);
+    /*We have openssl cert verification result code*/
     switch (result) {
         case X509_V_OK:
-            return 0; 
+            return 0;
         case X509_V_ERR_CERT_CHAIN_TOO_LONG:
             canl_err = CANL_ERR_pathLenghtExtended;
             break;
