@@ -10,6 +10,8 @@ static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, proxy_verify_desc * pvd);
 extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
 extern void pvd_destroy_initializers(void *data);
+extern canl_error map_verify_result(unsigned long ssl_err,
+                const X509_STORE_CTX *store_ctx, SSL *ssl);
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack)
 {
@@ -695,15 +697,56 @@ canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
 {
     int ret = 0;
     proxy_verify_desc *pvd = NULL; /* verification context */
-    
-    pvd = pvd_setup_initializers(cadir);    
+
+    pvd = pvd_setup_initializers(cadir);
     ret = proxy_verify_cert_chain(ucert, cert_chain, pvd);
     pvd_destroy_initializers(pvd);
     if (ret)
         /* This will be ommited when proxy_verify_cert sets errors itself or
            propagate them out. */
-        return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "Certificate chain"
-                " validation failed") // TODO error code check
+        return set_error(ctx, CANL_ERR_unknown, CANL_ERROR, "Certificate chain"
+                " validation failed"); // TODO error code check
+    return 0;
+}
+
+canl_err_code CANL_CALLCONV
+canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
+	X509_STORE_CTX *store_ctx)
+{
+    int ret = 0, depth = 0, i = 0;
+    STACK_OF(X509) *certstack;
+    proxy_verify_desc *pvd = NULL; /* verification context */
+    unsigned long ssl_err = 0;
+    canl_error canl_err = 0;
+
+    pvd = pvd_setup_initializers(cadir);
+    X509_STORE_CTX_set_ex_data(store_ctx, PVD_STORE_EX_DATA_IDX, (void *)pvd);
+#ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
+    X509_STORE_CTX_set_flags(store_ctx, X509_V_FLAG_ALLOW_PROXY_CERTS);
+#endif
+    pvd_destroy_initializers(pvd);
+
+    certstack = X509_STORE_CTX_get_chain(store_ctx);
+    depth = sk_X509_num(certstack);
+    /*TODO maybe free() certstack? is it refferenced? */
+
+    ERR_clear_error();
+    /* Go through the client cert chain and check it */
+    for (i = depth - 1; i >= 0; i--){
+        ret = proxy_verify_callback(1, store_ctx);
+        if (!ret){
+            /* Verification failed */
+            ssl_err = ERR_get_error();
+            canl_err = map_verify_result(ssl_err, store_ctx, NULL);
+            if (canl_err)
+                return set_error (ctx, canl_err, CANL_ERROR,
+                        "Error during SSL handshake");
+            else
+                return set_error(ctx, ssl_err, SSL_ERROR,
+                        "Error during SSL handshake");
+        }
+    }
+
     return 0;
 }
 

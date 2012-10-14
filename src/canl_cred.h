@@ -100,10 +100,16 @@ canl_cred_load_req(canl_ctx, canl_cred, const X509_REQ *);
 /* Routines to verify cert. chain */
 
 /* Verify certificate chain, openssl verif. CRL, OCSP, signing policies etc.
-   Returns: 1 - OK; 0 - verification failed.*/
+ */
 canl_err_code CANL_CALLCONV
 canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
                   char *cadir);
+
+/* Verify certificate chain, SKIP openssl verif. part; Check CRL, OCSP,
+ * signing policies etc. */
+canl_err_code CANL_CALLCONV
+canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
+                X509_STORE_CTX *store_ctx);
 
 #if 0
 canl_err_code CANL_CALLCONV
