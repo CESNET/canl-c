@@ -754,6 +754,8 @@ proxy_verify_desc *pvd_setup_initializers(char *cadir)
 {
     proxy_verify_ctx_desc *pvxd = NULL;
     proxy_verify_desc *pvd = NULL;
+    char *ca_cert_dirn = NULL;
+    int err = 0;
 
     pvd  = (proxy_verify_desc*)     malloc(sizeof(proxy_verify_desc));
     pvxd = (proxy_verify_ctx_desc *)malloc(sizeof(proxy_verify_ctx_desc));
@@ -769,10 +771,18 @@ proxy_verify_desc *pvd_setup_initializers(char *cadir)
     proxy_verify_ctx_init(pvxd);
     proxy_verify_init(pvd, pvxd);
 
+    /* If cadir is not specified, do the best as to get the 
+       standard CA certificates directory name */
+    if (!cadir){
+        err = proxy_get_filenames(0, NULL, &ca_cert_dirn, NULL, NULL, NULL);
+        if (!err)
+            cadir = ca_cert_dirn;
+    }
+    
+    /*cadir May still be NULL*/
     pvd->pvxd->certdir = cadir;
 
     return pvd;
-
 }
 
 void pvd_destroy_initializers(void *data)
