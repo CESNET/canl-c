@@ -26,6 +26,9 @@
 use Getopt::Long;
 use POSIX qw(locale_h strftime);
 
+#my $default_url = 'http://eticssoft.web.cern.ch/eticssoft/repository/emi/${moduleName}/${version}/src';
+my $default_url = 'http://scientific.zcu.cz/emi/${moduleName}';
+
 my $pwd = `pwd`; chomp $pwd;
 my $prefix = '/usr';
 my $stagedir = undef;
@@ -33,10 +36,11 @@ my $root = $pwd.'/stage';
 my $sysroot = '';
 my $sysconfdir;
 my $localstatedir;
+my $os_type;
 my $staged;
 my $module;
-my $thrflavour = 'gcc64dbgpthr';
-my $nothrflavour = 'gcc64dbg';
+my $thrflavour = '';
+my $nothrflavour = '';
 my $mode = 'build';
 my $help = 0;
 my $listmodules;
@@ -52,6 +56,10 @@ my $project = 'emi';
 my $project_version;
 my (%projects, %project);
 my $debug = 0;
+my $url = $default_url;
+my $url_rpm;
+my $url_deb;
+my $url_source;
 my $pkg_config_env = (defined $ENV{PKG_CONFIG_PATH}) ? "$ENV{PKG_CONFIG_PATH}:" : '';
 
 my @nodes = qw/client server logger logger-msg nagios utils client-java doc ws-test db jpprimary jpindex jpclient harvester lb px proxyrenewal canl/;
@@ -124,7 +132,8 @@ my %externs = (
 		pkg => 'voms-2.0'
 	},
 	gridsite => {
-		prefix => '/opt/glite'
+		prefix => '/opt/glite',
+		pkg => 'gridsite-openssl'
 	},
 	trustmanager => {
 		prefix => '/opt/glite'
@@ -234,6 +243,7 @@ my @opts = (
 	'sysroot:s' => \$sysroot,
 	'sysconfdir=s' => \$sysconfdir,
 	'localstatedir=s' => \$localstatedir,
+	'os-type=s' => \$os_type,
 	'lb-tag=s' => \$lb_tag,
 	'lbjp-common-tag=s' => \$lbjp_tag,
 	'jp-tag=s' => \$jp_tag,
@@ -243,6 +253,10 @@ my @opts = (
 	'libdir=s' => \$libdir,
 	'project=s' => \$project,
 	'debug' => \$debug,
+	'url=s' => \$url,
+	'url-rpm=s' => \$url_rpm,
+	'url-deb=s' => \$url_deb,
+	'url-source=s' => \$url_source,
 );
 
 for (@nodes) {
@@ -266,6 +280,14 @@ if (not $sysconfdir) { $sysconfdir = $prefix eq '/usr' ? '/etc' : "$prefix/etc";
 if (not $localstatedir) { $localstatedir = $prefix eq '/usr' ? '/var' : "$prefix/var"; }
 $sysconfdir=~s/\/$//;
 $localstatedir=~s/\/$//;
+if (not $os_type) { $os_type = os_type(); }
+if (not $url_rpm) { $url_rpm = $url; }
+if (not $url_deb) { $url_deb = $url; }
+if (not $url_source) { $url_source = $url; }
+$url=~s/\/$//;
+$url_rpm=~s/\/$//;
+$url_deb=~s/\/$//;
+$url_source=~s/\/$//;
 
 $externs{'mysql-server'}{prefix}=$externs{mysql}{prefix} if $externs{'mysql-server'}{prefix} eq '';
 $externs{'mysql-devel'}{prefix}=$externs{mysql}{prefix} if $externs{'mysql-devel'}{prefix} eq '';
@@ -599,7 +621,7 @@ BEGIN{
 %need_externs_aux = (
 	'lb.client' => [ qw/cppunit:B classads:B libtool:B globus:B pkgconfig:B/ ],
 	'lb.common' => [ qw/expat cares:B cppunit:B classads:B libtool:B globus:B pkgconfig:B/ ],
-	'lb.doc' => [ qw/tetex-latex:B/ ],
+	'lb.doc' => [ qw/tetex-latex:B texlive-latex-recommended:B texlive-fonts-recommended:B texlive-latex-extra:B/ ],
 	'lb.logger' => [ qw/cppunit:B libtool:B globus:B pkgconfig:B/ ],
 	'lb.logger-msg' => [ qw/cppunit:B activemq libtool:B globus:B pkgconfig:B/ ],
 	'lb.nagios' => [ qw/globus_proxy_utils:R/ ],
@@ -619,7 +641,7 @@ BEGIN{
 	'lbjp-common.gss' =>  [ qw/globus_essentials:R globus:B cares cppunit:B libtool:B pkgconfig:B/ ],
 	'lbjp-common.gsoap-plugin' =>  [ qw/cppunit:B globus_essentials:R globus:B cares:B gsoap gsoapxx libtool:B pkgconfig:B/ ],
 	'jobid.api-c' =>  [ qw/cppunit:B libtool:B openssl:B pkgconfig:B/ ],
-	'jobid.api-cpp' =>  [ qw/cppunit:B libtool:B pkgconfig:B/ ],
+	'jobid.api-cpp' =>  [ qw// ],
 	'jobid.api-java' =>  [ qw/ant:B jdk:B/ ],
 	'jp.client' => [ qw/gsoap libtar globus_essentials:R globus:B pkgconfig:B/ ],
         'jp.doc' => [],
@@ -640,7 +662,7 @@ BEGIN{
 	'gridsite.1.5-compat' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B/ ],
 	'px.proxyrenewal' => [ qw/globus:B globus_essentials:R myproxy-devel:B voms:B libtool:B pkgconfig:B/ ],
 	'px.myproxy-config' => [ qw/myproxy-admin:R/ ], # in myproxy-config.spec
-	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B krb5-devel:B pkgconfig:B tetex-latex:B/ ],
+	'canl.c' => [ qw/cares:B openssl:B libtool:B bison:B flex:B krb5-devel:B pkgconfig:B tetex-latex:B texlive-latex-recommended:B texlive-fonts-recommended:B texlive-latex-extra:/ ],
 );
 
 %need_jars = (
@@ -965,7 +987,7 @@ for my $ext (keys %deps_aux) {
 	},
 
 	emi => {
-		current_version => 2,
+		current_version => 3,
 		etics_name => 'emi',
 		conf_prefix => {
 			'lb' => 'emi-',
@@ -992,6 +1014,9 @@ for my $ext (keys %deps_aux) {
 				bdii=>'emi.bdii.core',
 				glite_version=>'emi.emi-version',
 				glue_schema=>'emi.bdii.glue-schema',
+				'texlive-fonts-recommended' => '-',
+				'texlive-latex-recommended' => '-',
+				'texlive-latex-extra' => '-',
 				trustmanager=>'emi.java-security.trustmanager',
 				trustmanager_axis=>'emi.java-security.trustmanager-axis',
 				axis=>'axis1.4',
@@ -1007,6 +1032,10 @@ for my $ext (keys %deps_aux) {
 			},
 			deb6_x86_64_gcc445 => {
 				axis => 'axis1.4',
+				'tetex-latex' => '-',
+				'texlive-fonts-recommended' => 'texlive-fonts-recommended',
+				'texlive-latex-recommended' => 'texlive-latex-recommended',
+				'texlive-latex-extra' => 'texlive-latex-extra',
 				# mappings in ETICS project configuration
 				#globus_essentials => 'libglobus-gssapi-gsi4',
 				#globus => 'libglobus-gssapi-gsi-dev',
@@ -1021,7 +1050,6 @@ for my $ext (keys %deps_aux) {
 				#libxslt => 'xsltproc',
 				#'jakarta-commons-codec' => 'libcommons-codec-java',
 				#'jakarta-commons-lang' => 'libcommons-lang-java',
-				#'tetex-latex' => 'texlive-latex-extra',
 				#'perl-LDAP' => 'libnet-ldap-perl',
 				#'fuse-lib' => 'libfuse2',
 				#'fuse' => 'fuse-utils',
@@ -1080,6 +1108,7 @@ for my $ext (keys %deps_aux) {
 			sl5_x86_64_gcc412EPEL => 1,
 			sl5_ia32_gcc412EPEL => 1,
 			sl6_x86_64_gcc446EPEL => 1,
+			sl6_ia32_gcc446EPEL => 1,
 			deb6_x86_64_gcc445 => 1,
 		},
 		modules => {
@@ -1353,6 +1382,7 @@ stagedir = $stagedir
 sysroot = $sysroot
 sysconfdir = $sysconfdir
 localstatedir = $localstatedir
+os_type = $os_type
 thrflavour = $thrflavour
 nothrflavour = $nothrflavour
 libdir = $libdir
@@ -1408,7 +1438,7 @@ rpm: ${package}-${version}.tar.gz
 	dir=dist/rpm_build_src; \
 	rm -rf $$dir; \
 	mkdir -p $$dir/BUILD $$dir/RPMS $$dir/SOURCES $$dir/SRPMS; \
-	cp ${package}-${version}.tar.gz $$dir/SOURCES/${package}-${version}-${module.age}.src.tar.gz && \
+	cp ${package}-${version}.tar.gz $$dir/SOURCES/${package}-${version}.tar.gz && \
 	rpmbuild -bs --nodeps --define "_topdir $$dir" ${package}.spec && \
 	cp -v $$dir/SRPMS/*.src.rpm dist/
 
@@ -1443,6 +1473,13 @@ deb: ${package}-${version}.tar.gz
 	for my $file ("$packageName.spec", "debian.rules", "debian.control", "debian.changelog", "debian.copyright") {
 		if (-f "$abs_srcdir/project/$file") {
 			my $old_ = $_;
+			my $url_spec = $url_source;
+
+			$url_spec =~ s/\$\{moduleName\}/$project{etics_name}.$subsys.$mod/g;
+			$url_spec =~ s/\$\{packageName\}/%{name}/g;
+			$url_spec =~ s/\$\{version\}/%{version}/g;
+			$url_spec =~ s/\$\{age\}/%{rel}/g;
+
 			printf STDERR "Creating $build$file\n" if ($debug);;
 			open DST, ">$build$file";
 			open SRC, "<$abs_srcdir/project/$file";
@@ -1467,6 +1504,7 @@ deb: ${package}-${version}.tar.gz
 					s/--version\s+\S+\s?//;
 					s/$/ --version $version/;
 				}
+				if (/^Source:.*/ and $file =~ /\.spec$/) { s,^(Source:\s*).*?([^/]*)$,\1$url_spec/\2,; }
 				printf DST "%s", "$_";
 			}
 			close SRC;
@@ -1611,7 +1649,7 @@ sub mode_etics {
 	}
 
 	my $conf;
-	my $conftag;
+	my ($vcsroot, $conftag);
 	my ($confprefix, $nameprefix, $packageName);
 
 	$dwpath = "path = \${projectName}/\${moduleName}/\${version}/\${platformName}/\${packageName}-\${version}-\${age}.tar.gz\n";
@@ -1621,6 +1659,7 @@ sub mode_etics {
 	$nameprefix =~ s/-$//;
 	$nameprefix =~ s/-/\./g;
 	$packageName = "$project{tag_prefix}{$subsys}$subsys-${module}";
+	$vcsroot=":pserver:anonymous\@glite.cvs.cern.ch:/cvs/glite";
 
 	if ($branch) {
 		$conf = "$confprefix${subsys}-${module}_$branch"; 
@@ -1642,12 +1681,12 @@ sub mode_etics {
 			$age = $age - 1;
 		}
 
-		# '.emi1' suffix for older packaging
-		if ($project eq 'emi' and $project_version == 1) {
+		# .emi1/.emi2 suffix for older packaging
+		if ($project eq 'emi' and $project_version <= 2) {
 			$age = $age.'.'.$project.$project_version;
 		}
 	}
-	if ($project eq 'emi' and $project_version == 1) {
+	if ($project eq 'emi' and $project_version <= 2) {
 		$conf = $conf.$project.$project_version;
 	}
 
@@ -1669,11 +1708,8 @@ sub mode_etics {
 	}
 
 	my %cmd;
-	$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_module 2>/dev/null";
-	#$cmd_vcs{checkout} = "((test -d jra1mw/.git && (cd jra1mw; git pull)) || (git clone -q http://scientific.zcu.cz/git/jra1mw.git";
-	#$cmd_vcs{checkout} .= " && (cd jra1mw; git checkout -b \${tag} --track origin/\${tag})" unless ($conftag eq /HEAD/);
-	#$cmd_vcs{checkout} .= ")) && (test -d \${moduleName} || ln -s jra1mw/$cvs_module \${moduleName})";
-	$cmd_vcs{tag} = "cvs -d \${vcsroot} tag -R \${tag} ${moduleName}";
+	$cmd_vcs{checkout} = 'true';
+	$cmd_vcs{tag} = 'None';
 
 	$cmd{default}{init} = 'None';
 	$cmd{default}{configure} = 'None';
@@ -1681,54 +1717,76 @@ sub mode_etics {
 	$cmd{default}{test} = 'None';
 	$cmd{default}{install} = 'None';
 	$cmd{default}{packaging} = 'None';
-	$cmd{default}{clean} = 'make clean';
+	$cmd{default}{clean} = 'None';
 
 	if (exists $subpackages{$fmod}) {
-		$cmd{default}{clean} = 'None';
 		$cmd{default}{packaging} = "echo building nothing, $subpackages{$fmod} will build this package";
-		$cmd_vcs{checkout} = "mkdir -v \${moduleName} 2>/dev/null || true";
-	} elsif ($subsys eq 'gridsite') {
-		$cmd_vcs{tag} = 'None';
+		$cmd_vcs{checkout} = "true";
+	} elsif (not $branch and ($project ne 'emi' or $project_version >= 3)) {
+	# for non-branched configuration for EMI-3 do the build from external source package
+		my $pkgName = $fmod eq 'gridsite.core' ? 'gridsite' : '${packageName}';
 
-		if ($module eq 'core') {
-			my $flags;
+		$cmd{default}{clean} = 'rm -rf ${package.SRPMSLocation}';
+		$cmd{default}{init} = "wget -P \${package.SRPMSLocation} $url_rpm/$pkgName-\${version}-\${age}.src.rpm";
+		$cmd{default}{packaging} = 'true';
 
-			if ($project ne 'glite') {
-				# don't evaluate pkg-config calls to get them into source package
-				$flags = 'RELEASE_VERSION=${age}
+		for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
+			for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
+			$cmd{$p}{clean} = 'rm -rf ${package.SRPMSLocation}';
+			$cmd{$p}{init} = "wget -P \${package.tgzLocation} $url_deb/${pkgName}_\${version}-\${age}.debian.tar.gz $url_deb/${pkgName}_\${version}-\${age}.dsc $url_deb/${pkgName}_\${version}.orig.tar.gz";
+			$cmd{$p}{packaging} = 'true';
+		}
+
+		$vcsroot = 'None';
+		$conftag = 'None';
+	} else {
+		$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_module 2>/dev/null";
+		#$cmd_vcs{checkout} = "((test -d jra1mw/.git && (cd jra1mw; git pull)) || (git clone -q http://scientific.zcu.cz/git/jra1mw.git";
+		#$cmd_vcs{checkout} .= " && (cd jra1mw; git checkout -b \${tag} --track origin/\${tag})" unless ($conftag eq /HEAD/);
+		#$cmd_vcs{checkout} .= ")) && (test -d \${moduleName} || ln -s jra1mw/$cvs_module \${moduleName})";
+
+		if ($subsys eq 'gridsite') {
+			$cmd{default}{clean} = 'make clean';
+
+			if ($module eq 'core') {
+				my $flags;
+
+				if ($project ne 'glite') {
+					# don't evaluate pkg-config calls to get them into source package
+					$flags = 'RELEASE_VERSION=${age}
 	GSOAPDIR=\`pkg-config gsoap --variable=prefix\`
 	OPENSSL_GLOBUS_FLAGS=\`pkg-config globus-openssl --cflags\`
 	OPENSSL_GLOBUS_LIBS=\`pkg-config globus-openssl --libs\`';
-			} else {
-				$flags = 'RELEASE_VERSION=${age}
+				} else {
+					$flags = 'RELEASE_VERSION=${age}
 	GSOAPDIR=${gsoap.location}
 	OPENSSL_GLOBUS_FLAGS=-I${globus.location}/include/${globus.dbg.nothr.flavor}
 	OPENSSL_GLOBUS_LIBS=-L${globus.location}/${libdir}
 	HTTPD_FLAGS=-I${httpd-devel.location}/include/httpd -I${httpd-devel.location}/include/apache2 -I${httpd-devel.location}/include/apr-1 -I${httpd-devel.location}/include/apr-1.0 -I${httpd-devel.location}/include/apr-0 -I${httpd-devel.location}/include/pcre';
-			}
+				}
 
-			$cmd{default}{configure} = "cat > Makefile.inc <<EOF
+				$cmd{default}{configure} = "cat > Makefile.inc <<EOF
 	project = $project$project_version
 	top_srcdir = ..
 	$flags
 	EOF";
-			# no stage builds since EMI-3
-			if ($project ne 'emi' or $project_version <= 2) {
-				$cmd{default}{compile} = "make prefix=\${prefix}$project{local_prefix} libdir=\${libdir}";
-				$cmd{default}{install} = "make prefix=\${prefix}$project{local_prefix} libdir=\${libdir} install";
-			}
-			mode_etics_packaging($fmod, \%cmd,
-				"make prefix=\${prefix}$project{local_prefix} rpm-prepare
+				# no stage builds since EMI-3
+				if ($project ne 'emi' or $project_version <= 2) {
+					$cmd{default}{compile} = "make prefix=\${prefix}$project{local_prefix} libdir=\${libdir}";
+					$cmd{default}{install} = "make prefix=\${prefix}$project{local_prefix} libdir=\${libdir} install";
+				}
+				mode_etics_packaging($fmod, \%cmd,
+					"make prefix=\${prefix}$project{local_prefix} rpm-prepare
 	cp gridsite.spec ../\n\t",
-				"chmod +x \${moduleDir}/src/make-debian-files || true
+					"chmod +x \${moduleDir}/src/make-debian-files || true
 	make prefix=\${prefix}$project{local_prefix} deb-prepare\n\t"
-			);
-		}
-		elsif ($module eq '1.5-compat') {
-			$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_prefix{$subsys}.$subsys.core 2>/dev/null";
-			$cmd{default}{init} = 'echo "/sbin/ldconfig" > project/.post
+				);
+			}
+			elsif ($module eq '1.5-compat') {
+				$cmd_vcs{checkout} = "cvs -d \${vcsroot} co -d \${moduleName} ".($conftag eq 'HEAD' ? '-A' : '-r ${tag}')." $cvs_prefix{$subsys}.$subsys.core 2>/dev/null";
+				$cmd{default}{init} = 'echo "/sbin/ldconfig" > project/.post
 	echo "/sbin/ldconfig" > project/.postun';
-			$cmd{default}{configure} = "cat > src/Makefile.inc <<EOF
+				$cmd{default}{configure} = "cat > src/Makefile.inc <<EOF
 	project = emi
 	libdir = \${libdir}
 	MAJOR_VERSION=1
@@ -1740,37 +1798,40 @@ sub mode_etics {
 	OPENSSL_GLOBUS_FLAGS=\\`pkg-config globus-openssl --cflags\\`
 	OPENSSL_GLOBUS_LIBS=\\`pkg-config globus-openssl --libs\\`
 	EOF";
-			$cmd{default}{compile} = "make -C src prefix=\${prefix}$project{local_prefix}
+				$cmd{default}{compile} = "make -C src prefix=\${prefix}$project{local_prefix}
 	rm -fv project/debian.changelog";
-			$cmd{default}{install} = "make -C src prefix=\${prefix}$project{local_prefix} install-lib
+				$cmd{default}{install} = "make -C src prefix=\${prefix}$project{local_prefix} install-lib
 	rm -fv \${prefix}$project{local_prefix}/\${libdir}/libgridsite*.so.1
 	rm -fv \${prefix}$project{local_prefix}/\${libdir}/libgridsite*.so
 	rm -fv \${prefix}$project{local_prefix}/\${libdir}/libgridsite*.a";
-			$cmd{default}{packaging} = "None";
-		}
-		else {
-			$cmd{default}{clean} = 'None';
-			$cmd{default}{packaging} = "echo building nothing, org.gridsite.core make rpm step will create this";
-			$cmd_vcs{checkout} = "mkdir -v \${moduleName} 2>/dev/null || true";
-		}
-	}
-	elsif ($subsys eq 'px' and $module eq 'myproxy-config') {
-		$cmd{default}{configure} = "/usr/bin/perl $confdir/configure --root=\${prefix} --prefix= --stage=\${stageDir} --libdir=\${libdir} --project=\${projectName} --module $subsys.$module @copts";
-		$cmd{default}{packaging} = "make rpm package=".$confprefix."$subsys-myproxy-config";
-	}
-	else {
-		$cmd{default}{configure} = "/usr/bin/perl $confdir/configure $project{flavours} --root=\${prefix} --prefix=$project{local_prefix} --stage=\${stageDir} --sysroot=\${package.prefix} --libdir=\${libdir} --project=\${projectName} --module $subsys.$module @copts";
-		# no stage builds since EMI-3
-		if ($project ne 'emi' or $project_version <= 2) {
-			$cmd{default}{compile} = 'make';
-			$cmd{default}{test} = 'make check';
-			$cmd{default}{install} = 'make install';
-			if ($subsys eq 'lb' and $module eq 'client') {
-				$cmd{default}{compile} = "make rpath=$project{local_prefix}/\${libdir}";
-				$cmd{default}{install} = "make install post-install rpath=$project{local_prefix}/\${libdir}";
+				$cmd{default}{packaging} = "None";
+			}
+			else {
+				$cmd{default}{clean} = 'None';
+				$cmd{default}{packaging} = "echo building nothing, org.gridsite.core make rpm step will create this";
+				$cmd_vcs{checkout} = "true";
 			}
 		}
-		mode_etics_packaging($fmod, \%cmd, "make dist\n\t", "make dist\n\t");
+		elsif ($subsys eq 'px' and $module eq 'myproxy-config') {
+			$cmd{default}{clean} = 'make clean';
+			$cmd{default}{configure} = "/usr/bin/perl $confdir/configure --root=\${prefix} --prefix= --stage=\${stageDir} --libdir=\${libdir} --project=\${projectName} --module $subsys.$module @copts";
+			$cmd{default}{packaging} = "make rpm package=".$confprefix."$subsys-myproxy-config";
+		}
+		else {
+			$cmd{default}{clean} = 'make clean';
+			$cmd{default}{configure} = "/usr/bin/perl $confdir/configure $project{flavours} --root=\${prefix} --prefix=$project{local_prefix} --stage=\${stageDir} --sysroot=\${package.prefix} --libdir=\${libdir} --project=\${projectName} --module $subsys.$module @copts";
+			# no stage builds since EMI-3
+			if ($project ne 'emi' or $project_version <= 2) {
+				$cmd{default}{compile} = 'make';
+				$cmd{default}{test} = 'make check';
+				$cmd{default}{install} = 'make install';
+				if ($subsys eq 'lb' and $module eq 'client') {
+					$cmd{default}{compile} = "make rpath=$project{local_prefix}/\${libdir}";
+					$cmd{default}{install} = "make install post-install rpath=$project{local_prefix}/\${libdir}";
+				}
+			}
+			mode_etics_packaging($fmod, \%cmd, "make dist\n\t", "make dist\n\t");
+		}
 	}
 
 	my $defprops = '';
@@ -1789,7 +1850,7 @@ description = $cvs_prefix{$subsys}.$subsys.$module
 projectName = $project{etics_name}
 age = $age
 deploymentType = None
-vcsroot = :pserver:anonymous\@glite.cvs.cern.ch:/cvs/glite
+vcsroot = $vcsroot
 tag = $conftag
 version = $major.$minor.$rev
 $dwpath
@@ -1825,77 +1886,82 @@ checkstyle = None
 };
 	}
 
-	print C qq{[Platform-default:Property]
+	# no platform properties since EMI-3
+	if ($branch or $project ne 'emi' or $project_version <= 2) {
+		print C qq{[Platform-default:Property]
 $buildroot
-package.preserve.libtool = false
 $package_description$package_summary$defprops};
 
-	for (@{$obsoletes{"$subsys.$module"}}) {
-		print C "package.obsoletes = $_\n";
-		print C "package.replaces = $_\n";
-	}
-	for (@{$conflicts{"$subsys.$module"}}) {
-		print C "package.conflicts = $_\n";
-	}
-	for (@{$provides{"$subsys.$module"}}) {
-		print C "package.provides = $_\n";
-	}
-	print C "\n";
-
-	for my $pp (keys %{$platform_properties{"$subsys.$module"}}) {
-		next if $pp eq 'default';
-		next if exists $project{supported_platforms} and not exists $project{supported_platforms}{$pp};
-
-		print C "[Platform-$pp:Property]\n$buildroot\n";
-
-		for my $p (keys %{$platform_properties{"$subsys.$module"}->{$pp}}) {
-			print C $p . ' = ' . $platform_properties{"$subsys.$module"}->{$pp}->{$p} . "\n";
+		for (@{$obsoletes{"$subsys.$module"}}) {
+			print C "package.obsoletes = $_\n";
+			print C "package.replaces = $_\n";
 		}
-		print C "$package_description$package_summary\n";
+		for (@{$conflicts{"$subsys.$module"}}) {
+			print C "package.conflicts = $_\n";
+		}
+		for (@{$provides{"$subsys.$module"}}) {
+			print C "package.provides = $_\n";
+		}
+		print C "\n";
+
+		for my $pp (keys %{$platform_properties{"$subsys.$module"}}) {
+			next if $pp eq 'default';
+			next if exists $project{supported_platforms} and not exists $project{supported_platforms}{$pp};
+
+			print C "[Platform-$pp:Property]\n$buildroot\n";
+
+			for my $p (keys %{$platform_properties{"$subsys.$module"}->{$pp}}) {
+				print C $p . ' = ' . $platform_properties{"$subsys.$module"}->{$pp}->{$p} . "\n";
+			}
+			print C "$package_description$package_summary\n";
+		}
 	}
 
 	for my $platform ('default', keys %{$project{supported_platforms}}) {
 		my $used = 0;
 		my $output = '';
 
-		for (@{$need_externs{"$subsys.$module"}},@{$need_jars{"$subsys.$module"}}) {
-			my $eext = $etics_externs{$platform}{$_};
-			my $edev = $project{etics_externs_devel}{$platform}{$_};
+		# build dependencies needed only for EMI <= 2
+		if ($branch or $project ne 'emi' or $project_version <= 2) {
+			for (@{$need_externs{"$subsys.$module"}},@{$need_jars{"$subsys.$module"}}) {
+				my $eext = $etics_externs{$platform}{$_};
+				my $edev = $project{etics_externs_devel}{$platform}{$_};
 
-			# for the default platform using package of the same
-			# name for runtime dependency
-			if (not $eext) {
-				if ($platform eq 'default') {
+				# for the default platform using package of the same
+				# name for runtime dependency
+				if (not $eext) {
+					if ($platform eq 'default') {
 #print "default runtime $_ on default\n";
-					$eext = $_; }
-				else {
+						$eext = $_; }
+					else {
 #print "no runtime $_ on $platform\n";
-					$eext = '-'; }
-			}
-			if ($eext eq '-' and $edev eq '-') {
+						$eext = '-'; }
+				}
+				if ($eext eq '-' and $edev eq '-') {
 #print "skipping $_ on $platform\n";
-				next;
-			}
-
-			my $proj = 'externals';
-			for my $p (keys %etics_projects) {
-				for $m (@{$etics_projects{$p}}) {
-					$proj = $p if $m eq $_;
+					next;
 				}
-			}
 
-			my $type = $need_externs_type{"$subsys.$module"}->{$_};
-
-			if ($edev) {
-				if ($type eq 'B') {
-					# no runtime - change to devel pkg
-					$eext = $edev;
-				} elsif ($type eq 'BR' or $type eq 'RB') {
-					# additional devel pkg
-					if ($edev ne '-') { $output .= "$proj|$edev = B\n"; }
+				my $proj = 'externals';
+				for my $p (keys %etics_projects) {
+					for $m (@{$etics_projects{$p}}) {
+						$proj = $p if $m eq $_;
+					}
 				}
+
+				my $type = $need_externs_type{"$subsys.$module"}->{$_};
+
+				if ($edev) {
+					if ($type eq 'B') {
+						# no runtime - change to devel pkg
+						$eext = $edev;
+					} elsif ($type eq 'BR' or $type eq 'RB') {
+						# additional devel pkg
+						if ($edev ne '-') { $output .= "$proj|$edev = B\n"; }
+					}
+				}
+				if ($eext ne '-') { $output .= "$proj|$eext = $type\n"; }
 			}
-			if ($eext ne '-') { $output .= "$proj|$eext = $type\n"; }
 		}
 
 		if ($platform eq 'default') {
@@ -2084,6 +2150,24 @@ sub reshuffle_platforms($$) {
 	}
 }
 
+sub os_type {
+	my $ver;
+
+	open FH, '<', '/etc/issue' or return "redhat";
+	$_=<FH>;
+	close FH;
+
+	if (/Debian|Ubuntu/i) { return "debian"; }
+	elsif (/Scientific|Redhat|Centos/i) { return "redhat"; }
+	elsif (/Fedora/i) {
+		$ver = `rpm -q --queryformat '%{version}' fedora-release 2>/dev/null`;
+		if ($ver and $ver >= 15) { return "fedora"; }
+		else { return "redhat"; }
+	} else {
+		return "redhat";
+	}
+}
+
 sub usage {
 	my @ext = keys %externs;
 	my @myjars = keys %jar;
@@ -2097,9 +2181,11 @@ General options (defaults in []):
   --root=DIR			installation root (custom relocation root -> sysroot) [./stage]
   --sysroot=DIR			system root (custom relocation root -> sysroot) []
   --sysconfdir=DIR              system configuration directory [PREFIX/etc]
+  --localstatedir=DIR           system local status directory [PREFIX/var]
+  --os-type=DIST                system type (debian/redhat/fedora)
   --staged=module,module,...	what is already in PREFIX (specify without org.glite.)
   --thrflavour=flavour
-  --nothrflavour=flavour	threaded and non-treaded flavours [gcc64dbgpthr,gcc64dbg]
+  --nothrflavour=flavour	threaded and non-treaded flavours []
   --listmodules=subsys          list modules of a subsystem
   --listmodules=module          list subpackages of a module
   --version=maj.min.rev-age	version used instead of reading version.properties
@@ -2107,6 +2193,10 @@ General options (defaults in []):
   --libdir=libdir		typically [lib,lib64] postfix
   --project=PROJECT		build or generate etics for a project (glite/emi1/emi) [emi]
   --debug			print more details
+  --url				URL of all published files [$default_url]
+  --url-rpm			URL of published RPM packages []
+  --url-deb			URL of published Debian packages []
+  --url-source			URL of published source tarballs []
   
 Mode of operation:
   --mode=\{checkout|build|etics\}	what to do [build]

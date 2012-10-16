@@ -38,3 +38,9 @@
 - Preparing implementation of OCSP support
 - Fixed Vulnerability in Voms CRL processing
 
+2.0.0-1
+- OCSP support
+- PKCS11 support
+- Preparation for Fedora & EPEL packaging
+- Features and bugfixes
+
