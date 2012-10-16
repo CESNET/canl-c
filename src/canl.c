@@ -588,3 +588,17 @@ canl_princ_free(canl_ctx cc, canl_principal princ)
 
     return;
 }
+
+canl_err_code CANL_CALLCONV
+canl_ctx_set_pkcs11_lib(canl_ctx ctx, const char *lib)
+{
+    setenv("PKCS11_LIB", lib, 1);
+    return 0;
+}
+
+canl_err_code CANL_CALLCONV
+canl_ctx_set_pkcs11_init_args(canl_ctx ctx, const char *args)
+{
+    setenv("PKCS11_INIT_ARGS", args, 1);
+    return 0;
+}

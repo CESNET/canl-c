@@ -16,19 +16,15 @@ Description:
 /**********************************************************************
                              Include header files
 **********************************************************************/
-#ifndef NO_GSSAPI_CONFIG_H
-#include "gssapi_config.h"
-#endif
-
 #include <stdio.h>
-#include "ssl.h"
-#include "err.h"
-#include "bio.h"
-#include "pem.h"
-#include "x509.h"
-#include "stack.h"
-#include "evp.h"
-#include "rsa.h"
+#include "openssl/ssl.h"
+#include "openssl/err.h"
+#include "openssl/bio.h"
+#include "openssl/pem.h"
+#include "openssl/x509.h"
+#include "openssl/stack.h"
+#include "openssl/evp.h"
+#include "openssl/rsa.h"
 
 #include "pkcs11.h"
 

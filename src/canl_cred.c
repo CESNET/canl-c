@@ -1,6 +1,7 @@
 #include "canl_locl.h"
 #include "canl_cred.h"
 #include "canl_mech_ssl.h"
+#include "scutils.h"
 
 #define DEF_KEY_LEN 1024
 #define DEF_KEY_LEN_LONGER 2048
@@ -814,3 +815,41 @@ canl_req_get_pair(canl_ctx, canl_x509_req, EVP_PKEY **)
 }
 #endif
 
+canl_err_code CANL_CALLCONV
+canl_cred_load_priv_key_pkcs11(canl_ctx ctx, canl_cred cred, const char *label,
+			       canl_password_callback pass_clb, void *arg)
+{
+    int ret;
+    creds *crd = (creds*) cred;
+    unsigned long hSession;
+
+    ret = sc_init(&hSession, NULL, NULL, NULL, CKU_USER, 0);
+    if (ret)
+	return set_error(ctx, EINVAL, POSIX_ERROR, "Failed to open session to smartcard");
+
+    ret = sc_get_priv_key_obj_by_label(hSession, label, &crd->c_key);
+    if (ret)
+	return set_error(ctx, EINVAL, POSIX_ERROR, "Failed to locate private key for '%s' on smartcard",
+			 label);
+
+    return 0;
+}
+
+canl_err_code CANL_CALLCONV
+canl_cred_load_cert_pkcs11(canl_ctx ctx, canl_cred cred, const char *label)
+{
+    int ret;
+    creds *crd = (creds*) cred;
+    unsigned long hSession;
+
+    ret = sc_init(&hSession, NULL, NULL, NULL, CKU_USER, 0);
+    if (ret)
+	return set_error(ctx, EINVAL, POSIX_ERROR, "Failed to open session to smartcard");
+
+    ret = sc_get_cert_obj_by_label(hSession, label, &crd->c_cert);
+    if (ret)
+	return set_error(ctx, EINVAL, POSIX_ERROR, "Failed to locate X.509 certificate for '%s' on smartcard",
+			 label);
+
+    return 0;
+}

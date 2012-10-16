@@ -13,6 +13,9 @@ Description:
 **********************************************************************/
 //#include "config.h"
 
+#define USE_PKCS11
+#define USE_PKCS11_DL
+
 #ifdef USE_PKCS11
 
 #include "scutils.h"
@@ -32,15 +35,15 @@ Description:
 #ifdef USE_PKCS11_DL
 #include <dlfcn.h>
 #endif
-#include "buffer.h"
-#include "crypto.h"
-#include "objects.h"
-#include "asn1.h"
-#include "evp.h"
-#include "x509.h"
-#include "pem.h"
-#include "ssl.h"
-#include "rsa.h"
+#include <openssl/buffer.h>
+#include <openssl/crypto.h>
+#include <openssl/objects.h>
+#include <openssl/asn1.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/ssl.h>
+#include <openssl/rsa.h>
 
 
 /**********************************************************************
@@ -177,7 +180,7 @@ sc_get_function_list()
 	    if (!dllname) {
         dllname = "libDSPKCS.so";
 	    }
-	    h_m_pkcs11 = dlopen("libDSPKCS.so",RTLD_LAZY);
+	    h_m_pkcs11 = dlopen(dllname,RTLD_LAZY);
     }
     if (!h_m_pkcs11) {
 	    SCerr(SCERR_F_SCINIT,SCERR_R_NO_PKCS11_DLL);
@@ -269,7 +272,6 @@ sc_init(
   int                                 rc;
   CK_SLOT_ID                          rslot;
   CK_SLOT_ID_PTR                      pslot;
-  CK_TOKEN_INFO                       tokeninfo;
        
   if (ppslot) {
     pslot = ppslot;
@@ -316,16 +318,27 @@ sc_init_one(
   CK_SLOT_ID                          list[20];
   CK_SLOT_ID                          slot;
   CK_SLOT_ID_PTR                      slotList = &list[0];
-  CK_TOKEN_INFO                       tokeninfo;
   CK_ULONG                            count = 0;
   CK_C_Initialize                     pC_Initialize;
+  CK_C_INITIALIZE_ARGS		      initArgs;
+  CK_C_INITIALIZE_ARGS_PTR	      args = NULL;
+  const char *			      nss_library_params = NULL;
 
   if (!sc_get_function_list()) {
     return SCERR_R_INITIALIZE;
   }
 
+  nss_library_params = getenv("PKCS11_INIT_ARGS");
+  if (nss_library_params) {
+      /* hack to initialize the NSS soft token */
+      memset(&initArgs, 0, sizeof(initArgs));
+      initArgs.flags = CKF_OS_LOCKING_OK;
+      initArgs.pReserved = (void *) nss_library_params;
+      args = &initArgs;
+  }
+
   pC_Initialize = pFunctionList->C_Initialize;
-  status = (*pC_Initialize)(0);
+  status = (*pC_Initialize)(args);
 
   if (status != CKR_OK) {
     SCerr(SCERR_F_SCINIT,SCERR_R_INITIALIZE);
@@ -361,7 +374,8 @@ sc_init_one(
    * Maybe provide the card label then look for it 
    */
 
-  slot = list[0];
+//  slot = list[0];
+  slot = list[1];
   if (pslot) {
     *pslot = slot;
   }
@@ -437,7 +451,7 @@ sc_init_open_login(
                                  "Smart Card User PIN:" : "Smart Card SO PIN:",0);
     read_passphrase_win32(rpin,sizeof(rpin),0);
 #else
-    des_read_pw_string(rpin,sizeof(rpin),
+    EVP_read_pw_string(rpin,sizeof(rpin),
                        (userType == CKU_USER) ? 
                        "Smart Card User PIN:" : "Smart Card SO PIN:",0);
 #endif			

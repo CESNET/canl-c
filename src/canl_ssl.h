@@ -33,12 +33,6 @@ canl_ctx_set_ca_fn(canl_ctx, const char *);
 canl_err_code CANL_CALLCONV
 canl_ctx_sfncrl_dir(canl_ctx, const char *);
 
-canl_err_code CANL_CALLCONV
-canl_ctx_set_pkcs11_lib(canl_ctx, const char *);
-
-canl_err_code CANL_CALLCONV
-canl_ctx_set_pkcs11_init_args(canl_ctx, const char *);
-
 /* Set canl cert verification callbacks into SSL_CTX.
    Do not use SSL_CTX stored in canl_ctx.
 
