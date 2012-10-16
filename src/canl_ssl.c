@@ -1163,9 +1163,14 @@ canl_ctx_set_ca_fn(canl_ctx cc, const char *fn)
 }
 
 canl_err_code CANL_CALLCONV
-canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode)
+canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode,
+        int (*verify_callback)(int, X509_STORE_CTX *))
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
+    int (*vc)(int, X509_STORE_CTX *) = NULL;
+
+    vc = (verify_callback) ? verify_callback : proxy_verify_callback;
+
     if (!cc)
         return EINVAL;
     if (!ssl_ctx)
@@ -1176,9 +1181,23 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode)
     setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, NULL);
 
-    SSL_CTX_set_verify(ssl_ctx, ver_mode, proxy_verify_callback);
+    SSL_CTX_set_verify(ssl_ctx, ver_mode, vc);
 
     return 0;
+}
+
+    int CANL_CALLCONV
+canl_direct_pv_clb(canl_ctx cc, X509_STORE_CTX *store_ctx, int ok)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    if (!store_ctx){
+        if (glb_cc)
+            set_error(glb_cc, EINVAL, POSIX_ERROR, "X509_STORE_CTX not"
+                    " initialized");
+        return 0;
+    }
+
+    return proxy_verify_callback(ok, store_ctx);
 }
 
 static canl_err_code
