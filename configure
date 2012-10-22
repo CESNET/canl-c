@@ -304,7 +304,7 @@ if ($project =~ /^([^0-9]*)(.*)$/) {
 %project = %{$projects{$project}};
 $project_version = $project{current_version} unless $project_version;
 if ($project ne 'emi' or $project_version <= 1) {
-	$lbmodules{'gridsite'} = [ qw/apache shared commands core devel slashgrid services service-clients gsexec/ ];
+	$lbmodules{'gridsite'} = [ qw/apache shared commands core devel services service-clients/ ];
 }
 for my $platform (keys %{$project{etics_externs}}) {
 	for $_ (keys %{$project{etics_externs}{$platform}}) {
@@ -649,7 +649,7 @@ BEGIN{
         'jp.primary' => [ qw/classads:B gsoap libtar globus_essentials:R globus:B  mysql-server:R pkgconfig:B/ ],
         'jp.server-common' => [],
         'jp.ws-interface' => [],
-	'gridsite.core' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B fuse-devel:B libxml2:B openssl:B doxygen:B pkgconfig:B/ ],
+	'gridsite.core' => [ qw/httpd-devel:B gsoap:B globus:B curl:B doxygen:B libxml2:B openssl:B doxygen:B pkgconfig:B libtool:B/ ],
 	'gridsite.commands' => [ qw/curl:R openssl:R/ ],
 	'gridsite.apache' => [ qw/libxml2:R openssl:R curl:R/ ],
 	'gridsite.libs' => [ qw/libxml2:R openssl:R/ ],
@@ -776,7 +776,7 @@ for my $jar (keys %need_jars) {
         / ],
 	'jp.ws-interface' => [ qw// ],
 
-	'gridsite.core' => [ qw// ],
+	'gridsite.core' => [ qw/canl.c:B/ ],
 	'gridsite.commands' => [ qw/gridsite.core:B/ ],
 	'gridsite.apache' => [ qw/gridsite.core:B/ ],
 	'gridsite.libs' => [ qw/gridsite.core:B / ],
@@ -1572,13 +1572,14 @@ sub mode_etics_packaging {
 		$workspaceDir = '..';
 		$srcPackageName = 'gridsite';
 		$srcTarBall = "../$srcPackageName-\${version}.src.tar.gz";
-		$srcAge = '';
+		$srcAge = '.src';
 		$topDir = '../';
 	} else {
 		$workspaceDir = '${workspaceDir}';
 		$srcPackageName = '${packageName}';
 		$srcTarBall = "$srcPackageName-\${version}.tar.gz";
-		$srcAge = '-${age}';
+		$srcAge = '';
+		if ($project eq 'emi' and $project_version <= 2) { $srcAge = '-${age}.src'; }
 		$topDir = '';
 	}
 
@@ -1587,8 +1588,8 @@ sub mode_etics_packaging {
 	$cmd->{default}{packaging} = $rpmprepare;
 	$cmd->{default}{packaging} .= "dir=\${workspaceDir}/rpm_build_src_\$\$
 	mkdir -p \${package.tgzLocation} \${package.SRPMSLocation} \$dir/{BUILD,RPMS,SOURCES,SRPMS} 2>/dev/null || true
-	cp -vf $srcTarBall \${package.tgzLocation}/$srcPackageName-\${version}${srcAge}.src.tar.gz
-	cp -vf $srcTarBall \$dir/SOURCES/$srcPackageName-\${version}${srcAge}.src.tar.gz
+	cp -vf $srcTarBall \${package.tgzLocation}/$srcPackageName-\${version}${srcAge}.tar.gz
+	cp -vf $srcTarBall \$dir/SOURCES/$srcPackageName-\${version}${srcAge}.tar.gz
 	rpmbuild -bs --nodeps --define \"_topdir \$dir\" $srcPackageName.spec
 	cp -v \$dir/SRPMS/*.src.rpm \${package.SRPMSLocation}/
 	rm -rf \$dir";
@@ -1600,7 +1601,7 @@ sub mode_etics_packaging {
 		$cmd->{$p}{packaging} = $debprepare;
 		$cmd->{$p}{packaging} .= "dir=\${workspaceDir}/dpkg_build_src_\$\$
 	mkdir -p \${package.tgzLocation} \${package.SDEBSLocation} \$dir 2>/dev/null || true
-	cp -vf $srcTarBall \${package.tgzLocation}/$srcPackageName-\${version}${srcAge}.src.tar.gz
+	cp -vf $srcTarBall \${package.tgzLocation}/$srcPackageName-\${version}${srcAge}.tar.gz
 	cp -vf $srcTarBall \$dir/${srcPackageName}_\${version}.orig.tar.gz
 	tar xzf \$dir/${srcPackageName}_\${version}.orig.tar.gz -C \$dir
 	cp -rf ${topDir}debian/ \$dir/$srcPackageName-\${version}/
@@ -1724,19 +1725,24 @@ sub mode_etics {
 		$cmd_vcs{checkout} = "true";
 	} elsif (not $branch and ($project ne 'emi' or $project_version >= 3)) {
 	# for non-branched configuration for EMI-3 do the build from external source package
-		my $pkgName = $fmod eq 'gridsite.core' ? 'gridsite' : '${packageName}';
+		if ($subsys eq 'gridsite' and $module ne 'core') {
+			$cmd{default}{clean} = 'None';
+			$cmd{default}{packaging} = "echo building nothing, org.gridsite.core make rpm step will create this";
+			$cmd_vcs{checkout} = "true";
+		} else {
+			my $pkgName = $fmod eq 'gridsite.core' ? 'gridsite' : '${packageName}';
 
-		$cmd{default}{clean} = 'rm -rf ${package.SRPMSLocation}';
-		$cmd{default}{init} = "wget -P \${package.SRPMSLocation} $url_rpm/$pkgName-\${version}-\${age}.src.rpm";
-		$cmd{default}{packaging} = 'true';
+			$cmd{default}{clean} = 'rm -rf ${package.SRPMSLocation}';
+			$cmd{default}{init} = "wget -P \${package.SRPMSLocation} $url_rpm/$pkgName-\${version}-\${age}.src.rpm";
+			$cmd{default}{packaging} = 'true';
 
-		for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
-			for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
-			$cmd{$p}{clean} = 'rm -rf ${package.SRPMSLocation}';
-			$cmd{$p}{init} = "wget -P \${package.tgzLocation} $url_deb/${pkgName}_\${version}-\${age}.debian.tar.gz $url_deb/${pkgName}_\${version}-\${age}.dsc $url_deb/${pkgName}_\${version}.orig.tar.gz";
-			$cmd{$p}{packaging} = 'true';
+			for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
+				for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
+				$cmd{$p}{clean} = 'rm -rf ${package.SRPMSLocation}';
+				$cmd{$p}{init} = "wget -P \${package.tgzLocation} $url_deb/${pkgName}_\${version}-\${age}.debian.tar.gz $url_deb/${pkgName}_\${version}-\${age}.dsc $url_deb/${pkgName}_\${version}.orig.tar.gz";
+				$cmd{$p}{packaging} = 'true';
+			}
 		}
-
 		$vcsroot = 'None';
 		$conftag = 'None';
 	} else {

@@ -44,3 +44,6 @@
 - Preparation for Fedora & EPEL packaging
 - Features and bugfixes
 
+2.0.0-2
+- Update debian packaging due to major version bump
+- Module rebuilt
