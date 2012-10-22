@@ -6,7 +6,7 @@ Summary:        @SUMMARY@
 Group:          System Environment/Libraries
 License:        ASL 2.0
 Vendor:         EMI
-Url:            @URL@
+Url:            http://www.eu-emi.eu
 Source:         http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
