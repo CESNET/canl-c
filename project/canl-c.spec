@@ -23,6 +23,16 @@ BuildRequires:  tex(latex)
 %else
 BuildRequires:  tetex-latex
 %endif
+%if %{?fedora}%{!?fedora:0} >= 19
+BuildRequires:  tex(comment.sty)
+BuildRequires:  tex(lastpage.sty)
+BuildRequires:  tex(multirow.sty)
+BuildRequires:  tex(ptmr7t.tfm)
+BuildRequires:  tex(phvr8t.tfm)
+BuildRequires:  tex(psyr.tfm)
+BuildRequires:  tex(pzcmi8r.tfm)
+BuildRequires:  tex(ucrr8a.pfb)
+%endif
 
 %description
 @DESCRIPTION@
