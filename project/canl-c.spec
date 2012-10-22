@@ -92,8 +92,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root)
 %dir /usr/share/doc/%{name}-%{version}
 /usr/share/doc/%{name}-%{version}/*.pdf
-%{_libdir}/libcanl_c.so.@MAJOR@.@MINOR@.@REVISION@
-%{_libdir}/libcanl_c.so.@MAJOR@
+%{_libdir}/libcanl_c.so.*
 
 %files devel
 %defattr(-,root,root)
