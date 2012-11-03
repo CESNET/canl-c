@@ -3,6 +3,11 @@
 
 -include /usr/share/dpkg/buildflags.mk
 
+p_dbg=canl-c-dbg
+p_dev=libcanl-c-dev
+p_examples=libcanl-c-examples
+p_lib=libcanl-c2
+
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
@@ -36,20 +41,20 @@ install: build-stamp
 	dh_prep
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
-	rm -vf $(CURDIR)/debian/tmp/usr/lib/*.la
-	rm -vf $(CURDIR)/debian/tmp/usr/lib/*.a
-	find $(CURDIR)/debian/tmp -name '*' -print | xargs -I {} -i bash -c "chrpath -d {} > /dev/null 2>&1" || echo 'Stripped RPATH'
-	mv $(CURDIR)/debian/tmp/usr/share/doc/canl-c-@MAJOR@.@MINOR@.@REVISION@ $(CURDIR)/debian/tmp/usr/share/doc/canl-c
-	(cd $(CURDIR)/debian/tmp/usr/share/doc/canl-c; \
-	 rm -fv ChangeLog LICENSE; \
-	 cat $(CURDIR)/project/ChangeLog | gzip -9 > changelog.gz)
+	rm -vf debian/tmp/usr/lib/*.la
+	mkdir -p debian/$(p_dbg)/usr/share/doc
+	mkdir -p debian/$(p_dev)/usr/share/doc
+	mkdir -p debian/$(p_examples)/usr/share/doc
+	mv debian/tmp/usr/share/doc/canl-c-@MAJOR@.@MINOR@.@REVISION@ debian/$(p_dev)/usr/share/doc/$(p_dev)
+	ln -s $(p_lib) debian/$(p_dbg)/usr/share/doc/$(p_dbg)
+	ln -s $(p_lib) debian/$(p_examples)/usr/share/doc/$(p_examples)
 
 binary-indep:
 
 binary-arch: install
 	dh_testdir
 	dh_testroot
-	dh_installchangelogs
+	dh_installchangelogs project/ChangeLog
 	dh_installdocs
 	dh_installexamples
 	dh_installman
@@ -57,7 +62,7 @@ binary-arch: install
 	dh_installcron
 	dh_install --fail-missing
 	dh_link
-	dh_strip --dbg-package=canl-c-dbg
+	dh_strip --dbg-package=$(p_dbg)
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs

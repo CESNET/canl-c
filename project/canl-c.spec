@@ -12,7 +12,6 @@ BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:  bison
 BuildRequires:  c-ares-devel%{?_isa}
-BuildRequires:  chrpath
 BuildRequires:  flex
 BuildRequires:  krb5-devel%{?_isa}
 BuildRequires:  libtool
@@ -75,7 +74,6 @@ mkdir -p $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -rf {} \;
 find $RPM_BUILD_ROOT -name '*.a' -exec rm -rf {} \;
-find $RPM_BUILD_ROOT -name '*' -print | xargs -I {} -i bash -c "chrpath -d {} > /dev/null 2>&1" || echo 'Stripped RPATH'
 
 
 %clean
@@ -90,12 +88,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%dir /usr/share/doc/%{name}-%{version}
-/usr/share/doc/%{name}-%{version}/*.pdf
+%doc project/ChangeLog
 %{_libdir}/libcanl_c.so.*
 
 %files devel
 %defattr(-,root,root)
+%doc canl.pdf
 %{_includedir}/*.h
 %{_libdir}/libcanl_c.so
 
