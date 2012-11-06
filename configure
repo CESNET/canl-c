@@ -63,7 +63,7 @@ my $url_source;
 my $pkg_config_env = (defined $ENV{PKG_CONFIG_PATH}) ? "$ENV{PKG_CONFIG_PATH}:" : '';
 
 my @nodes = qw/client server logger logger-msg nagios utils client-java doc ws-test db jpprimary jpindex jpclient harvester lb px proxyrenewal canl/;
-my @default_nodes = qw/lb px proxyrenewal nagios canl/;
+my @default_nodes = qw/lb px proxyrenewal nagios canl client-java/;
 my %enable_nodes;
 my %disable_nodes;
 my %default_nodes; @default_nodes{@default_nodes} = (1) x ($#default_nodes + 1);
@@ -192,11 +192,11 @@ my (%etics_externs, %etics_projects);
 # additional modules from $project{modules} are automatically added
 #
 my %lbmodules = (
-	'lb' => [ qw/client client-java common doc logger server state-machine types utils ws-interface ws-test harvester yaim logger-msg nagios client-devel client-progs common-devel logger-devel state-machine-devel/], 
+	'lb' => [ qw/client common doc logger server state-machine types utils ws-interface ws-test harvester yaim logger-msg nagios client-devel client-progs common-devel logger-devel state-machine-devel/], 
 	'lbjp-common' => [qw/db log maildir server-bones trio jp-interface gss gsoap-plugin db-devel log-devel maildir-devel server-bones-devel trio-devel jp-interface-devel gss-devel gsoap-plugin-devel/],
-	'jobid' => [qw/api-c api-c-devel api-cpp api-cpp-devel api-java/],
+	'jobid' => [qw/api-c api-c-devel api-cpp api-cpp-devel/],
 	'jp' => [ qw/client doc index primary server-common ws-interface/ ],
-	'gridsite' => [ qw/apache libs commands core devel slashgrid services service-clients gsexec/ ],
+	'gridsite' => [ qw/apache libs commands core devel services service-clients/ ],
 	'px' => [ qw/proxyrenewal myproxy-yaim proxyrenewal-devel proxyrenewal-progs/ ],
 	'canl' => [ qw/c c-devel/ ],
 	);
@@ -225,6 +225,13 @@ my %subpackages = (
 	'px.proxyrenewal-devel' => 'px.proxyrenewal',
 	'px.proxyrenewal-progs' => 'px.proxyrenewal',
 	'canl.c-devel' => 'canl.c',
+	'gridsite.apache' => 'gridsite.core',
+	'gridsite.shared' => 'gridsite.core',
+	'gridsite.commands' => 'gridsite.core',
+	'gridsite.devel' => 'gridsite.core',
+	'gridsite.libs' => 'gridsite.core',
+	'gridsite.services' => 'gridsite.core',
+	'gridsite.service-clients' => 'gridsite.core',
 );
 
 my @opts = (
@@ -249,6 +256,7 @@ my @opts = (
 	'jp-tag=s' => \$jp_tag,
 	'jobid-tag=s' => \$jobid_tag,
 	'canl-tag=s' => \$canl_tag,
+	'px-tag=s' => \$px_tag,
 	'help' => \$help,
 	'libdir=s' => \$libdir,
 	'project=s' => \$project,
@@ -332,6 +340,9 @@ if ($project eq 'emi') {
 	$extranodmod{lb} = 'lb.emi-lb';
 	$extranodmod{px} = 'px.emi-px';
 }
+if ($project ne 'emi' or $project_version <= 2) {
+	$project{modules}{gridsite} = [ qw/slashgrid gsexec/ ];
+}
 for $_ (keys %{$project{modules}}) {
 	push @{$lbmodules{$_}},@{$project{modules}{$_}};
 }
@@ -346,7 +357,7 @@ if ($listmodules) {
 	if (exists $lbmodules{$listmodules}) {
 		@m = map exists $subpackages{$listmodules . '.' . $_} ? "" : "$name_prefix.$listmodules.$_",@{$lbmodules{$listmodules}};
 	} else {
-		if ($project eq 'emi' and $project_version == 1) {
+		if ($project eq 'emi' and $project_version == 1 and $listmodules ne 'gridsite.core') {
 			# no sub-packages in EMI-1
 		} else {
 			for my $sub (keys %subpackages) {
@@ -592,6 +603,13 @@ sub mode_checkout() {
                                 }
 			}
 		}
+		if ($px_tag) {
+			for (@{$lbmodules{'px'}}){
+				if ("px.".$_ eq $module){
+                                        $tag = '-r '.$px_tag;
+                                }
+			}
+		}
 		#if (grep {"lb.".$_ eq $module} @{$lbmodules{lb}}){
 		#	print "found";
 		#}
@@ -731,12 +749,12 @@ for my $jar (keys %need_jars) {
 	'lb.yaim' => [ qw// ],
 	'lb.glite-LB' => [ qw/
 		lb.logger:R lb.server:R lb.utils:R lb.doc:R
-		lb.ws-test:R lb.harvester:R lb.yaim:R lb.client-java:R
+		lb.ws-test:R lb.harvester:R lb.yaim:R
 		lb.logger-msg:R
 	/ ],
 	'lb.emi-lb' => [ qw/
 		lb.logger:R lb.server:R lb.utils:R lb.doc:R
-		lb.ws-test:R lb.harvester:R lb.yaim:R lb.client-java:R
+		lb.ws-test:R lb.harvester:R lb.yaim:R
 		lb.logger-msg:R
 	/ ],
 	'lbjp-common.db' => [ qw/lbjp-common.trio lbjp-common.log/ ],
@@ -1410,7 +1428,7 @@ version=${module.version}
 
 ${package}-${version}.tar.gz:
 	rm -rf dist
-	for dist in ${SOURCES} ${SOURCES_EXEC} configure project/ChangeLog project/debian.* project/*.spec project/package.* project/version.properties; do \
+	for dist in ${SOURCES} ${SOURCES_EXEC} configure project/ChangeLog project/debian.* project/*.spec project/package.* project/version.properties LICENSE; do \
 		dir=${package}-${version}/`dirname $$dist`; \
 		mkdir -p dist/$$dir || :; \
 		install -m 0644 ${top_srcdir}/$$dist dist/$$dir; \
@@ -1543,7 +1561,7 @@ deb: ${package}-${version}.tar.gz
 			$file="${build}debian/compat"; if (not -f $file) { `echo "7" > $file` }
 			$file="${build}debian/changelog"; if (not -f $file) {
 				open FH, ">$file" or die $!;
-				print FH qq{$packageName ($major.$minor.$rev-$age) unstable; urgency=low
+				print FH qq{$packageName ($major.$minor.$rev-$age) stable; urgency=low
 
   * Automatically generated package
 
@@ -1723,26 +1741,21 @@ sub mode_etics {
 	if (exists $subpackages{$fmod}) {
 		$cmd{default}{packaging} = "echo building nothing, $subpackages{$fmod} will build this package";
 		$cmd_vcs{checkout} = "true";
-	} elsif (not $branch and ($project ne 'emi' or $project_version >= 3)) {
+	} elsif ($project eq 'emi' and $project_version >= 3) {
 	# for non-branched configuration for EMI-3 do the build from external source package
-		if ($subsys eq 'gridsite' and $module ne 'core') {
-			$cmd{default}{clean} = 'None';
-			$cmd{default}{packaging} = "echo building nothing, org.gridsite.core make rpm step will create this";
-			$cmd_vcs{checkout} = "true";
-		} else {
-			my $pkgName = $fmod eq 'gridsite.core' ? 'gridsite' : '${packageName}';
+		my $pkgName = $fmod eq 'gridsite.core' ? 'gridsite' : '${packageName}';
 
-			$cmd{default}{clean} = 'rm -rf ${package.SRPMSLocation}';
-			$cmd{default}{init} = "wget -P \${package.SRPMSLocation} $url_rpm/$pkgName-\${version}-\${age}.src.rpm";
-			$cmd{default}{packaging} = 'true';
+		$cmd{default}{clean} = 'rm -rf ${package.SRPMSLocation}';
+		$cmd{default}{init} = "wget -P \${package.SRPMSLocation} $url_rpm/$pkgName-\${version}-\${age}.src.rpm";
+		$cmd{default}{packaging} = 'true';
 
-			for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
-				for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
-				$cmd{$p}{clean} = 'rm -rf ${package.SRPMSLocation}';
-				$cmd{$p}{init} = "wget -P \${package.tgzLocation} $url_deb/${pkgName}_\${version}-\${age}.debian.tar.gz $url_deb/${pkgName}_\${version}-\${age}.dsc $url_deb/${pkgName}_\${version}.orig.tar.gz";
-				$cmd{$p}{packaging} = 'true';
-			}
+		for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
+			for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
+			$cmd{$p}{clean} = 'rm -rf ${package.SRPMSLocation}';
+			$cmd{$p}{init} = "wget -P \${package.tgzLocation} $url_deb/${pkgName}_\${version}-\${age}.debian.tar.gz $url_deb/${pkgName}_\${version}-\${age}.dsc $url_deb/${pkgName}_\${version}.orig.tar.gz";
+			$cmd{$p}{packaging} = 'true';
 		}
+
 		$vcsroot = 'None';
 		$conftag = 'None';
 	} else {
@@ -1893,7 +1906,7 @@ checkstyle = None
 	}
 
 	# no platform properties since EMI-3
-	if ($branch or $project ne 'emi' or $project_version <= 2) {
+	if ($project ne 'emi' or $project_version <= 2) {
 		print C qq{[Platform-default:Property]
 $buildroot
 $package_description$package_summary$defprops};
@@ -1928,7 +1941,7 @@ $package_description$package_summary$defprops};
 		my $output = '';
 
 		# build dependencies needed only for EMI <= 2
-		if ($branch or $project ne 'emi' or $project_version <= 2) {
+		if ($project ne 'emi' or $project_version <= 2) {
 			for (@{$need_externs{"$subsys.$module"}},@{$need_jars{"$subsys.$module"}}) {
 				my $eext = $etics_externs{$platform}{$_};
 				my $edev = $project{etics_externs_devel}{$platform}{$_};
@@ -2216,6 +2229,7 @@ What to build:
   --lbjp-common-tag=tag         checkout lbjp-common modules with specific tag
   --jobid-tag=tag		checkout jobid modules with specific tag
   --canl-tag=tag		checkout canl modules with specific tag
+  --px-tag=tag			checkout px modules with specific tag
 
 Dependencies (summary of what will be used is always printed):
   --with-EXTERNAL=PATH		where to look for an external [autodetect]
