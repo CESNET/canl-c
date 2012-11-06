@@ -88,7 +88,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc project/ChangeLog
+%doc LICENSE project/ChangeLog
 %{_libdir}/libcanl_c.so.*
 
 %files devel
