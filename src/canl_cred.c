@@ -558,7 +558,6 @@ canl_cred_save_cert(canl_ctx ctx, canl_cred cred, X509 ** cert)
                 " handler");
  
     if (*cert) {
-        X509_free(*cert);
         *cert = NULL;
     }
 
