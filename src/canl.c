@@ -37,6 +37,7 @@ canl_ctx canl_create_ctx()
 void canl_free_ctx(canl_ctx cc)
 {
     glb_ctx *ctx = (glb_ctx*) cc;
+    struct canl_mech *mech = find_mech(GSS_C_NO_OID);
 
     if (!cc)
         return;
@@ -47,9 +48,16 @@ void canl_free_ctx(canl_ctx cc)
         ctx->err_msg = NULL;
     }
     /*TODO delete ctx content for real*/
+    if (mech)
+        mech->free_ctx(ctx);
 
+    if (ctx->err_msg){
+        free(ctx->err_msg);
+        ctx->err_msg = NULL;
+    }
     free(ctx);
 }
+
 
 canl_err_code
 canl_create_io_handler(canl_ctx cc, canl_io_handler *io)
@@ -172,7 +180,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
 		err = mech->connect(glb_cc, io_cc, ctx, timeout, host);
 		if (err) {
 		    canl_io_close(glb_cc, io_cc);
-		    mech->free_ctx(glb_cc, ctx);
+		    mech->finish(glb_cc, ctx);
 		    ctx = NULL;
                     continue;
                 }
@@ -361,7 +369,7 @@ end:
     if (err) {
         (io_cc)->sock = -1;
         if (conn_ctx)
-            mech->free_ctx(glb_cc, conn_ctx);
+            mech->finish(glb_cc, conn_ctx);
     }
 
     return err;
@@ -408,7 +416,7 @@ static void io_destroy(glb_ctx *cc, io_handler *io)
 
     if (io_cc->conn_ctx) {
 	mech = find_mech(io->oid);
-	mech->free_ctx(cc, io_cc->conn_ctx);
+	mech->finish(cc, io_cc->conn_ctx);
 	io_cc->conn_ctx = NULL;
 	io_cc->oid = GSS_C_NO_OID;
     }

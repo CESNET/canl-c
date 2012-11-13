@@ -1056,16 +1056,53 @@ ssl_close(glb_ctx *cc, io_handler *io, void *auth_ctx)
 }
 
 static canl_err_code
-ssl_free(glb_ctx *cc, void *ctx)
+ssl_finish(glb_ctx *cc, void *ctx)
 {
     SSL_free(ctx);
     return 0;
 }
 
 static canl_err_code
-ssl_finish(glb_ctx *cc, void *ctx)
+ssl_free_ctx(glb_ctx *cc)
 {
-    SSL_CTX_free(ctx);
+    mech_glb_ctx *m_ctx = cc->mech_ctx;
+    SSL_CTX_free(m_ctx->mech_ctx);
+    m_ctx->mech_ctx = NULL;
+
+    if (!m_ctx)
+        return 0;
+
+    if (m_ctx->ca_dir){
+        free(m_ctx->ca_dir);
+        m_ctx->ca_dir = NULL;
+    }
+    if (m_ctx->ca_file){
+        free(m_ctx->ca_file);
+        m_ctx->ca_file = NULL;
+    }
+    if (m_ctx->crl_dir){
+        free(m_ctx->crl_dir);
+        m_ctx->crl_dir = NULL;
+    }
+
+    if (m_ctx->cert_key){
+        if (m_ctx->cert_key->cert){
+            X509_free(m_ctx->cert_key->cert);
+            m_ctx->cert_key->cert = NULL;
+        }
+        if (m_ctx->cert_key->key){
+            EVP_PKEY_free(m_ctx->cert_key->key);
+            m_ctx->cert_key->key = NULL;
+        }
+        if (m_ctx->cert_key->chain){
+            sk_X509_pop_free(m_ctx->cert_key->chain, X509_free);
+            m_ctx->cert_key->chain = NULL;
+        }
+        free(m_ctx->cert_key);
+        m_ctx->cert_key = NULL;
+    }
+    free(m_ctx);
+    cc->mech_ctx = NULL;
     return 0;
 }
 
@@ -1310,7 +1347,7 @@ canl_mech canl_mech_ssl = {
     ssl_finish,
     ssl_client_init,
     ssl_server_init,
-    ssl_free,
+    ssl_free_ctx,
     ssl_connect,
     ssl_accept,
     ssl_close,

@@ -94,7 +94,7 @@ typedef struct canl_mech {
         (glb_ctx *, void **);
 
     canl_err_code (*free_ctx)
-	(glb_ctx *, void *);
+	(glb_ctx *);
 
     canl_err_code (*connect)
         (glb_ctx *, io_handler *, void *, struct timeval *, const char *);
