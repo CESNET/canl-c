@@ -11,6 +11,9 @@ unknownMsg.category=OTHER
 inputError=Input certificate chain processing error: {0}
 inputError.category=GENERAL_INPUT
 
+noRouteToServer=Server does not respond or accept new connection. 
+noRouteToServer.category=OTHER
+
 #
 # Namespace related errors
 #

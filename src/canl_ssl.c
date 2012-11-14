@@ -659,7 +659,8 @@ static int do_ssl_connect(glb_ctx *cc, io_handler *io,
                     " by the other side");
         else
             /*ret2 < 0 && !ssl_err*/
-            update_error (cc, 0, UNKNOWN_ERROR, "Error during SSL handshake"
+            update_error (cc, CANL_ERR_noRouteToServer, CANL_ERROR, "Error"
+                    " during SSL handshake"
                     " in communication with the server");
         return 1;
     }

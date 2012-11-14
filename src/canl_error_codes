@@ -109,4 +109,8 @@ resolverError
 noPeerCertificate
 noKeyFound
 noCertFound
+# 
+# Recently added error codes without appropriate desc.
+# 
 invalidPurpose
+noRouteToServer
