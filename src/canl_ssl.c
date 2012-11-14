@@ -185,7 +185,7 @@ ssl_server_init(glb_ctx *cc, void **ctx)
     }
     if (err || (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
                 !m_ctx->cert_key->key))
-	return set_error(cc, CANL_ERR_NoCertFound, CANL_ERROR,
+	return set_error(cc, CANL_ERR_noCertFound, CANL_ERROR,
                 "No key or certificate found");
 
 
@@ -229,7 +229,7 @@ ssl_server_init(glb_ctx *cc, void **ctx)
         }
     }
     else {
-        set_error(cc, CANL_ERR_NoCertFound, CANL_ERROR,
+        set_error(cc, CANL_ERR_noCertFound, CANL_ERROR,
 		"server key or certificate missing");
         return 1;
     }
@@ -289,7 +289,7 @@ ssl_client_init(glb_ctx *cc, void **ctx)
 
     if (err || (!m_ctx->cert_key || !m_ctx->cert_key->cert || 
                 !m_ctx->cert_key->key))
-        update_error(cc, CANL_ERR_NoCertFound, CANL_ERROR,
+        update_error(cc, CANL_ERR_noCertFound, CANL_ERROR,
                 "No key or certificate found");
 
     if (user_cert_fn){
@@ -800,6 +800,9 @@ map_verify_result(unsigned long ssl_err, const X509_STORE_CTX *store_ctx,
         case X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED:
             canl_err = CANL_ERR_proxyLength;
             break;
+        case X509_V_ERR_INVALID_PURPOSE:
+            canl_err = CANL_ERR_invalidPurpose;
+            break;
         default:
             break;
     }
@@ -1254,7 +1257,7 @@ ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
 
     cert = SSL_get_peer_certificate(ssl);
     if (cert == NULL)
-	return set_error(cc, CANL_ERR_NoPeerCertificate, CANL_ERROR, "No peer certificate");
+	return set_error(cc, CANL_ERR_noPeerCertificate, CANL_ERROR, "No peer certificate");
 
     princ = calloc(1, sizeof(*princ));
     if (princ == NULL)

@@ -108,7 +108,9 @@ update_error_msg(canl_ctx cc, const char *new_msg)
     char code_str[ERR_CODE_LEN];
     int code_len = 0;
     char *separ = ": ";
+    char *separ_2 = "; ";
     int separ_len = 0;
+    int separ_2_len = 0;
     int err_old_msg_len = 0;
     int err_new_msg_len = 0;
     glb_ctx *ctx = (glb_ctx*) cc;
@@ -131,6 +133,7 @@ update_error_msg(canl_ctx cc, const char *new_msg)
     code_len = strlen(code_str);
 
     separ_len = strlen(separ);
+    separ_2_len = strlen(separ_2);
     error_length = err_new_msg_len + err_old_msg_len + code_len + 
         (2*separ_len) + 1;
     new_error = (char *) malloc ((error_length) * sizeof (char));
@@ -144,7 +147,7 @@ update_error_msg(canl_ctx cc, const char *new_msg)
         strncat(new_error, separ, separ_len + 1);
     }
     strncat(new_error, code_str, code_len + 1);
-    strncat(new_error, separ, separ_len + 1);
+    strncat(new_error, separ_2, separ_2_len + 1);
     if (ctx->err_msg) {
         strncat(new_error, ctx->err_msg, err_old_msg_len + 1);
     }
@@ -282,10 +285,10 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
         case NETDB_ERROR:
             switch (cc->err_code) {
                 case HOST_NOT_FOUND:
-                    cc->err_code = CANL_ERR_HostNotFound;
+                    cc->err_code = CANL_ERR_hostNotFound;
                     break;
                 default:
-                    cc->err_code = CANL_ERR_ResolverError;
+                    cc->err_code = CANL_ERR_resolverError;
                     break;
             }
             break;

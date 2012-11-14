@@ -103,9 +103,10 @@ trustPubKeyError
 # 
 # Recently added error codes without appropriate desc.
 # 
-GeneralSSLError
-HostNotFound
-ResolverError
-NoPeerCertificate
-NoKeyFound
-NoCertFound
+generalSSLError
+hostNotFound
+resolverError
+noPeerCertificate
+noKeyFound
+noCertFound
+invalidPurpose
