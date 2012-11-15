@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     err = canl_create_io_handler(my_ctx, &my_io_h);
     if (err) {
-        printf("[SERVER] io handler cannot be created: %s\n",
+        printf("[SERVER] io handler cannot be created:\n[CANL] %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
     }
@@ -79,7 +79,8 @@ int main(int argc, char *argv[])
 	err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, NULL, 
                                     NULL, NULL);
         if (err) {
-            printf("[SERVER] cannot set certificate or key to context: %s\n",
+            printf("[SERVER] cannot set certificate or key to"
+                   " context:\n[CANL] %s\n",
 		   canl_get_error_message(my_ctx));
             goto end;
         }
@@ -153,7 +154,7 @@ int main(int argc, char *argv[])
     /* TODO timeout in this function? and select around it*/
     err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 0, &princ, &timeout);
     if (err) {
-        printf("[SERVER] connection cannot be established: %s\n",
+        printf("[SERVER] connection cannot be established:\n[CANL] %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
     }
@@ -169,7 +170,7 @@ int main(int argc, char *argv[])
     printf("[SERVER] Trying to send sth to the client\n");
     err = canl_io_write (my_ctx, my_io_h, buf, buf_len, &timeout);
     if (err <= 0) {
-        printf("[SERVER] cannot send message to the client: %s\n",
+        printf("[SERVER] cannot send message to the client:\n[CANL] %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
     }
@@ -181,7 +182,7 @@ int main(int argc, char *argv[])
     buf[0] = '\0';
     err = canl_io_read (my_ctx, my_io_h, buf, sizeof(buf)-1, &timeout);
     if (err <= 0) {
-	printf("[SERVER] Failed to receive reply from client: %s\n",
+	printf("[SERVER] Failed to receive reply from client:\n[CANL] %s\n",
 	       canl_get_error_message(my_ctx));
 	goto end;
     }

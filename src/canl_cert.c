@@ -115,7 +115,8 @@ int set_key_file(glb_ctx *cc, EVP_PKEY **to, const char *key)
     *to = PEM_read_PrivateKey(key_file, NULL, NULL, NULL);
     if (!(*to)) {
         ssl_err = ERR_peek_error();
-        err = set_error(cc, ssl_err, SSL_ERROR, "error while writing key to context");
+        err = set_error(cc, ssl_err, SSL_ERROR, "Cannot read the key "
+                "from the file");
         goto end;
     }
     if (fclose(key_file)){
@@ -196,7 +197,7 @@ int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *file)
     cert_file = fopen(file, "rb");
     if (!cert_file)
         return set_error(cc, errno, POSIX_ERROR, "Cannot "
-                "open file with cert. chain");
+                "open the file with the cert. chain");
 
     for (;;)
     {
@@ -213,8 +214,8 @@ int set_cert_chain_file(glb_ctx *cc, STACK_OF(X509) **to, const char *file)
                     break;
                 }
                 else {
-                    ret = set_error(cc, ssl_err, SSL_ERROR, "Cannot get"
-                            "certificate out of file");
+                    ret = set_error(cc, ssl_err, SSL_ERROR, "Cannot read"
+                            " the certificate from the file");
                     goto end;
                 }
             }

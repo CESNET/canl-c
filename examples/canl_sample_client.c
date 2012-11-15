@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 
     err = canl_create_io_handler(my_ctx, &my_io_h);
     if (err) {
-        printf("io handler cannot be created: %s\n",
+        printf("io handler cannot be created:\n[CANL] %s\n",
                 canl_get_error_message(my_ctx));
         goto end;
     }
@@ -87,7 +87,8 @@ int main(int argc, char *argv[])
         err = canl_ctx_set_ssl_cred(my_ctx, serv_cert, serv_key, proxy_cert,
                                      NULL, NULL);
         if (err) {
-            printf("[CLIENT] cannot set certificate or key to context: %s\n",
+            printf("[CLIENT] cannot set certificate or key" 
+                   " to context:\n[CANL] %s\n",
                     canl_get_error_message(my_ctx));
             goto end;
         }
@@ -96,7 +97,7 @@ int main(int argc, char *argv[])
     err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0,
             NULL, &timeout);
     if (err) {
-        printf("[CLIENT] connection to %s cannot be established: %s\n",
+        printf("[CLIENT] connection to %s cannot be established:\n[CANL] %s\n",
 	       p_server, canl_get_error_message(my_ctx));
         goto end;
     }
@@ -110,7 +111,7 @@ int main(int argc, char *argv[])
     printf("[CLIENT] Trying to send sth to the server\n");
     err = canl_io_write (my_ctx, my_io_h, buf, buf_len, &timeout);
     if (err <= 0) {
-        printf("can't write using ssl: %s\n",
+        printf("can't write using ssl:\n[CANL] %s\n",
 	       canl_get_error_message(my_ctx));
         goto end;
     }
