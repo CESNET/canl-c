@@ -775,13 +775,13 @@ proxy_verify_desc *pvd_setup_initializers(char *cadir)
        standard CA certificates directory name */
     if (!cadir){
         err = proxy_get_filenames(0, NULL, &ca_cert_dirn, NULL, NULL, NULL);
-        if (!err)
-            cadir = ca_cert_dirn;
+        if (!err){
+            pvd->pvxd->certdir = ca_cert_dirn;
+            return pvd;
+        }
     }
-    
-    /*cadir May still be NULL*/
-    pvd->pvxd->certdir = cadir;
-
+    else
+        pvd->pvxd->certdir = strdup(cadir);
     return pvd;
 }
 

@@ -18,9 +18,10 @@ canl_error map_verify_result(unsigned long ssl_err,
         const X509_STORE_CTX *store_ctx, SSL *ssl);
 static canl_error map_proxy_error(int reason);
 
-static void setup_SSL_proxy_handler(SSL_CTX *ssl, char *cadir);
+static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
+        int leave_pvd);
 extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
-extern void pvd_destroy_initializers(char *cadir);
+extern void pvd_destroy_initializers(void *data);
 
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
@@ -387,10 +388,19 @@ err:
     return err;
 }
 
-void setup_SSL_proxy_handler(SSL_CTX *ssl, char *cadir)
+static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
+        int leave_pvd)
 {
-    SSL_CTX_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX,
-            pvd_setup_initializers(cadir));
+    proxy_verify_desc *new_pvd = NULL;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
+    new_pvd =  pvd_setup_initializers(cadir);
+    if (new_pvd){
+        SSL_CTX_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX, new_pvd);
+        if (!leave_pvd)
+            m_ctx->pvd_ctx = new_pvd;
+        return 0;
+    }
+    return 1;
 }
 
 static canl_err_code
@@ -417,7 +427,7 @@ ssl_connect(glb_ctx *cc, io_handler *io, void *auth_ctx,
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
     ssl_ctx = SSL_get_SSL_CTX(ssl);
-    setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
+    setup_SSL_proxy_handler(cc, ssl_ctx, m_ctx->ca_dir, 0);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_connect(cc, io, ssl, timeout); 
@@ -534,7 +544,7 @@ ssl_accept(glb_ctx *cc, io_handler *io, void *auth_ctx, struct timeval *timeout)
     (void)fcntl(io->sock, F_SETFL, flags | O_NONBLOCK);
 
     ssl_ctx = SSL_get_SSL_CTX(ssl);
-    setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
+    setup_SSL_proxy_handler(cc, ssl_ctx, m_ctx->ca_dir, 0);
     SSL_set_fd(ssl, io->sock);
 
     err = do_ssl_accept(cc, io, ssl, timeout);
@@ -1105,6 +1115,10 @@ ssl_free_ctx(glb_ctx *cc)
         free(m_ctx->cert_key);
         m_ctx->cert_key = NULL;
     }
+    if (m_ctx->pvd_ctx){
+        pvd_destroy_initializers(m_ctx->pvd_ctx);
+        m_ctx->pvd_ctx = NULL;
+    }
     free(m_ctx);
     cc->mech_ctx = NULL;
     return 0;
@@ -1219,7 +1233,7 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode,
                 " initialized");
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
     
-    setup_SSL_proxy_handler(ssl_ctx, m_ctx->ca_dir);
+    setup_SSL_proxy_handler(glb_cc, ssl_ctx, m_ctx->ca_dir, 1);
     SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, NULL);
 
     SSL_CTX_set_verify(ssl_ctx, ver_mode, vc);

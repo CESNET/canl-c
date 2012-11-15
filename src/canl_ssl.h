@@ -40,6 +40,12 @@ canl_ctx_sfncrl_dir(canl_ctx, const char *);
    to use its callback,but it must be called separately by canl_direct_pv_clb()
    (e.g. in verify_callback)-try to avoid this, unless you 
    know what you are doing.
+
+  Any data set into the extern SSL_CTX by the  caNl in this function
+  are not freed by calling canl_free_ctx().
+  This might look like memory leak (e.g. by valgrind), but in this special case
+  is intended.
+
 */
 canl_err_code CANL_CALLCONV
 canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode,
