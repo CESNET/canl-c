@@ -87,8 +87,7 @@ ssl_initialize(glb_ctx *cc)
     if (ca_cert_dirn)
         free(ca_cert_dirn);
 
-    //err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
-    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL");
+    err = SSL_CTX_set_cipher_list(ssl_ctx, "ALL:!LOW:!EXP:!MD5:!MD2");
     if (!err) {
         err = set_error(cc, ERR_get_error(), SSL_ERROR,
                 "Error setting cipher list");
