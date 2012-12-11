@@ -1940,47 +1940,47 @@ $package_description$package_summary$defprops};
 		my $used = 0;
 		my $output = '';
 
-		# build dependencies needed only for EMI <= 2
-		if ($project ne 'emi' or $project_version <= 2) {
-			for (@{$need_externs{"$subsys.$module"}},@{$need_jars{"$subsys.$module"}}) {
-				my $eext = $etics_externs{$platform}{$_};
-				my $edev = $project{etics_externs_devel}{$platform}{$_};
+		for (@{$need_externs{"$subsys.$module"}},@{$need_jars{"$subsys.$module"}}) {
+			my $eext = $etics_externs{$platform}{$_};
+			my $edev = $project{etics_externs_devel}{$platform}{$_};
 
-				# for the default platform using package of the same
-				# name for runtime dependency
-				if (not $eext) {
-					if ($platform eq 'default') {
+			# for the default platform using package of the same
+			# name for runtime dependency
+			if (not $eext) {
+				if ($platform eq 'default') {
 #print "default runtime $_ on default\n";
-						$eext = $_; }
-					else {
+					$eext = $_; }
+				else {
 #print "no runtime $_ on $platform\n";
-						$eext = '-'; }
-				}
-				if ($eext eq '-' and $edev eq '-') {
-#print "skipping $_ on $platform\n";
-					next;
-				}
-
-				my $proj = 'externals';
-				for my $p (keys %etics_projects) {
-					for $m (@{$etics_projects{$p}}) {
-						$proj = $p if $m eq $_;
-					}
-				}
-
-				my $type = $need_externs_type{"$subsys.$module"}->{$_};
-
-				if ($edev) {
-					if ($type eq 'B') {
-						# no runtime - change to devel pkg
-						$eext = $edev;
-					} elsif ($type eq 'BR' or $type eq 'RB') {
-						# additional devel pkg
-						if ($edev ne '-') { $output .= "$proj|$edev = B\n"; }
-					}
-				}
-				if ($eext ne '-') { $output .= "$proj|$eext = $type\n"; }
+					$eext = '-'; }
 			}
+			if ($eext eq '-' and $edev eq '-') {
+#print "skipping $_ on $platform\n";
+				next;
+			}
+
+			my $proj = 'externals';
+			for my $p (keys %etics_projects) {
+				for $m (@{$etics_projects{$p}}) {
+					$proj = $p if $m eq $_;
+				}
+			}
+
+			# external dependencies only for EMI <= 2
+			if ($proj eq 'externals' and $project eq 'emi' and $project_version >= 3) { next; }
+
+			my $type = $need_externs_type{"$subsys.$module"}->{$_};
+
+			if ($edev) {
+				if ($type eq 'B') {
+					# no runtime - change to devel pkg
+					$eext = $edev;
+				} elsif ($type eq 'BR' or $type eq 'RB') {
+					# additional devel pkg
+					if ($edev ne '-') { $output .= "$proj|$edev = B\n"; }
+				}
+			}
+			if ($eext ne '-') { $output .= "$proj|$eext = $type\n"; }
 		}
 
 		if ($platform eq 'default') {

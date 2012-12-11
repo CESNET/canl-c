@@ -54,3 +54,12 @@
 2.0.2-1
 - Memory handling fixes
 
+2.0.3-1
+- Minor changes of error messages in caNl examples
+- Library sonames tracked in rpm
+- caNl API documentation located only in canl-devel subpackage
+- proxy_verify_desc and proxy_verify_ctx_desc structures taken care of
+- New parameter to setup_SSL_proxy_handler (gridsite speciality)
+- New error codes added
+- Older error descriptions revised
+
