@@ -28,7 +28,7 @@ Section: misc
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Example programs of EMI caNl
- This package contains client and server examples of EMI caNL.
+ This package contains client and server examples of EMI caNl.
 
 Package: canl-c-dbg
 Section: debug

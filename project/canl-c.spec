@@ -44,15 +44,16 @@ Requires:       %{name}%{?_isa} = %{version}-%{release}
 Requires:       krb5-devel%{?_isa}
 
 %description    devel
-This package contains development libraries and header files for EMI caNL.
+This package contains development libraries and header files for EMI caNl.
 
 
 %package        examples
 Summary:        Example programs of EMI caNl
 Group:          System Environment/Base
+Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 %description    examples
-This package contains client and server examples of EMI caNL.
+This package contains client and server examples of EMI caNl.
 
 
 %prep
@@ -60,12 +61,12 @@ This package contains client and server examples of EMI caNL.
 
 
 %build
-/usr/bin/perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=/usr --libdir=%{_lib} --project=emi --module canl.c
-make
+/usr/bin/perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=%{_prefix} --libdir=%{_lib} --project=emi --module canl.c
+CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make
 
 
 %check
-make check
+CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make check
 
 
 %install
@@ -73,7 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 # in -devel subpackage
-rm -f $RPM_BUILD_ROOT/usr/share/doc/%{name}-%{version}/canl.pdf
+rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/canl.pdf
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -rf {} \;
 find $RPM_BUILD_ROOT -name '*.a' -exec rm -rf {} \;
 
