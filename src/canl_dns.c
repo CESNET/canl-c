@@ -46,6 +46,7 @@ static void callback_ares_gethostbyname(void *arg, int status, int timeouts, str
             break;
         case ARES_EBADNAME:
         case ARES_ENOTFOUND:
+        case ARES_ENODATA:
             arp->err = HOST_NOT_FOUND;
             break;
         case ARES_ENOTIMP:
