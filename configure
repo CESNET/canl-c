@@ -2003,12 +2003,12 @@ $output};
 	close C;
 
 	for $file ("$cvs_module/project/debian.rules", "$cvs_module/project/$packageName.spec") {
-		my $lib;
+		my ($lib, $pkg_prefix);
 		my $main_module;
 		@copts = ();
 
-		if ($file =~ /debian\.rules$/) { $lib = 'lib'; }
-		else { $lib = '%{_lib}'; }
+		if ($file =~ /debian\.rules$/) { $lib = 'lib'; $pkg_prefix = "$project{local_prefix}"; }
+		else { $lib = '%{_lib}'; $pkg_prefix = '%{_prefix}'; }
 
 		my $main_module = "$subsys.$module";
 		if (exists $subpackages{$main_module}) { $main_module = $subpackages{$main_module}; }
@@ -2027,7 +2027,7 @@ $output};
 			while (<SRC>) {
 				if (/^(\s*).+\/configure\s/) {
 					printf DST "%s", "$1";
-					printf DST "/usr/bin/perl $confdir/configure $project{flavours} --root=/ --prefix=$project{local_prefix} --libdir=$lib --project=$project --module $main_module@copts\n";
+					printf DST "/usr/bin/perl $confdir/configure $project{flavours} --root=/ --prefix=$pkg_prefix --libdir=$lib --project=$project --module $main_module@copts\n";
 				} else {
 					printf DST "%s", "$_";
 				}
@@ -2177,13 +2177,10 @@ sub os_type {
 	close FH;
 
 	if (/Debian|Ubuntu/i) { return "debian"; }
-	elsif (/Scientific|Redhat|Centos/i) { return "redhat"; }
-	elsif (/Fedora/i) {
-		$ver = `rpm -q --queryformat '%{version}' fedora-release 2>/dev/null`;
-		if ($ver and $ver >= 15) { return "fedora"; }
+	elsif (/Scientific|Redhat|Centos|Fedora/i) {
+		`pkg-config --exists systemd`;
+		if ($? == 0) { return "fedora"; }
 		else { return "redhat"; }
-	} else {
-		return "redhat";
 	}
 }
 

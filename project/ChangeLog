@@ -63,3 +63,9 @@
 - New error codes added
 - Older error descriptions revised
 
+2.0.4-1
+- Changes based on Fedora reviews
+- More than one return code from newer c-ares handled (fixes possible problem for IPv6 only machines)
+- fixed vulnerability reported in EGI RT ticket #4781 1)
+  - SSL_CTX_set_cipher_list(ssl_ctx, "ALL") set to chosen ciphers
+
