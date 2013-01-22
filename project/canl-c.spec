@@ -17,12 +17,12 @@ BuildRequires:  krb5-devel%{?_isa}
 BuildRequires:  libtool
 BuildRequires:  openssl-devel%{?_isa}
 BuildRequires:  pkgconfig
-%if %{?fedora}%{!?fedora:0} >= 9 || %{?rhel}%{!?rhel:0} >= 6
+%if 0%{?fedora} >= 9 || 0%{?rhel} >= 6
 BuildRequires:  tex(latex)
 %else
 BuildRequires:  tetex-latex
 %endif
-%if %{?fedora}%{!?fedora:0} >= 19
+%if 0%{?fedora} >= 18
 BuildRequires:  tex(comment.sty)
 BuildRequires:  tex(lastpage.sty)
 BuildRequires:  tex(multirow.sty)
