@@ -1369,19 +1369,11 @@ canl.c
 
 	my ($old_locale, $specdate, $debdate);
 
-	# files for ETICS always in root source directory
-	mkdir $abs_srcdir."project" unless (-d $abs_srcdir."project");
-	open PKGCHL,">".$abs_srcdir."project/changelog"
-		or die $abs_srcdir."project/changelog: $!\n";
 	$old_locale = setlocale(LC_TIME);
 	setlocale(LC_TIME, "C");
 	$specdate = strftime("%a %b %d %Y", gmtime());
 	$debdate = strftime("%a, %d %b %Y %H:%M:%S %z", gmtime());
 	setlocale(LC_TIME, $old_locale);
-	print PKGCHL qq{* $specdate CESNET team <emi-lb\@metacentrum.cz>
-- automatically generated package
-};
-	close PKGCHL;
 
 	unless ($top_srcdir eq '.') {
 		unlink $build."Makefile";
@@ -1751,7 +1743,7 @@ sub mode_etics {
 
 		for my $p ('deb5_x86_64_gcc432', 'deb5_ia32_gcc432', 'deb6_x86_64_gcc445', 'deb6_ia32_gcc445') {
 			for my $c (keys %{$cmd{default}}) { $cmd{$p}{$c} = $cmd{default}{$c}; }
-			$cmd{$p}{clean} = 'rm -rf ${package.SRPMSLocation}';
+			$cmd{$p}{clean} = 'rm -rf ${package.tgzLocation}';
 			$cmd{$p}{init} = "wget -P \${package.tgzLocation} $url_deb/${pkgName}_\${version}-\${age}.debian.tar.gz $url_deb/${pkgName}_\${version}-\${age}.dsc $url_deb/${pkgName}_\${version}.orig.tar.gz";
 			$cmd{$p}{packaging} = 'true';
 		}
