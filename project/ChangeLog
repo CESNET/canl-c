@@ -73,3 +73,10 @@
 - Spec macros fixed, building canl-c documentation on Fedora 18
 - Fixes to follow recent Debian updates
 
+2.0.6-1
+- Support multilib for canl-c-devel
+- Fixes for EGI RT ticket #4781, section 2
+  - Detecting Limited proxies in (pre-)RFC proxies fixed
+  - Distinguish between proxy sub-types
+  - Detect path lenght restriction violation
+
