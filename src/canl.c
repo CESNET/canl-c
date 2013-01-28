@@ -354,12 +354,12 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
 	goto end;
 
     /*TODO Not mandatory peer certificate for now*/
-/*    if (peer) {
+      if (peer) {
 	err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
 	if (err)
 	    goto end;
     }
-*/
+
     io_cc->conn_ctx = conn_ctx;
     io_cc->oid = GSS_C_NO_OID;
 
