@@ -121,6 +121,7 @@ extern int read_pathrestriction(STACK_OF(X509) *chain, char *path,
                                 struct policy ***signings);
 
 static int check_critical_extensions(X509 *cert, int itsaproxy);
+static int grid_verifyPathLenConstraints (STACK_OF(X509) * chain);
 
 /**********************************************************************
                                Type definitions
@@ -1879,9 +1880,24 @@ proxy_verify_callback(
              * own checks later on, when we check the last
              * certificate in the chain we will check the chain.
              */
-            ok = 1;
-            break;
 
+	    /* Path length exceeded for the CA (should never happen in OpenSSL - famous last words) */
+		    /*Log( L_DEBUG, "Shallow Error X509_V_ERR_PATH_LENGTH_EXCEEDED: 
+                      Running alternative RFC5280 and RFC3820 compliance tests.\n"); */
+	    if (grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx)) == X509_V_OK){
+                ok = 1;
+                break;
+            }
+#endif
+
+	    /* Path length exceeded for the Proxy! -> Override and continue */
+	    /* This is NOT about X509_V_ERR_PATH_LENGTH_EXCEEDED */
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L
+	    if (ctx->error == X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED)
+	        if (grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx)) == X509_V_OK){
+                    ok = 1;
+                    break;
+                 }
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
@@ -2168,21 +2184,9 @@ proxy_verify_callback(
      * See x509_vfy.c check_chain_purpose
      * all we do is substract off the proxy_dpeth 
      */
-
     if(ctx->current_cert == ctx->cert)
-    {
-        for (i=0; i < sk_X509_num(ctx->chain); i++)
-        {
-            cert = sk_X509_value(ctx->chain,i);
-            if (((i - pvd->proxy_depth) > 1) && (cert->ex_pathlen != -1)
-                && ((i - pvd->proxy_depth) > (cert->ex_pathlen + 1))
-                && (cert->ex_flags & EXFLAG_BCONS)) 
-            {
-                ctx->error = X509_V_ERR_PATH_LENGTH_EXCEEDED;
-                goto fail_verify;
-            }
-        }
-    }
+       if ((ctx->error = grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx))) != X509_V_OK)
+          goto fail_verify;
 
     /*
        OCSP check
@@ -3897,4 +3901,557 @@ static int check_critical_extensions(X509 *cert, int itsaproxy)
     }
   }
   return 1;
+}
+
+/* Check if certificate can be used as a CA to sign standard X509 certs */
+/*
+ * Return 1 if true; 0 if not.
+ */
+int grid_x509IsCA(X509 *cert)
+{
+	int idret;
+
+	/* final argument to X509_check_purpose() is whether to check for CAness */
+	idret = X509_check_purpose(cert, X509_PURPOSE_SSL_CLIENT, 1);
+	if (idret == 1)
+		return 1;
+	else if (idret == 0)
+		return 0;
+	else
+	{
+	/*	Log( L_WARN, "Purpose warning code = %d\n", idret );*/
+		return 1;
+	}
+
+}
+
+/******************************************************************************
+Function:   verify_PROXYCERTINFO_get_policy
+Description:
+            Get a policy from the PROXYCERTINFO structure
+            ******************************************************************************/
+PROXYPOLICY *
+verify_PROXYCERTINFO_get_policy(PROXYCERTINFO *cert_info) {
+        if(cert_info) {
+                    return cert_info->policy;
+                        }
+            return NULL;
+}
+
+/******************************************************************************
+Function:   verify_PROXYPOLICY_get_policy_language
+Description:
+            Get the proxy language from the proxy policy
+            ******************************************************************************/
+ASN1_OBJECT *
+verify_PROXYPOLICY_get_policy_language(PROXYPOLICY *policy) {
+            return policy->policy_language;
+}
+
+/******************************************************************************
+Function:   lcmaps_type_of_proxy
+Description:
+            This function detects the type of certificates
+Parameters:
+    certificate
+Returns:
+          NONE
+          CA
+          EEC
+          GT2_PROXY
+          RFC_PROXY
+          GT2_LIMITED_PROXY
+          RFC_LIMITED_PROXY
+          GT3_PROXY
+          GT3_LIMITED_PROXY
+
+******************************************************************************/
+lcmaps_proxy_type_t lcmaps_type_of_proxy(X509 * cert) {
+    lcmaps_proxy_type_t pt = NONE;
+    char * cert_subjectdn = NULL;
+    char * cert_issuerdn = NULL;
+    char * tail_str = NULL;
+    int len_subject_dn = 0;
+    int len_issuer_dn = 0;
+
+    X509_EXTENSION *                    pci_ext = NULL;
+    PROXYCERTINFO *                     pci = NULL;
+    PROXYPOLICY *                       policy = NULL;
+    ASN1_OBJECT *                       policy_lang = NULL;
+    int                                 policy_nid;
+    int                                 index = -1;
+    int                                 retval = 0;
+
+    /* Is it a CA certificate */
+    if (grid_x509IsCA(cert)) {
+        /* Log (L_DEBUG, "%s: Detected CA certificate", __func__); */
+        pt = CA;
+        goto finalize;
+    }
+
+    int  i;
+    char s[80];
+    X509_EXTENSION *ex;
+
+    /* Check by OID */
+    for (i = 0; i < X509_get_ext_count(cert); ++i) {
+        ex = X509_get_ext(cert, i);
+
+        if (X509_EXTENSION_get_object(ex)) {
+            OBJ_obj2txt(s, sizeof(s), X509_EXTENSION_get_object(ex), 1);
+
+            if (strcmp(s, OID_RFC_PROXY) == 0) {
+                pt = RFC_PROXY;
+
+                /* Find index of OID_RFC_PROXY */
+                if((index = X509_get_ext_by_NID(cert, OBJ_txt2nid(OID_RFC_PROXY), -1)) != -1  &&
+                    (pci_ext = X509_get_ext(cert,index)) && X509_EXTENSION_get_critical(pci_ext)) {
+                    if((pci = X509V3_EXT_d2i(pci_ext)) == NULL) {
+                        retval = 1;
+                        goto failure;
+                    }
+
+                    /* Pull a certificate policy from the extension */
+                    if((policy = verify_PROXYCERTINFO_get_policy(pci)) == NULL) {
+                        retval = 2;
+                        goto failure;
+                    }
+
+                    /* Get policy language */
+                    if((policy_lang = verify_PROXYPOLICY_get_policy_language(policy)) == NULL) {
+                        retval = 3;
+                        goto failure;
+                    }
+
+                    /* Lang to NID, lang's NID holds RFC Proxy type, like limited. Impersonation is the default */
+                    policy_nid = OBJ_obj2nid(policy_lang);
+
+                    if(policy_nid == OBJ_txt2nid(IMPERSONATION_PROXY_OID)) {
+                        pt = RFC_PROXY;
+                    } else if(policy_nid == OBJ_txt2nid(INDEPENDENT_PROXY_OID)) {
+                        pt = RFC_PROXY;
+                    } else if(policy_nid == OBJ_txt2nid(LIMITED_PROXY_OID)) {
+                        pt = RFC_LIMITED_PROXY;
+                    } else {
+                        /* RFC_RESTRICTED_PROXY */
+                        pt = RFC_PROXY;
+                    }
+
+                    if(X509_get_ext_by_NID(cert, OBJ_txt2nid(OID_RFC_PROXY), index) != -1) {
+                        retval = 4;
+                        goto failure;
+                    }
+                }
+                goto finalize;
+            }
+            if (strcmp(s, OID_GLOBUS_PROXY_V3) == 0) {
+                pt = GT3_PROXY;
+
+                /* Find index of OID_GT3_PROXY - Don't make it search for critical extentions... VOMS doesn't set those. */
+                if((index = X509_get_ext_by_NID(cert, OBJ_txt2nid(OID_GLOBUS_PROXY_V3), -1)) != -1  &&
+                    (pci_ext = X509_get_ext(cert,index))) {
+                    if((pci = X509V3_EXT_d2i(pci_ext)) == NULL) {
+                        retval = 5;
+                        goto failure;
+                    }
+
+                    /* Pull a certificate policy from the extension */
+                    if((policy = verify_PROXYCERTINFO_get_policy(pci)) == NULL) {
+                        retval = 6;
+                        goto failure;
+                    }
+
+                    /* Get policy language */
+                    if((policy_lang = verify_PROXYPOLICY_get_policy_language(policy)) == NULL) {
+                        retval = 16;
+                        /*Error(__func__, "Can't get policy language from PROXYCERTINFO extension");*/
+                        goto failure;
+                    }
+
+                    /* Lang to NID, lang's NID holds RFC Proxy type, like limited. Impersonation is the default */
+                    policy_nid = OBJ_obj2nid(policy_lang);
+
+                    if(policy_nid == OBJ_txt2nid(IMPERSONATION_PROXY_OID)) {
+                        pt = GT3_PROXY;
+                    } else if(policy_nid == OBJ_txt2nid(INDEPENDENT_PROXY_OID)) {
+                        pt = GT3_PROXY;
+                    } else if(policy_nid == OBJ_txt2nid(LIMITED_PROXY_OID)) {
+                        pt = GT3_LIMITED_PROXY;
+                    } else {
+                        /* GT3_RESTRICTED_PROXY */
+                        pt = GT3_PROXY;
+                    }
+
+                    if(X509_get_ext_by_NID(cert, OBJ_txt2nid(OID_GLOBUS_PROXY_V3), index) != -1) {
+                        retval = 7;
+                        goto failure;
+                    }
+                }
+
+                goto finalize;
+            }
+            if (strcmp(s, OID_GLOBUS_PROXY_V2) == 0) {
+                pt = GT3_PROXY;
+
+                /* Check for GT2_PROXY tail */
+                if (cert_subjectdn
+                    && (strlen(cert_subjectdn) > strlen("/cn=proxy"))
+                    && (tail_str = &cert_subjectdn[strlen(cert_subjectdn) - strlen("/cn=proxy")])
+                    && (strcasecmp(tail_str, "/cn=proxy") == 0)
+                   ) {
+                    pt = GT2_PROXY;
+                    goto finalize;
+                }
+
+                /* Check for GT2_LIMITED_PROXY tail */
+                if (cert_subjectdn
+                    && (strlen(cert_subjectdn) > strlen("/cn=limited proxy"))
+                    && (tail_str = &cert_subjectdn[strlen(cert_subjectdn) - strlen("/cn=limited proxy")])
+                    && (strcasecmp(tail_str, "/cn=limited proxy") == 0)
+                   ) {
+                    pt = GT2_LIMITED_PROXY;
+                    goto finalize;
+                }
+                retval = 8;
+                goto failure;
+            }
+        }
+    }
+
+    /* Options left: GT2_PROXY, GT2_LIMITED_PROXY, EEC */
+    /* Extract Subject DN - Needs free */
+    if (!(cert_subjectdn = X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0))) {
+        retval = 9;
+        goto failure;
+    }
+    if (!(cert_issuerdn = X509_NAME_oneline (X509_get_issuer_name (cert), NULL, 0))) {
+        retval = 10;
+        goto failure;
+    }
+
+    /* Check length of the DNs */
+    len_subject_dn = strlen(cert_subjectdn);
+    len_issuer_dn  = strlen(cert_issuerdn);
+
+
+    /* Lower case the Subject DN */
+    /* for (j = 0; j < strlen(cert_subjectdn); j++) { cert_subjectdn[j] = tolower(cert_subjectdn[j]); } */
+
+    /* Proxies always has a longer subject_dn then a issuer_dn and
+     * the issuer_dn is a substring of the subject_dn
+     */
+    if (   (len_issuer_dn < len_subject_dn)
+        && (strncmp(cert_subjectdn, cert_issuerdn, len_issuer_dn) == 0)
+       ) {
+        /* Check for GT2_PROXY tail */
+        if (cert_subjectdn
+            && (strlen(cert_subjectdn) > strlen("/cn=proxy"))
+            && (tail_str = &cert_subjectdn[strlen(cert_subjectdn) - strlen("/cn=proxy")])
+            && (strcasecmp(tail_str, "/cn=proxy") == 0)
+           ) {
+            pt = GT2_PROXY;
+            goto finalize;
+        }
+
+        /* Check for GT2_LIMITED_PROXY tail */
+        if (cert_subjectdn
+            && (strlen(cert_subjectdn) > strlen("/cn=limited proxy"))
+            && (tail_str = &cert_subjectdn[strlen(cert_subjectdn) - strlen("/cn=limited proxy")])
+            && (strcasecmp(tail_str, "/cn=limited proxy") == 0)
+           ) {
+            pt = GT2_LIMITED_PROXY;
+            goto finalize;
+        }
+
+        /* Check for RFC_PROXY, without the need for OpenSSL proxy support */
+        /* Method: Check if the subject_dn is long enough, grab its tail and
+         * snip of the 10 characters. Then check if the 10 characters are
+         * numbers. */
+        if (cert_subjectdn
+            && (strlen(cert_subjectdn) > strlen("/cn=0123456789"))
+            && (tail_str = strrchr(cert_subjectdn, '='))
+            && (tail_str = &tail_str[1])
+            && (strtol(tail_str, NULL, 10))
+            && (errno != ERANGE)
+           ) {
+            /* Log (L_DEBUG, "%s: Detected RFC proxy certificate", __func__); */
+            pt = RFC_PROXY;
+            goto finalize;
+        }
+
+        /* Don't know the type of proxy, could be an RFC proxy with
+         * improper/incomplete implementation in the active OpenSSL version or
+         * a mistake in the client software */
+        goto failure;
+    }
+
+
+    /* I have no idea what else it is, so I conclude that it's an EEC */
+    pt = EEC;
+    goto finalize;
+
+failure:
+    /* On failure, or non-distinct selections of the certificate, indicate NONE */
+    pt = NONE;
+finalize:
+    if (cert_subjectdn)
+        free(cert_subjectdn);
+    if (cert_issuerdn)
+        free(cert_issuerdn);
+
+    return pt;
+}
+
+/******************************************************************************
+Function:   grid_verifyPathLenConstraints
+Description:
+            This function will check the certificate chain on CA based (RFC5280)
+            and RFC3820 Proxy based Path Length Constraints.
+Parameters:
+    chain of certificates
+Returns:
+    0       : Not ok, failure in the verification or the verification failed
+    1       : Ok, verification has succeeded and positive
+******************************************************************************/
+static int grid_verifyPathLenConstraints (STACK_OF(X509) * chain)
+{
+    char *oper = "grid_verifyPathLenConstraints";
+    X509 *cert = NULL;
+    int i, depth;
+    lcmaps_proxy_type_t curr_cert_type = NONE, expe_cert_type = CA|EEC|RFC_PROXY|GT2_PROXY;
+    int found_EEC = 0;
+    char *cert_subjectdn = NULL;
+    char *error_msg = NULL;
+    int retval = 0;
+
+    int ca_path_len_countdown    = -1;
+    int proxy_path_len_countdown = -1;
+
+    /* No chain, no game */
+    if (!chain) {
+        retval = 1;
+        goto failure;
+    }
+
+    /* Go through the list, from the CA(s) down through the EEC to the final delegation */
+    depth = sk_X509_num (chain);
+    for (i=depth-1; i >= 0; --i) {
+        if ((cert = sk_X509_value(chain, i))) {
+            /* Init to None, indicating not to have identified it yet */
+            curr_cert_type = NONE;
+
+            /* Extract Subject DN - Needs free */
+            if (!(cert_subjectdn = X509_NAME_oneline (X509_get_subject_name (cert), NULL, 0))) {
+                retval = 1;
+                goto failure;
+            }
+
+            /* Log (L_DEBUG, "\tCert here is: %s\n", cert_subjectdn); */
+            curr_cert_type = lcmaps_type_of_proxy(cert);
+            if (curr_cert_type == NONE) {
+                /* Error (oper, "Couldn't classify certificate at depth %d with subject DN \"%s\"\n",
+                             depth, cert_subjectdn); */
+                retval = 2;
+                goto failure;
+            }
+
+            /* Mark that we've found an EEC - When we see it again, it's a failure */
+            if (curr_cert_type == EEC && found_EEC == 0) {
+                found_EEC = 1;
+            } else if (curr_cert_type == EEC && found_EEC == 1) {
+                /* Error (oper, "Found another EEC classified certificate in the same chain at depth %d with subject DN \"%s\"\n",
+                             depth, cert_subjectdn); */
+                retval = 3;
+                goto failure;
+            }
+
+
+#if 0
+                /* NOTE: This is for quick debugging only */
+                error_msg = verify_generate_proxy_expectation_error_message(curr_cert_type, expe_cert_type);
+                printf("%s: Build chain checker: %s. Cert at depth %d of %d with Subject DN: %s\n",
+                            oper,
+                            error_msg,
+                            i,
+                            depth,
+                            cert_subjectdn);
+                free(error_msg); error_msg = NULL;
+#endif
+
+            /* Expectation management */
+            if (!((expe_cert_type & curr_cert_type) == curr_cert_type)) {
+                /* Failed to comply with the expectations! */
+#define USE_STRICT_PATH_VALIDATION
+#ifdef USE_STRICT_PATH_VALIDATION
+                /* error_msg = verify_generate_proxy_expectation_error_message(curr_cert_type, expe_cert_type);
+                Error(oper, "Certificate chain not build in the right order. %s. Cert at depth %d of %d with Subject DN: %s\n",
+                            error_msg,
+                            i,
+                            depth,
+                            cert_subjectdn);
+                free(error_msg); error_msg = NULL;*/
+                goto failure;
+#else
+                /* error_msg = verify_generate_proxy_expectation_error_message(curr_cert_type, expe_cert_type);
+                Log(L_INFO, "%s: Certificate chain not build in the right order. %s. Cert at depth %d of %d with Subject DN: %s\n",
+                            oper,
+                            error_msg,
+                            i,
+                            depth,
+                            cert_subjectdn);
+                free(error_msg); error_msg = NULL; */
+                goto continue_after_warning;
+#endif
+            }
+#ifndef USE_STRICT_PATH_VALIDATION
+continue_after_warning:
+#endif
+
+            if (curr_cert_type == CA) {
+                /* Expected next certificate type is: CA or EEC certificate */
+                expe_cert_type = CA|EEC;
+                /*Log (L_DEBUG, "Current cert is a CA: %s\n", cert_subjectdn);*/
+
+                /* Exceeded CA Path Length ? */
+                if (ca_path_len_countdown == 0) {
+                    /*Error(oper, "CA Path Length Constraint exceeded on depth %d for certificate \"%s\". No CA certifcates were expected at this stage.\n", i, cert_subjectdn);*/
+                    retval = 4;
+                    goto failure;
+                }
+
+                /* Store pathlen, override when small, otherwise keep the smallest */
+                if (cert->ex_pathlen != -1) {
+                    /* Update when ca_path_len_countdown is the initial value
+                     * or when the PathLenConstraint is smaller then the
+                     * remembered ca_path_len_countdown */
+                    if ((ca_path_len_countdown == -1) || (cert->ex_pathlen < ca_path_len_countdown)) {
+                        ca_path_len_countdown = cert->ex_pathlen;
+                    } else {
+                        /* If a path length was already issuesd, lower ca_path_len_countdown */
+                        if (ca_path_len_countdown != -1)
+                            ca_path_len_countdown--;
+                    }
+                } else {
+                    /* If a path length was already issuesd, lower ca_path_len_countdown */
+                    if (ca_path_len_countdown != -1)
+                        ca_path_len_countdown--;
+                }
+
+            } else if (curr_cert_type == EEC) {
+                /* Expected next certificate type is: GT2_PROXY, GT3_PROXY, RFC_PROXY or a Limited proxy of these flavors certificate */
+                expe_cert_type = GT2_PROXY|GT3_PROXY|RFC_PROXY|GT2_LIMITED_PROXY|GT3_LIMITED_PROXY|RFC_LIMITED_PROXY;
+                /*Log (L_DEBUG, "Current cert is a EEC: %s\n", cert_subjectdn);*/
+
+            } else if (curr_cert_type == GT2_PROXY) {
+                /* Expected next certificate type is: GT2_PROXY certificate */
+                expe_cert_type = GT2_PROXY|GT2_LIMITED_PROXY;
+                /*Log (L_DEBUG, "Current cert is a GT2 Proxy: %s\n", cert_subjectdn);*/
+
+            } else if (curr_cert_type == GT2_LIMITED_PROXY) {
+                /* Expected next certificate type is: GT2_LIMITED_PROXY certificate */
+                expe_cert_type = GT2_LIMITED_PROXY;
+                /* Log (L_DEBUG, "Current cert is a GT2 Limited Proxy: %s\n", cert_subjectdn); */
+
+            } else if (curr_cert_type == GT3_PROXY) {
+                /* Expected next certificate type is: GT3_PROXY certificate */
+                expe_cert_type = GT3_PROXY|GT3_LIMITED_PROXY;
+                /* Log (L_DEBUG, "Current cert is a GT3 Proxy: %s\n", cert_subjectdn);*/
+            } else if (curr_cert_type == GT3_LIMITED_PROXY) {
+                /* Expected next certificate type is: GT3_LIMITED_PROXY certificate */
+                expe_cert_type = GT3_LIMITED_PROXY;
+                /* Log (L_DEBUG, "Current cert is a GT3 Limited Proxy: %s\n", cert_subjectdn);*/
+
+            } else if (curr_cert_type == RFC_PROXY) {
+                /* Expected next certificate type is: RFC_PROXY certificate */
+                expe_cert_type = RFC_PROXY|RFC_LIMITED_PROXY;
+                /* Log (L_DEBUG, "Current cert is a RFC Proxy: %s\n", cert_subjectdn);*/
+
+                /* Exceeded CA Path Length ? */
+                if (proxy_path_len_countdown == 0) {
+                  /*   Error(oper, "Proxy Path Length Constraint exceeded on depth %d of %d for certificate \"%s\". No Proxy certifcates were expected at this stage.\n", i, depth, cert_subjectdn);*/
+                    goto failure;
+                }
+
+                /* Store pathlen, override when small, otherwise keep the smallest */
+                if (cert->ex_pcpathlen != -1) {
+                    /* Update when proxy_path_len_countdown is the initial value
+                     * or when the PathLenConstraint is smaller then the
+                     * remembered proxy_path_len_countdown */
+
+                    if ((proxy_path_len_countdown == -1) || (cert->ex_pcpathlen < proxy_path_len_countdown)) {
+                        proxy_path_len_countdown = cert->ex_pcpathlen;
+                       /*  Log (L_DEBUG, "Cert here is: %s -> Setting proxy path len constraint to: %d\n", cert_subjectdn, cert->ex_pcpathlen);*/
+                    } else {
+                        /* If a path length was already issuesd, lower ca_path_len_countdown */
+                        if (proxy_path_len_countdown != -1)
+                            proxy_path_len_countdown--;
+
+                       /*  Log (L_DEBUG, "Cert here is: %s -> Countdown is at %d\n", cert_subjectdn, proxy_path_len_countdown);*/
+                    }
+                } else {
+                    /* If a path length was already issued, lower ca_path_len_countdown */
+                    if (proxy_path_len_countdown != -1) {
+                        proxy_path_len_countdown--;
+                       /*  Log (L_DEBUG, "Cert here is: %s -> Countdown is at %d\n", cert_subjectdn, proxy_path_len_countdown);*/
+                    }
+
+                }
+            } else if (curr_cert_type == RFC_LIMITED_PROXY) {
+                /* Expected next certificate type is: RFC_LIMITED_PROXY certificate */
+                expe_cert_type = RFC_LIMITED_PROXY;
+               /*  Log (L_DEBUG, "Current cert is a RFC Limited Proxy: %s\n", cert_subjectdn);*/
+
+                /* Exceeded CA Path Length ? */
+                if (proxy_path_len_countdown == 0) {
+                   /*  Error(oper, "Proxy Path Length Constraint exceeded on depth %d of %d for certificate \"%s\". No Proxy certifcates were expected at this stage.\n", i, depth, cert_subjectdn);*/
+                    goto failure;
+                }
+
+                /* Store pathlen, override when small, otherwise keep the smallest */
+                if (cert->ex_pcpathlen != -1) {
+                    /* Update when proxy_path_len_countdown is the initial value
+                     * or when the PathLenConstraint is smaller then the
+                     * remembered proxy_path_len_countdown */
+
+                    if ((proxy_path_len_countdown == -1) || (cert->ex_pcpathlen < proxy_path_len_countdown)) {
+                        proxy_path_len_countdown = cert->ex_pcpathlen;
+                       /*  Log (L_DEBUG, "Cert here is: %s -> Setting proxy path len constraint to: %d\n", cert_subjectdn, cert->ex_pcpathlen);*/
+                    } else {
+                        /* If a path length was already issuesd, lower ca_path_len_countdown */
+                        if (proxy_path_len_countdown != -1)
+                            proxy_path_len_countdown--;
+
+                        /* Log (L_DEBUG, "Cert here is: %s -> Countdown is at %d\n", cert_subjectdn, proxy_path_len_countdown);*/
+                    }
+                } else {
+                    /* If a path length was already issued, lower ca_path_len_countdown */
+                    if (proxy_path_len_countdown != -1) {
+                        proxy_path_len_countdown--;
+                       /* Log (L_DEBUG, "Cert here is: %s -> Countdown is at %d\n", cert_subjectdn, proxy_path_len_countdown);*/
+                    }
+
+                }
+            }
+
+            /* Free memory during each cycle */
+            if (cert_subjectdn) {
+                free(cert_subjectdn);
+                cert_subjectdn = NULL;
+            }
+        }
+    }
+
+    /* Return an OK (thumbs up) in the grid_X509_verify_callback() */
+    if (cert_subjectdn) {
+        free(cert_subjectdn);
+        cert_subjectdn = NULL;
+    }
+    return X509_V_OK;
+
+failure:
+    if (cert_subjectdn) {
+        free(cert_subjectdn);
+        cert_subjectdn = NULL;
+    }
+    return X509_V_ERR_CERT_REJECTED;
 }

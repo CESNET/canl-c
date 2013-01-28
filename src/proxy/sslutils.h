@@ -345,6 +345,41 @@ struct proxy_verify_desc_struct {
     int                                 multiple_limited_proxy_ok;
 };
 
+typedef enum
+{
+ 	NONE = 0,
+ 	CA = 1,
+ 	EEC = 2,
+ 	GT2_PROXY = 4,
+ 	RFC_PROXY = 8,
+ 	GT2_LIMITED_PROXY = 16,
+ 	RFC_LIMITED_PROXY = 32,
+ 	GT3_PROXY = 64,
+ 	GT3_LIMITED_PROXY = 128
+} lcmaps_proxy_type_t;
+
+struct PROXYPOLICY_st
+{
+	ASN1_OBJECT * policy_language;
+	ASN1_OCTET_STRING * policy;
+};
+ 	
+ 	typedef struct PROXYPOLICY_st PROXYPOLICY;
+
+struct PROXYCERTINFO_st
+{
+        ASN1_INTEGER * path_length; /* [ OPTIONAL ] */
+        PROXYPOLICY * policy;
+};
+
+typedef struct PROXYCERTINFO_st PROXYCERTINFO;
+#define PROXYCERTINFO_OID      "1.3.6.1.5.5.7.1.14"
+#define OLD_PROXYCERTINFO_OID  "1.3.6.1.4.1.3536.1.222"
+
+#define OID_GLOBUS_PROXY_V2    PROXYCERTINFO_OID
+#define OID_GLOBUS_PROXY_V3    OLD_PROXYCERTINFO_OID
+#define OID_RFC_PROXY          "1.3.6.1.5.5.7.1.14"
+
 /**********************************************************************
                                Global variables
 **********************************************************************/
