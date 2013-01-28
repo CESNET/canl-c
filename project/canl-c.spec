@@ -47,6 +47,17 @@ Requires:       krb5-devel%{?_isa}
 This package contains development libraries and header files for EMI caNl.
 
 
+%package        doc
+Summary:        API documentation for EMI caNl
+Group:          Documentation
+%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+BuildArch:      noarch
+%endif
+
+%description    doc
+This package contains API documentation for EMI caNl.
+
+
 %package        examples
 Summary:        Example programs of EMI caNl
 Group:          System Environment/Base
@@ -73,7 +84,7 @@ CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make check
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-# in -devel subpackage
+# in -doc subpackage
 rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/canl.pdf
 find $RPM_BUILD_ROOT -name '*.la' -exec rm -rf {} \;
 find $RPM_BUILD_ROOT -name '*.a' -exec rm -rf {} \;
@@ -97,9 +108,12 @@ rm -rf $RPM_BUILD_ROOT
 
 %files devel
 %defattr(-,root,root)
-%doc canl.pdf
 %{_includedir}/*.h
 %{_libdir}/libcanl_c.so
+
+%files doc
+%defattr(-,root,root)
+%doc canl.pdf
 
 %files examples
 %defattr(-,root,root)
