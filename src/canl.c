@@ -186,13 +186,13 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
                 }
                 io_cc->conn_ctx = ctx;
                 done = 1;
-                /*TODO Not mandatory peer certificate for now*/
-                /*    if (peer) {
-                      err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
-                      if (err)
-                      goto end;
-                      }
-                 */
+                /* If peer != NULL then client certificate is mandatory*/
+                if (peer) {
+                    err = mech->get_peer(glb_cc, io_cc, ctx, peer);
+                    if (err)
+                        goto end;
+                }
+                
                 break;
 	    }
 	    if (err == ETIMEDOUT)
@@ -353,7 +353,7 @@ canl_io_accept(canl_ctx cc, canl_io_handler io, int new_fd,
     if (err)
 	goto end;
 
-    /*TODO Not mandatory peer certificate for now*/
+    /* If peer != NULL then client certificate is mandatory*/
       if (peer) {
 	err = mech->get_peer(glb_cc, io_cc, conn_ctx, peer);
 	if (err)

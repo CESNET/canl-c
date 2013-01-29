@@ -25,17 +25,21 @@ int main(int argc, char *argv[])
     char *serv_cert = NULL;
     char *serv_key = NULL;
     char *proxy_cert = NULL;
+    canl_principal princ = NULL;
+    int get_peer_princ = 0;
+    char *name = NULL;
 
     timeout.tv_sec = DEF_TIMEOUT;
     timeout.tv_usec = 0;
 
-    while ((opt = getopt(argc, argv, "hp:s:c:k:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "nhp:s:c:k:t:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h] "
                         " [-s server] [-x proxy certificate] "
-                        " [-t timeout] \n", argv[0]);
+                         "[-t timeout] [-n {print peer's princ name}] "
+                        " \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -58,11 +62,15 @@ int main(int argc, char *argv[])
             case 't':
                 timeout.tv_sec = atoi(optarg);
                 break;
+            case 'n':
+                get_peer_princ = 1;
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h]"
                         " [-s server] [-x proxy certificate]"
-                        " [-t timeout] \n", argv[0]);
+                        "[-t timeout] [-n {print peer's princ name}] "
+                        " \n", argv[0]);
                 exit(-1);
         }
     }
@@ -94,14 +102,28 @@ int main(int argc, char *argv[])
         }
     }
 
-    err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0,
-            NULL, &timeout);
-    if (err) {
-        printf("[CLIENT] connection to %s cannot be established:\n[CANL] %s\n",
-	       p_server, canl_get_error_message(my_ctx));
-        goto end;
+     if (get_peer_princ) {
+        err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0,
+            &princ, &timeout);
+        if (err) {
+            printf("[CLIENT] connection cannot be established:\n[CANL] %s\n",
+                    canl_get_error_message(my_ctx));
+            goto end;
+        }
+
+        err = canl_princ_name(my_ctx, princ, &name);
+        printf("[CLIENT] connection established with %s\n", name);
+        free(name);
+        canl_princ_free(my_ctx, princ);
     }
-    else {
+    else{
+        err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0,
+            NULL, &timeout);
+        if (err) {
+            printf("[CLIENT] connection cannot be established:\n[CANL] %s\n",
+                    canl_get_error_message(my_ctx));
+            goto end;
+        }
         printf("[CLIENT] connection established\n");
     }
 

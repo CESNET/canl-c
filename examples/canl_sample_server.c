@@ -26,18 +26,20 @@ int main(int argc, char *argv[])
     int buf_len = 0;
     struct timeval timeout;
     canl_principal princ = NULL;
+    int get_peer_princ = 0;
     char *name = NULL;
     
     timeout.tv_sec = DEF_TIMEOUT;
     timeout.tv_usec = 0;
 
 
-    while ((opt = getopt(argc, argv, "hp:c:k:d:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "nhp:c:k:d:t:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h] "
-                        "[-t timeout] \n", argv[0]);
+                        "[-t timeout] [-n {print peer's princ name}] "
+                        " \n", argv[0]);
                 exit(0);
             case 'p':
                 port = atoi(optarg);
@@ -54,10 +56,14 @@ int main(int argc, char *argv[])
             case 't':
                 timeout.tv_sec = atoi(optarg);
                 break;
+            case 'n':
+                get_peer_princ = 1;
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h] "
-                        "[-t timeout] \n", argv[0]);
+                        "[-t timeout] [-n {print peer's princ name}] "
+                        " \n", argv[0]);
                 exit(-1);
         }
     }
@@ -152,17 +158,31 @@ int main(int argc, char *argv[])
 
     /* canl_create_io_handler has to be called for my_io_h*/
     /* TODO timeout in this function? and select around it*/
-    err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 0, &princ, &timeout);
-    if (err) {
-        printf("[SERVER] connection cannot be established:\n[CANL] %s\n",
-	       canl_get_error_message(my_ctx));
-        goto end;
-    }
+    if (get_peer_princ) {
+        err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 
+                0, &princ, &timeout);
+        if (err) {
+            printf("[SERVER] connection cannot be established:\n[CANL] %s\n",
+                    canl_get_error_message(my_ctx));
+            goto end;
+        }
 
-    err = canl_princ_name(my_ctx, princ, &name);
-    printf("[SERVER] connection established with %s\n", name);
-    free(name);
-    canl_princ_free(my_ctx, princ);
+
+        err = canl_princ_name(my_ctx, princ, &name);
+        printf("[SERVER] connection established with %s\n", name);
+        free(name);
+        canl_princ_free(my_ctx, princ);
+    }
+    else{
+        err = canl_io_accept(my_ctx, my_io_h, new_fd, s_addr, 
+                0, NULL, &timeout);
+        if (err) {
+            printf("[SERVER] connection cannot be established:\n[CANL] %s\n",
+                    canl_get_error_message(my_ctx));
+            goto end;
+        }
+        printf("[SERVER] connection established\n");
+    }
 
     strncpy(buf, "This is a testing message to send", sizeof(buf));
     buf_len = strlen(buf) + 1;
