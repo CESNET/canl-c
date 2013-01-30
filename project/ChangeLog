@@ -80,3 +80,6 @@
   - Distinguish between proxy sub-types
   - Detect path lenght restriction violation
 
+2.0.7-1
+- Get peer's certificate if asked for
+
