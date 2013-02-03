@@ -326,7 +326,7 @@ typedef struct proxy_verify_ctx_desc_struct {
     int                                 magicnum ;  
     char *                              certdir; 
     time_t                              goodtill;
-    int                                 flags; //OCSP flags etc.
+    unsigned int                                 flags; //OCSP flags etc.
 } proxy_verify_ctx_desc ;
 
 /* proxy_verify_desc - allows for recursive verifys with delegation */
