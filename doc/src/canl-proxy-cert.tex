@@ -185,6 +185,25 @@ canl_err_code canl_cred_save_req(canl_ctx, canl_cred cred, X509_REQ **to)\end{ve
     \item param to -- load the certificate request from
   \end{itemize}
 
+  \item \begin{verbatim}
+canl_err_code canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain, char *cadir)\end{verbatim}
+  Verify the certificate chain, openssl verification, CRL, OCSP, 
+  signing policies etc...
+  \begin{itemize}
+    \item param ucert -- user certificate
+    \item param cert\_chain  -- certificate chain to verify
+    \item param cadir  -- CA certificate directory
+  \end{itemize}
+
+  \item \begin{verbatim}
+canl_err_code canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir, X509_STORE_CTX *store_ctx)\end{verbatim}
+  Verify certificate chain, SKIP openssl verif. part; Check CRL, OCSP (if on), 
+  signing policies etc. (This is special case usage of caNl, not recommended to use unless you really know what you are doing)
+  \begin{itemize}
+    \item param cadir  -- CA certificate directory
+    \item param store\_ctx -- openssl store context structure fed with certificates to verify
+  \end{itemize}
+
 \end{itemize}
 
 \subsection{Make New Proxy Certificate -- Example}

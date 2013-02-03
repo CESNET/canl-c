@@ -78,12 +78,12 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
     \item param service -- the service on the server - usually NULL
     \item param port -- the port on which the server is listening
     \item param auth\_mechs -- authentication mechanism to use
-    \item flags -- for future usage
+    \item param flags -- for future usage
+    \item param peer -- if not NULL the canl\_principal will be filled with peer's principal info. Approppriate free funcion should be called if canl\_princ is no longer to be used
     \item param timeout -- the timeout after which to drop the connect attempt
     \item return -- \textit{canl error code}
   \end{itemize}
-  \item \begin{verbatim}canl_err_code canl_io_accept(canl_ctx cc, 
-  canl_io_handler io,int fd,
+  \item \begin{verbatim}canl_err_code canl_io_accept(canl_ctx cc, canl_io_handler io,int fd,
   struct sockaddr s_addr, int flags,canl_principal *peer,
   struct timeval *timeout)\end{verbatim}
   This function will 
@@ -94,7 +94,27 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
     \item param io -- the \textit{i/o context}
     \item param fd -- file descriptor to use
     \item param port -- the port on which the server is listening
+    \item param sockaddr -- open socket address 
+    \item param flags -- for future usage
+    \item param peer -- if not NULL the canl\_principal will be filled with peer's principal info. Approppriate free funcion should be called if canl\_princ is no longer to be used
     \item return -- \textit{canl error code}
+  \end{itemize}
+
+  \item \begin{verbatim}canl_err_code canl_princ_name(canl_ctx cc, const canl_principal cp, char **ret_name)\end{verbatim}
+  Get the peer's principal name in text readable form. 
+  \begin{itemize}
+    \item param cc -- the \textit{authentication context}
+    \item param cp -- canl structure to hold peer's principal info. Have to be filled by previous call to canl\_io\_accept or canl\_io\_connect funcions.
+    \item param ret\_name -- text form of the peer's princ. name 
+    \item return -- \textit{canl error code}
+  \end{itemize}
+
+  \item \begin{verbatim}void canl_princ_free(canl_ctx cc, canl_principal cp)\end{verbatim}
+  If canl\_princ structure filled before by some canl io funcion, this function should be called to free the allocated memory. 
+  \begin{itemize}
+    \item param cc -- the \textit{authentication context}
+    \item param cp -- canl peer's principal structure
+    \item return -- void
   \end{itemize}
 
 \end{itemize}
@@ -128,7 +148,7 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
   Set certficate authority directory (openssl ca directory structure)
     \begin{itemize} 
     \item param cc -- rhe \textit{authentication context}
-    \item ca\_dir -- rhe path that will be set.  It will not be 
+    \item param ca\_dir -- the path that will be set.  It will not be 
     checked whether this path actually contains the CAs or not
     \item return -- \textit{canl error code}
     \end{itemize}
@@ -136,7 +156,7 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
   \verb'canl_ctx_set_crl_dir(canl_ctx cc, const char *crl_dir)'
     \begin{itemize} 
     \item param cc -- the \textit{authentication context}
-    \item crl\_dir -- the path that will be set.  It will not be 
+    \item param crl\_dir -- the path that will be set.  It will not be 
     checked whether this path actually contains the CRLs or not
     \item return -- \textit{canl error code}
     \end{itemize}
