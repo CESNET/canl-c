@@ -83,3 +83,7 @@
 2.0.7-1
 - Get peer's certificate if asked for
 
+2.0.8-1
+- Optionally turn on OCSP in examples
+- OCSP off by default, can be switched of by setting CANL_SSL_OCSP_VERIFY_ALL as a flag to canl_ctx_set_ssl_flags()
+
