@@ -28,17 +28,19 @@ int main(int argc, char *argv[])
     canl_principal princ = NULL;
     int get_peer_princ = 0;
     char *name = NULL;
+    int ocsp_on = 0;
 
     timeout.tv_sec = DEF_TIMEOUT;
     timeout.tv_usec = 0;
 
-    while ((opt = getopt(argc, argv, "nhp:s:c:k:t:")) != -1) {
+    while ((opt = getopt(argc, argv, "nhop:s:c:k:t:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h] "
                         " [-s server] [-x proxy certificate] "
-                         "[-t timeout] [-n {print peer's princ name}] "
+                        "[-t timeout] [-n {print peer's princ name}] "
+                        "[-o {turn OCSP on}] "
                         " \n", argv[0]);
                 exit(0);
             case 'p':
@@ -65,11 +67,15 @@ int main(int argc, char *argv[])
             case 'n':
                 get_peer_princ = 1;
                 break;
+            case 'o':
+                ocsp_on = 1;
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-p port] [-c certificate]"
                         " [-k private key] [-d ca_dir] [-h]"
                         " [-s server] [-x proxy certificate]"
                         "[-t timeout] [-n {print peer's princ name}] "
+                        "[-o {turn OCSP on}] "
                         " \n", argv[0]);
                 exit(-1);
         }
@@ -101,6 +107,8 @@ int main(int argc, char *argv[])
             goto end;
         }
     }
+    if (ocsp_on)
+        canl_ctx_set_ssl_flags(my_ctx, CANL_SSL_OCSP_VERIFY_ALL);
 
      if (get_peer_princ) {
         err = canl_io_connect(my_ctx, my_io_h, p_server, NULL, port, NULL, 0,
