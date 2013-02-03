@@ -1150,7 +1150,6 @@ canl_ctx_set_ssl_cred(canl_ctx cc, char *cert, char *key, char *proxy,
     return err;
 }
 
-
 canl_err_code 
 canl_ctx_set_ssl_flags(canl_ctx cc, unsigned int flags)
 {

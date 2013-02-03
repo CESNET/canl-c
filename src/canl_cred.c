@@ -9,7 +9,8 @@
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, proxy_verify_desc * pvd);
-extern proxy_verify_desc *pvd_setup_initializers(char *cadir, int flags);
+extern proxy_verify_desc *pvd_setup_initializers(char *cadir, 
+        unsigned int flags);
 extern void pvd_destroy_initializers(void *data);
 extern canl_error map_verify_result(unsigned long ssl_err,
                 const X509_STORE_CTX *store_ctx, SSL *ssl);
@@ -750,7 +751,7 @@ canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
     return 0;
 }
 
-proxy_verify_desc *pvd_setup_initializers(char *cadir, int pvxd_flags)
+proxy_verify_desc *pvd_setup_initializers(char *cadir, unsigned int pvxd_flags)
 {
     proxy_verify_ctx_desc *pvxd = NULL;
     proxy_verify_desc *pvd = NULL;
