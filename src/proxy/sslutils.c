@@ -1500,6 +1500,7 @@ proxy_verify_ctx_init(
     pvxd->magicnum = PVXD_MAGIC_NUMBER; /* used for debuging */
     pvxd->certdir = NULL;
     pvxd->goodtill = 0;
+    pvxd->flags = 0;
 
 }
 /**********************************************************************
@@ -2191,27 +2192,29 @@ proxy_verify_callback(
     /*
        OCSP check
      */
-    if (!ocsp_data)
-        ocsprequest_init(&ocsp_data);
     ret = 0;
-    if (ocsp_data) {
-        if (ctx->current_cert)
-            ocsp_data->cert = ctx->current_cert;
-        if (ctx->current_issuer)
-            ocsp_data->issuer = ctx->current_issuer;
-        if (cert_dir)
-            ocsp_data->store.ca_dir = cert_dir;
+    if (pvd->pvxd->flags & CANL_SSL_OCSP_VERIFY_ALL){
+        if (!ocsp_data)
+            ocsprequest_init(&ocsp_data);
+        if (ocsp_data) {
+            if (ctx->current_cert)
+                ocsp_data->cert = ctx->current_cert;
+            if (ctx->current_issuer)
+                ocsp_data->issuer = ctx->current_issuer;
+            if (cert_dir)
+                ocsp_data->store.ca_dir = cert_dir;
 
-        ocsp_data->skew = MAX_VALIDITY_PERIOD;
-        ocsp_data->maxage = -1;
-        if (ctx->chain)
-            ocsp_data->cert_chain = ctx->chain;
-        /*Timeout should be set here 
-          ocsp_data->timeout = -1; */
-        ret = do_ocsp_verify (ocsp_data);
-        /* TODO sign key and cert */
-        ocsprequest_free(ocsp_data);
-        ocsp_data = NULL;
+            ocsp_data->skew = MAX_VALIDITY_PERIOD;
+            ocsp_data->maxage = -1;
+            if (ctx->chain)
+                ocsp_data->cert_chain = ctx->chain;
+            /*Timeout should be set here 
+              ocsp_data->timeout = -1; */
+            ret = do_ocsp_verify (ocsp_data);
+            /* TODO sign key and cert */
+            ocsprequest_free(ocsp_data);
+            ocsp_data = NULL;
+        }
     }
 
     EVP_PKEY_free(key);

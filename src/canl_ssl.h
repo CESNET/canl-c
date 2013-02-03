@@ -12,6 +12,7 @@ typedef enum canl_ctx_ssl_flags {
     CANL_SSL_ACCEPT_SSLv2       = 0x0001,
     CANL_SSL_DN_OSSL            = 0x0002,
     CANL_SSL_VERIFY_NONE        = 0x0004,
+    CANL_SSL_OCSP_VERIFY_ALL    = 0x0008,
 } canl_ctx_ssl_flags;
 
 canl_err_code CANL_CALLCONV

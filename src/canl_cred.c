@@ -9,7 +9,7 @@
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, proxy_verify_desc * pvd);
-extern proxy_verify_desc *pvd_setup_initializers(char *cadir);
+extern proxy_verify_desc *pvd_setup_initializers(char *cadir, int flags);
 extern void pvd_destroy_initializers(void *data);
 extern canl_error map_verify_result(unsigned long ssl_err,
                 const X509_STORE_CTX *store_ctx, SSL *ssl);
@@ -698,7 +698,7 @@ canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
     int ret = 0;
     proxy_verify_desc *pvd = NULL; /* verification context */
 
-    pvd = pvd_setup_initializers(cadir);
+    pvd = pvd_setup_initializers(cadir, 0);
     ret = proxy_verify_cert_chain(ucert, cert_chain, pvd);
     pvd_destroy_initializers(pvd);
     if (ret)
@@ -719,7 +719,7 @@ canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
     unsigned long ssl_err = 0;
     canl_error canl_err = 0;
 
-    pvd = pvd_setup_initializers(cadir);
+    pvd = pvd_setup_initializers(cadir, 0);
     X509_STORE_CTX_set_ex_data(store_ctx, PVD_STORE_EX_DATA_IDX, (void *)pvd);
 #ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
     X509_STORE_CTX_set_flags(store_ctx, X509_V_FLAG_ALLOW_PROXY_CERTS);
@@ -750,7 +750,7 @@ canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
     return 0;
 }
 
-proxy_verify_desc *pvd_setup_initializers(char *cadir)
+proxy_verify_desc *pvd_setup_initializers(char *cadir, int pvxd_flags)
 {
     proxy_verify_ctx_desc *pvxd = NULL;
     proxy_verify_desc *pvd = NULL;
@@ -782,6 +782,7 @@ proxy_verify_desc *pvd_setup_initializers(char *cadir)
     }
     else
         pvd->pvxd->certdir = strdup(cadir);
+    pvd->pvxd->flags |= pvxd_flags;
     return pvd;
 }
 
