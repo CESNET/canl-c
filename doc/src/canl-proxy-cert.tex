@@ -120,7 +120,7 @@ const enum canl_cert_type type)\end{verbatim}
   which is going to be created.
   \begin{itemize}
     \item param cred -- the credentials context
-    \item param type -- a \CANL enum type ...\TODO type
+    \item param type -- a canl\_cert\_type in canl\_cred.h
   \end{itemize}
   \item \begin{verbatim}
 canl_err_code canl_cred_sign_proxy(canl_ctx, canl_cred signer,
@@ -192,7 +192,7 @@ We give an example of a proxy certificate creation. We do not
 define variables in this example, unless
 their type is \CANL defined. We do not check return values in most
 cases as well.
-For complete sample see \TODO source
+For complete sample see example sources.
 
 Include necessary header files:
 \begin{lstlisting}

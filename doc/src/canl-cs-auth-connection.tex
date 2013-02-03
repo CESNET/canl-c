@@ -36,7 +36,7 @@ use \textit{openssl API} calls or variable types directly
 
   This function
   returns an initialized \textit{authentication context} object
-  \item \verb'void CANL_CALLCONV canl_free_ctx(canl_ctx cc)'
+  \item \verb'void canl_free_ctx(canl_ctx cc)'
 
   This function will free the \textit{authentication context}, releasing 
   all associated information.  The context must not be used after this call.
@@ -75,14 +75,15 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
     \item param cc -- the \textit{authentication context}
     \item param io -- the \textit{i/o context}
     \item param host -- the server to which to connect
-    \item param service -- \TODO DK
+    \item param service -- the service on the server - usually NULL
     \item param port -- the port on which the server is listening
     \item param auth\_mechs -- authentication mechanism to use
-    \item flags -- TODO
+    \item flags -- for future usage
     \item param timeout -- the timeout after which to drop the connect attempt
     \item return -- \textit{canl error code}
   \end{itemize}
-  \item \begin{verbatim}canl_io_accept(canl_ctx cc, canl_io_handler io,int fd,
+  \item \begin{verbatim}canl_err_code canl_io_accept(canl_ctx cc, 
+  canl_io_handler io,int fd,
   struct sockaddr s_addr, int flags,canl_principal *peer,
   struct timeval *timeout)\end{verbatim}
   This function will 
@@ -91,8 +92,9 @@ const char *host, const char *service, int port, gss_OID_set auth_mechs,
   \begin{itemize}
     \item param cc -- the \textit{authentication context}
     \item param io -- the \textit{i/o context}
-    \item param fd -- \TODO this param?
+    \item param fd -- file descriptor to use
     \item param port -- the port on which the server is listening
+    \item return -- \textit{canl error code}
   \end{itemize}
 
 \end{itemize}
@@ -138,6 +140,16 @@ char *proxy, canl_password_callback clb, void *pass)\end{verbatim}
     checked whether this path actually contains the CRLs or not
     \item return -- \textit{canl error code}
     \end{itemize}
+
+  \item \begin{verbatim}canl_err_code  canl_ctx_set_ssl_flags(canl_ctx cc, unsigned int flags) \end{verbatim}
+  Set SSL specific flags. This function can turn OCSP check ON. 
+  (OFF by default)
+  \begin{itemize}
+    \item param cc -- the \textit{authentication context}
+    \item param flags -- one of the canl\_ctx\_ssl\_flags in canl\_ssl.h (e.g. 
+  CANL\_SSL\_OCSP\_VERIFY\_ALL)
+    \item return -- \textit{canl error code}
+  \end{itemize}
 
 \end{itemize}
 \subsection{Secure Client-Server Connection Example}
