@@ -22,7 +22,7 @@ typedef struct _mech_glb_ctx
     char  *ca_file;
     char  *crl_dir;
     cert_key_store *cert_key;
-    proxy_verify_desc *pvd_ctx;
+    canl_proxy_verify_desc *pvd_ctx;
 } mech_glb_ctx;
 
 int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx,

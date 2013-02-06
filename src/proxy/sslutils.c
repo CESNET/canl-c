@@ -1466,9 +1466,9 @@ Returns:
 **********************************************************************/
 
 void
-proxy_verify_init(
-    proxy_verify_desc *                 pvd,
-    proxy_verify_ctx_desc *             pvxd)
+canl_proxy_verify_init(
+    canl_proxy_verify_desc *                 pvd,
+    canl_proxy_verify_ctx_desc *             pvxd)
 {
 
     pvd->magicnum = PVD_MAGIC_NUMBER; /* used for debuging */
@@ -1483,7 +1483,7 @@ proxy_verify_init(
 }
 
 /**********************************************************************
-Function: proxy_verify_ctx_init()
+Function: canl_proxy_verify_ctx_init()
 
 Description:
 
@@ -1493,8 +1493,8 @@ Returns:
 **********************************************************************/
 
 void
-proxy_verify_ctx_init(
-    proxy_verify_ctx_desc *             pvxd)
+canl_proxy_verify_ctx_init(
+    canl_proxy_verify_ctx_desc *             pvxd)
 {
 
     pvxd->magicnum = PVXD_MAGIC_NUMBER; /* used for debuging */
@@ -1514,15 +1514,15 @@ Returns:
 **********************************************************************/
 
 void
-proxy_verify_release(
-    proxy_verify_desc *                 pvd)
+canl_proxy_verify_release(
+    canl_proxy_verify_desc *                 pvd)
 {
     pvd->cert_chain = NULL;
     pvd->pvxd = NULL;
 }
 
 /**********************************************************************
-Function: proxy_verify_ctx_release()
+Function: canl_proxy_verify_ctx_release()
 
 Description:
 
@@ -1532,8 +1532,8 @@ Returns:
 **********************************************************************/
 
 void
-proxy_verify_ctx_release(
-    proxy_verify_ctx_desc *             pvxd)
+canl_proxy_verify_ctx_release(
+    canl_proxy_verify_ctx_desc *             pvxd)
 {
     if (pvxd->certdir)
     {
@@ -1817,7 +1817,7 @@ proxy_verify_callback(
 #endif
     SSL *                               ssl = NULL;
     SSL_CTX *                           ssl_ctx = NULL;
-    proxy_verify_desc *                 pvd;
+    canl_proxy_verify_desc *                 pvd;
     int                                 itsaproxy = 0;
     int                                 i;
     int                                 ret;
@@ -1830,20 +1830,20 @@ proxy_verify_callback(
     /*
      * If we are being called recursivly to check delegate
      * cert chains, or being called by the grid-proxy-init,
-     * a pointer to a proxy_verify_desc will be 
+     * a pointer to a canl_proxy_verify_desc will be 
      * pased in the store.  If we are being called by SSL,
      * by a roundabout process, the app_data of the ctx points at
      * the SSL. We have saved a pointer to the  context handle
      * in the SSL, and its magic number should be PVD_MAGIC_NUMBER 
      */
-    if (!(pvd = (proxy_verify_desc *)
+    if (!(pvd = (canl_proxy_verify_desc *)
                 X509_STORE_CTX_get_ex_data(ctx,
                     PVD_STORE_EX_DATA_IDX)))
     {
         ssl = (SSL *)X509_STORE_CTX_get_app_data(ctx);
         if (ssl) {
             ssl_ctx = SSL_get_SSL_CTX(ssl);
-            pvd = (proxy_verify_desc *)SSL_CTX_get_ex_data(ssl_ctx,
+            pvd = (canl_proxy_verify_desc *)SSL_CTX_get_ex_data(ssl_ctx,
                     PVD_SSL_EX_DATA_IDX);
         }
     }
@@ -2252,7 +2252,7 @@ int PRIVATE
 proxy_verify_cert_chain(
     X509 *                              ucert,
     STACK_OF(X509) *                    cert_chain,
-    proxy_verify_desc *                 pvd)
+    canl_proxy_verify_desc *                 pvd)
 {
     int                                 retval = 0;
     X509_STORE *                        cert_store = NULL;

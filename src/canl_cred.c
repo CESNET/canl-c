@@ -8,8 +8,8 @@
 #define LIFETIME_TRESHOLD 10*24*60*60 //10 days
 
 static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
-extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, proxy_verify_desc * pvd);
-extern proxy_verify_desc *pvd_setup_initializers(char *cadir, 
+extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, canl_proxy_verify_desc * pvd);
+extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, 
         unsigned int flags);
 extern void pvd_destroy_initializers(void *data);
 extern canl_error map_verify_result(unsigned long ssl_err,
@@ -697,9 +697,9 @@ canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
         char *cadir)
 {
     int ret = 0;
-    proxy_verify_desc *pvd = NULL; /* verification context */
+    canl_proxy_verify_desc *pvd = NULL; /* verification context */
 
-    pvd = pvd_setup_initializers(cadir, 0);
+    pvd = canl_pvd_setup_initializers(cadir, 0);
     ret = proxy_verify_cert_chain(ucert, cert_chain, pvd);
     pvd_destroy_initializers(pvd);
     if (ret)
@@ -716,11 +716,11 @@ canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
 {
     int ret = 0, depth = 0, i = 0;
     STACK_OF(X509) *certstack;
-    proxy_verify_desc *pvd = NULL; /* verification context */
+    canl_proxy_verify_desc *pvd = NULL; /* verification context */
     unsigned long ssl_err = 0;
     canl_error canl_err = 0;
 
-    pvd = pvd_setup_initializers(cadir, 0);
+    pvd = canl_pvd_setup_initializers(cadir, 0);
     X509_STORE_CTX_set_ex_data(store_ctx, PVD_STORE_EX_DATA_IDX, (void *)pvd);
 #ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
     X509_STORE_CTX_set_flags(store_ctx, X509_V_FLAG_ALLOW_PROXY_CERTS);
@@ -751,15 +751,15 @@ canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
     return 0;
 }
 
-proxy_verify_desc *pvd_setup_initializers(char *cadir, unsigned int pvxd_flags)
+canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, unsigned int pvxd_flags)
 {
-    proxy_verify_ctx_desc *pvxd = NULL;
-    proxy_verify_desc *pvd = NULL;
+    canl_proxy_verify_ctx_desc *pvxd = NULL;
+    canl_proxy_verify_desc *pvd = NULL;
     char *ca_cert_dirn = NULL;
     int err = 0;
 
-    pvd  = (proxy_verify_desc*)     malloc(sizeof(proxy_verify_desc));
-    pvxd = (proxy_verify_ctx_desc *)malloc(sizeof(proxy_verify_ctx_desc));
+    pvd  = (canl_proxy_verify_desc*)     malloc(sizeof(canl_proxy_verify_desc));
+    pvxd = (canl_proxy_verify_ctx_desc *)malloc(sizeof(canl_proxy_verify_ctx_desc));
     pvd->cert_store = NULL;
 
 
@@ -769,8 +769,8 @@ proxy_verify_desc *pvd_setup_initializers(char *cadir, unsigned int pvxd_flags)
         return NULL;
     }
 
-    proxy_verify_ctx_init(pvxd);
-    proxy_verify_init(pvd, pvxd);
+    canl_proxy_verify_ctx_init(pvxd);
+    canl_proxy_verify_init(pvd, pvxd);
 
     /* If cadir is not specified, do the best as to get the 
        standard CA certificates directory name */
@@ -789,15 +789,15 @@ proxy_verify_desc *pvd_setup_initializers(char *cadir, unsigned int pvxd_flags)
 
 void pvd_destroy_initializers(void *data)
 {
-    proxy_verify_desc *pvd = (proxy_verify_desc *)data;
+    canl_proxy_verify_desc *pvd = (canl_proxy_verify_desc *)data;
 
     if (pvd) {
         if (pvd->pvxd)
-            proxy_verify_ctx_release(pvd->pvxd);
+            canl_proxy_verify_ctx_release(pvd->pvxd);
 
         free(pvd->pvxd);
         pvd->pvxd = NULL;
-        proxy_verify_release(pvd);
+        canl_proxy_verify_release(pvd);
 
         /* X509_STORE_CTX_free segfaults if passed a NULL store_ctx */
         if (pvd->cert_store)

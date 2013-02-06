@@ -20,7 +20,7 @@ static canl_error map_proxy_error(int reason);
 
 static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
         int leave_pvd);
-extern proxy_verify_desc *pvd_setup_initializers(char *cadir, int flags);
+extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, int flags);
 extern void pvd_destroy_initializers(void *data);
 
 #ifdef DEBUG
@@ -390,9 +390,9 @@ err:
 static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
         int leave_pvd)
 {
-    proxy_verify_desc *new_pvd = NULL;
+    canl_proxy_verify_desc *new_pvd = NULL;
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
-    new_pvd =  pvd_setup_initializers(cadir, m_ctx->flags);
+    new_pvd =  canl_pvd_setup_initializers(cadir, m_ctx->flags);
     if (new_pvd){
         SSL_CTX_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX, new_pvd);
         if (!leave_pvd)

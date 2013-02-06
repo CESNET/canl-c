@@ -320,23 +320,23 @@ ERR_set_continue_needed(void);
                                Type definitions
 **********************************************************************/
 
-/* proxy_verify_ctx_desc - common to all verifys */
+/* canl_proxy_verify_ctx_desc - common to all verifys */
 
-typedef struct proxy_verify_ctx_desc_struct {
+typedef struct canl_proxy_verify_ctx_desc_struct {
     int                                 magicnum ;  
     char *                              certdir; 
     time_t                              goodtill;
     unsigned int                                 flags; //OCSP flags etc.
-} proxy_verify_ctx_desc ;
+} canl_proxy_verify_ctx_desc ;
 
-/* proxy_verify_desc - allows for recursive verifys with delegation */
+/* canl_proxy_verify_desc - allows for recursive verifys with delegation */
 
-typedef struct proxy_verify_desc_struct proxy_verify_desc;
+typedef struct canl_proxy_verify_desc_struct canl_proxy_verify_desc;
 
-struct proxy_verify_desc_struct {
+struct canl_proxy_verify_desc_struct {
     int                                 magicnum;
-    proxy_verify_desc *                 previous;
-    proxy_verify_ctx_desc *             pvxd;
+    canl_proxy_verify_desc *                 previous;
+    canl_proxy_verify_ctx_desc *             pvxd;
     int                                 flags;
     X509_STORE_CTX *                    cert_store;
     int                                 recursive_depth;
@@ -424,20 +424,20 @@ proxy_load_user_key(
     unsigned long *                     hSession);
 
 void
-proxy_verify_init(
-    proxy_verify_desc *                 pvd,
-    proxy_verify_ctx_desc *             pvxd);
+canl_proxy_verify_init(
+    canl_proxy_verify_desc *                 pvd,
+    canl_proxy_verify_ctx_desc *             pvxd);
 
 void
-proxy_verify_release(
-    proxy_verify_desc *                 pvd);
+canl_proxy_verify_release(
+    canl_proxy_verify_desc *                 pvd);
 
 void
-proxy_verify_ctx_init(
-                      proxy_verify_ctx_desc *pvxd);
+canl_proxy_verify_ctx_init(
+                      canl_proxy_verify_ctx_desc *pvxd);
 void
-proxy_verify_ctx_release(
-                      proxy_verify_ctx_desc *pvxd);
+canl_proxy_verify_ctx_release(
+                      canl_proxy_verify_ctx_desc *pvxd);
 
 int
 proxy_check_proxy_name(
@@ -452,7 +452,7 @@ proxy_check_issued(
 int
 proxy_verify_certchain(
     STACK_OF(X509) *                    certchain,
-    proxy_verify_desc *                 ppvd);
+    canl_proxy_verify_desc *                 ppvd);
 
 int
 proxy_verify_callback(
