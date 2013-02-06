@@ -87,3 +87,7 @@
 - Optionally turn on OCSP in examples
 - OCSP off by default, can be switched of by setting CANL_SSL_OCSP_VERIFY_ALL as a flag to canl_ctx_set_ssl_flags()
 
+2.0.9-1
+- proxy_verify... renamed to canl_proxy_verify, may solve GGUS ticket 91208
+- New funcions added to doc
+
