@@ -3,7 +3,6 @@
 
 -include /usr/share/dpkg/buildflags.mk
 
-p_dbg=canl-c-dbg
 p_dev=libcanl-c-dev
 p_examples=libcanl-c-examples
 p_lib=libcanl-c2
@@ -42,12 +41,14 @@ install: build-stamp
 	dh_installdirs
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
 	rm -vf debian/tmp/usr/lib/*.la
-	mkdir -p debian/$(p_dbg)/usr/share/doc
 	mkdir -p debian/$(p_dev)/usr/share/doc
 	mkdir -p debian/$(p_examples)/usr/share/doc
+	mkdir -p debian/$(p_examples)-dbg/usr/share/doc
+	mkdir -p debian/$(p_lib)-dbg/usr/share/doc
 	mv debian/tmp/usr/share/doc/canl-c-@MAJOR@.@MINOR@.@REVISION@ debian/$(p_dev)/usr/share/doc/$(p_dev)
-	ln -s $(p_lib) debian/$(p_dbg)/usr/share/doc/$(p_dbg)
 	ln -s $(p_lib) debian/$(p_examples)/usr/share/doc/$(p_examples)
+	ln -s $(p_lib) debian/$(p_examples)-dbg/usr/share/doc/$(p_examples)-dbg
+	ln -s $(p_lib) debian/$(p_lib)-dbg/usr/share/doc/$(p_lib)-dbg
 
 binary-indep:
 
@@ -62,7 +63,8 @@ binary-arch: install
 	dh_installcron
 	dh_install --fail-missing
 	dh_link
-	dh_strip --dbg-package=$(p_dbg)
+	dh_strip -p$(p_examples) --dbg-package=$(p_examples)-dbg
+	dh_strip -p$(p_lib) --dbg-package=$(p_lib)-dbg
 	dh_compress
 	dh_fixperms
 	dh_makeshlibs

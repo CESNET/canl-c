@@ -30,10 +30,18 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Example programs of EMI caNl
  This package contains client and server examples of EMI caNl.
 
-Package: canl-c-dbg
+Package: libcanl-c2-dbg
 Section: debug
 Architecture: any
 Priority: extra
 Depends: libcanl-c2 (= ${binary:Version}), ${misc:Depends}
-Description: EMI caNl debugging symbols
- This package contains debugging symbols for EMI caNl.
+Description: Debugging symbols for EMI caNl library
+ This package contains debugging symbols for EMI caNl library.
+
+Package: libcanl-c-examples-dbg
+Section: debug
+Architecture: any
+Priority: extra
+Depends: libcanl-c-examples (= ${binary:Version}), ${misc:Depends}
+Description: Debugging symbols for EMI caNl examples
+ This package contains debugging symbols for EMI caNl client and server examples.
