@@ -132,7 +132,7 @@ canl_io_connect(canl_ctx cc, canl_io_handler io, const char *host,
         if (ar.ent == NULL)
             return set_error(cc, ENOMEM, POSIX_ERROR, "Not enough memory");
 
-        switch (err = asyn_getservbyname(ipver, &ar, host, NULL)) {
+        switch (err = canl_asyn_getservbyname(ipver, &ar, host, NULL)) {
             case NETDB_SUCCESS:
                 err = 0;
                 break;

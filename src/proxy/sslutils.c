@@ -1456,7 +1456,7 @@ proxy_marshal_bp(
 }
 
 /**********************************************************************
-Function: proxy_verify_init()
+Function: canl_proxy_verify_init()
 
 Description:
 

@@ -91,7 +91,7 @@ void free_hostent(struct hostent *h)
     }
 }
 
-int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
+int canl_asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout)
 {
     int err;

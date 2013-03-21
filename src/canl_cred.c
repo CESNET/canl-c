@@ -11,7 +11,7 @@ static STACK_OF(X509)* my_sk_X509_dup(glb_ctx *cc, STACK_OF(X509) *stack);
 extern int proxy_verify_cert_chain(X509 * ucert, STACK_OF(X509) * cert_chain, canl_proxy_verify_desc * pvd);
 extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, 
         unsigned int flags);
-extern void pvd_destroy_initializers(void *data);
+extern void canl_pvd_destroy_initializers(void *data);
 extern canl_error map_verify_result(unsigned long ssl_err,
                 const X509_STORE_CTX *store_ctx, SSL *ssl);
 
@@ -701,7 +701,7 @@ canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
 
     pvd = canl_pvd_setup_initializers(cadir, 0);
     ret = proxy_verify_cert_chain(ucert, cert_chain, pvd);
-    pvd_destroy_initializers(pvd);
+    canl_pvd_destroy_initializers(pvd);
     if (ret)
         /* This will be ommited when proxy_verify_cert sets errors itself or
            propagate them out. */
@@ -725,7 +725,7 @@ canl_verify_chain_wo_ossl(canl_ctx ctx, char *cadir,
 #ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
     X509_STORE_CTX_set_flags(store_ctx, X509_V_FLAG_ALLOW_PROXY_CERTS);
 #endif
-    pvd_destroy_initializers(pvd);
+    canl_pvd_destroy_initializers(pvd);
 
     certstack = X509_STORE_CTX_get_chain(store_ctx);
     depth = sk_X509_num(certstack);
@@ -787,7 +787,7 @@ canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, unsigned int pv
     return pvd;
 }
 
-void pvd_destroy_initializers(void *data)
+void canl_pvd_destroy_initializers(void *data)
 {
     canl_proxy_verify_desc *pvd = (canl_proxy_verify_desc *)data;
 

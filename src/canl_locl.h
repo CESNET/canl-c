@@ -132,7 +132,7 @@ canl_err_code set_error (glb_ctx *cc, unsigned long err_code,
 canl_err_code update_error (glb_ctx *cc, unsigned long err_code,
 	canl_err_origin err_orig, const char *err_format, ...);
 void free_hostent(struct hostent *h); //TODO is there some standard funcion to free hostent?
-int asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
+int canl_asyn_getservbyname(int a_family, asyn_result *ares_result,char const *name, 
         struct timeval *timeout);
 
 #endif

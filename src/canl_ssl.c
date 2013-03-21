@@ -21,7 +21,7 @@ static canl_error map_proxy_error(int reason);
 static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
         int leave_pvd);
 extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, int flags);
-extern void pvd_destroy_initializers(void *data);
+extern void canl_pvd_destroy_initializers(void *data);
 
 #ifdef DEBUG
 static void dbg_print_ssl_error(int errorcode);
@@ -563,7 +563,7 @@ end:
  *     = 0 : timeout reached.
  *     < 0 : error.
  */
-int do_select(int fd, time_t starttime, int timeout, int wanted)
+static int do_select(int fd, time_t starttime, int timeout, int wanted)
 {
     int ret = 0;
     fd_set rset;
@@ -1115,7 +1115,7 @@ ssl_free_ctx(glb_ctx *cc)
         m_ctx->cert_key = NULL;
     }
     if (m_ctx->pvd_ctx){
-        pvd_destroy_initializers(m_ctx->pvd_ctx);
+        canl_pvd_destroy_initializers(m_ctx->pvd_ctx);
         m_ctx->pvd_ctx = NULL;
     }
     free(m_ctx);
