@@ -20,7 +20,8 @@ static canl_error map_proxy_error(int reason);
 
 static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
         int leave_pvd);
-extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, int flags);
+extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, 
+        char *ocsp_url, int flags);
 extern void canl_pvd_destroy_initializers(void *data);
 
 #ifdef DEBUG
@@ -392,7 +393,8 @@ static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
 {
     canl_proxy_verify_desc *new_pvd = NULL;
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
-    new_pvd =  canl_pvd_setup_initializers(cadir, m_ctx->flags);
+    new_pvd =  canl_pvd_setup_initializers(cadir, m_ctx->ocsp_url,
+            m_ctx->flags);
     if (new_pvd){
         SSL_CTX_set_ex_data(ssl, PVD_SSL_EX_DATA_IDX, new_pvd);
         if (!leave_pvd)
@@ -1118,6 +1120,10 @@ ssl_free_ctx(glb_ctx *cc)
         canl_pvd_destroy_initializers(m_ctx->pvd_ctx);
         m_ctx->pvd_ctx = NULL;
     }
+    if (m_ctx->ocsp_url){
+        free(m_ctx->ocsp_url);
+        m_ctx->ocsp_url = NULL;
+    }
     free(m_ctx);
     cc->mech_ctx = NULL;
     return 0;
@@ -1164,6 +1170,23 @@ canl_ctx_set_ssl_flags(canl_ctx cc, unsigned int flags)
         return EINVAL;
 
     m_ctx->flags |= flags;
+    return 0;
+}
+
+canl_err_code CANL_CALLCONV
+canl_ocsp_set_url(canl_ctx cc, const char *ocsp_url)
+{
+    glb_ctx *glb_cc = (glb_ctx*) cc;
+    mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
+
+    if (!cc)
+        return EINVAL;
+
+    if (!m_ctx)
+        return set_error(glb_cc, EINVAL, POSIX_ERROR, "SSL context not"
+                " initialized");
+
+    m_ctx->ocsp_url = strdup(ocsp_url);
     return 0;
 }
 

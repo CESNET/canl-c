@@ -1540,6 +1540,12 @@ canl_proxy_verify_ctx_release(
         free(pvxd->certdir);
         pvxd->certdir = NULL;
     }
+    
+    if (pvxd->ocsp_url)
+    {
+        free(pvxd->ocsp_url);
+        pvxd->ocsp_url = NULL;
+    }
 }
 
 #if SSLEAY_VERSION_NUMBER >=  0x0090600fL

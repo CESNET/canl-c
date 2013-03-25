@@ -67,6 +67,9 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode,
 int CANL_CALLCONV
 canl_direct_pv_clb(canl_ctx cc, X509_STORE_CTX *store_ctx, int ok);
 
+canl_err_code CANL_CALLCONV
+canl_ocsp_set_url(canl_ctx cc, const char *ocsp_url);
+
 #ifdef __cplusplus
 }
 #endif

@@ -327,6 +327,7 @@ typedef struct canl_proxy_verify_ctx_desc_struct {
     char *                              certdir; 
     time_t                              goodtill;
     unsigned int                                 flags; //OCSP flags etc.
+    char *				ocsp_url;
 } canl_proxy_verify_ctx_desc ;
 
 /* canl_proxy_verify_desc - allows for recursive verifys with delegation */
