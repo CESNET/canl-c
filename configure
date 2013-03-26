@@ -128,18 +128,18 @@ my %externs = (
 		prefix => ''
 	},
 	voms => {
-		prefix => '/opt/glite',
+		prefix => '/usr',
 		pkg => 'voms-2.0'
 	},
 	gridsite => {
-		prefix => '/opt/glite',
+		prefix => '/usr',
 		pkg => 'gridsite-openssl'
 	},
 	trustmanager => {
-		prefix => '/opt/glite'
+		prefix => '/usr'
 	},
 	trustmanager_axis => {
-		prefix => '/opt/glite'
+		prefix => '/usr'
 	},
 	utiljava => {
 		prefix=> '/opt/glite'
@@ -192,9 +192,9 @@ my (%etics_externs, %etics_projects);
 # additional modules from $project{modules} are automatically added
 #
 my %lbmodules = (
-	'lb' => [ qw/client common doc logger server state-machine types utils ws-interface ws-test harvester yaim logger-msg nagios client-devel client-progs common-devel logger-devel state-machine-devel/], 
+	'lb' => [ qw/client client-java common doc logger server state-machine types utils ws-interface ws-test harvester yaim logger-msg nagios client-devel client-progs common-devel logger-devel state-machine-devel/], 
 	'lbjp-common' => [qw/db log maildir server-bones trio jp-interface gss gsoap-plugin db-devel log-devel maildir-devel server-bones-devel trio-devel jp-interface-devel gss-devel gsoap-plugin-devel/],
-	'jobid' => [qw/api-c api-c-devel api-cpp api-cpp-devel/],
+	'jobid' => [qw/api-c api-c-devel api-cpp api-cpp-devel api-java/],
 	'jp' => [ qw/client doc index primary server-common ws-interface/ ],
 	'gridsite' => [ qw/apache libs commands core devel services service-clients/ ],
 	'px' => [ qw/proxyrenewal myproxy-yaim proxyrenewal-devel proxyrenewal-progs/ ],

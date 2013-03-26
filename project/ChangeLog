@@ -96,3 +96,6 @@
 - Sensitive exported functions renamed to prevent collisions
 - API enhancement, let the user choose ocsp responder url
 
+2.1.0-1
+- There was an API enhancement -- minor version bump is appropriate
+
