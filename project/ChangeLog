@@ -91,3 +91,8 @@
 - proxy_verify... renamed to canl_proxy_verify, may solve GGUS ticket 91208
 - New funcions added to doc
 
+2.0.10-1
+- Debugging packages for subpackages in Debian
+- Sensitive exported functions renamed to prevent collisions
+- API enhancement, let the user choose ocsp responder url
+
