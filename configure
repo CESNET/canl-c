@@ -1126,7 +1126,7 @@ for my $ext (keys %deps_aux) {
 			sl5_x86_64_gcc412EPEL => 1,
 			sl5_ia32_gcc412EPEL => 1,
 			sl6_x86_64_gcc446EPEL => 1,
-			sl6_ia32_gcc446EPEL => 1,
+			sl6_ia32_gcc447EPEL => 1,
 			deb6_x86_64_gcc445 => 1,
 		},
 		modules => {

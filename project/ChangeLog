@@ -99,3 +99,6 @@
 2.1.0-1
 - There was an API enhancement -- minor version bump is appropriate
 
+2.1.1-1
+- Uninitialized context variable fixed
+
