@@ -1501,6 +1501,7 @@ canl_proxy_verify_ctx_init(
     pvxd->certdir = NULL;
     pvxd->goodtill = 0;
     pvxd->flags = 0;
+    pvxd->ocsp_url = NULL;
 
 }
 /**********************************************************************
