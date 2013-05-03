@@ -33,7 +33,7 @@ SOURCES=\
 	examples/*.c \
 	src/canl_error_* src/*.c src/*.h src/*.pl \
 	src/proxy/*.c src/proxy/*.h src/proxy/*.in src/proxy/*.y src/proxy/*.l \
-	Makefile
+	Makefile README
 SOURCES_EXEC=src/*.pl
 
 CFLAGS_LIB=-fPIC -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -I.
@@ -172,6 +172,7 @@ install: all
 		${top_srcdir}/src/canl_cred.h \
 		${DESTDIR}${PREFIX}${prefix}/include
 	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
+	${INSTALL} -m 644 README ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}

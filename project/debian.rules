@@ -44,8 +44,10 @@ install: build-stamp
 	mkdir -p debian/$(p_dev)/usr/share/doc
 	mkdir -p debian/$(p_examples)/usr/share/doc
 	mkdir -p debian/$(p_examples)-dbg/usr/share/doc
+	mkdir -p debian/$(p_lib)/usr/share/doc/$(p_lib)
 	mkdir -p debian/$(p_lib)-dbg/usr/share/doc
 	mv debian/tmp/usr/share/doc/canl-c-@MAJOR@.@MINOR@.@REVISION@ debian/$(p_dev)/usr/share/doc/$(p_dev)
+	mv debian/$(p_dev)/usr/share/doc/$(p_dev)/README debian/$(p_lib)/usr/share/doc/$(p_lib)/README
 	ln -s $(p_lib) debian/$(p_examples)/usr/share/doc/$(p_examples)
 	ln -s $(p_lib) debian/$(p_examples)-dbg/usr/share/doc/$(p_examples)-dbg
 	ln -s $(p_lib) debian/$(p_lib)-dbg/usr/share/doc/$(p_lib)-dbg
