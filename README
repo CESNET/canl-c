@@ -1,0 +1,7 @@
+Common Authentication Library (caNl) was designed to provide common security layer support in grid applications. It is largely based on existing code (VOMS, LB). Its simple API can be devided by functionality into two parts:
+
+* caNl Main API is used to establish (secure) client-server connection with one or both sides authenticated, send or receive data. It is not directly dependent on any specific cryptography toolkit (SSL implementation). It is also internally plugin-based and therefore support for other security mechanisms can be added in future.
+* caNl Certificate API enables certificate and proxy management, e.g., proxy creation, signing, etc. One may think of the Certificate API as the second level of the Main API
+
+Project home: https://github.com/CESNET/canl-c
+
