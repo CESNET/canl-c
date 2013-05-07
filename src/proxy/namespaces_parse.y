@@ -33,6 +33,7 @@
 
 char **parse_subjects(char *string);
 void namespaceserror(void *policies, void *scanner, char const *msg);
+extern int namespaceslex(void *, void *scanner);
 %}
 
 %error-verbose

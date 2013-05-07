@@ -35,6 +35,7 @@
 
 char **parse_subjects(char *string);
 void signingerror(void *policies, void *scanner, char const *msg);
+extern int signinglex(void *, void *scanner);
 %}
 
 %error-verbose
