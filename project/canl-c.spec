@@ -16,6 +16,9 @@ BuildRequires:  flex
 BuildRequires:  krb5-devel%{?_isa}
 BuildRequires:  libtool
 BuildRequires:  openssl-devel%{?_isa}
+BuildRequires:  perl
+BuildRequires:  perl(Getopt::Long)
+BuildRequires:  perl(POSIX)
 BuildRequires:  pkgconfig
 %if 0%{?fedora} >= 9 || 0%{?rhel} >= 6
 BuildRequires:  tex(latex)
@@ -72,7 +75,7 @@ This package contains client and server examples of EMI caNl.
 
 
 %build
-/usr/bin/perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=%{_prefix} --libdir=%{_lib} --project=emi --module canl.c
+perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=%{_prefix} --libdir=%{_lib} --project=emi --module canl.c
 CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make
 
 
