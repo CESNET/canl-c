@@ -1,38 +1,44 @@
-This work was packaged for Debian by:
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: @PACKAGE_NAME@
+Upstream-Contact: @MAINTAINER@
+Source: http://scientific.zcu.cz/emi/
 
-    @MAINTAINER@ on Thu, 08 Dec 2011 00:46:07 +0100
+Files: *
+Copyright: 2004-2010 Members of the EGEE Collaboration
+           2010-2013 EMI
+License: Apache-2.0
 
-It was downloaded from:
+Files: src/proxy/sslutils.c
+Copyright: 2002-2009 INFN-CNAF on behalf of the EU DataGrid
+License: Apache-2.0
 
-    @URL@
+Files: src/proxy/pkcs11.h
+Copyright: 2006 Andreas Jellinghaus
+           2006, 2007 g10 Code GmbH
+License: Pkcs
 
-Upstream Author(s):
+License: Apache-2.0
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+ .
+     http://www.apache.org/licenses/LICENSE-2.0
+ .
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ .
+ On Debian systems the full text of the Apache 2.0 license can be found in
+ the /usr/share/common-licenses/Apache-2.0 file.
 
-    @MAINTAINER@
-
-Copyright:
-
-    <Copyright (C) 2004-2011 Members of the EGEE Collaboration>
-
-License:
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-On Debian systems, the complete text of the Apache version 2.0 license
-can be found in "/usr/share/common-licenses/Apache-2.0".
-
-The Debian packaging is:
-
-    Copyright (C) 2004-2011 Members of the EGEE Collaboration
-
-and is licensed under the Apache License, Version 2.0.
+License: Pkcs
+ This file is free software; as a special exception the author gives
+ unlimited permission to copy and/or distribute it, with or without
+ modifications, as long as this notice is preserved.
+ .
+ This file is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY, to the extent permitted by law; without even
+ the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+ PURPOSE.
