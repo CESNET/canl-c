@@ -19,13 +19,15 @@ int main(int argc, char *argv[])
     long int lifetime = 0;
     unsigned int bits = 0;
     int opt = 0;
+    int proxyver = 2;
+    enum canl_cert_type cert_type = CANL_RFC;
 
-    while ((opt = getopt(argc, argv, "hc:k:l:b:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "hc:k:l:b:o:v:")) != -1) {
         switch (opt) {
             case 'h':
                 fprintf(stderr, "Usage: %s [-c certificate]"
                         " [-k private key] [-h] [-l lifetime] [-b bits]"
-                        " [-o output]"
+                        " [-o output] [-v proxy version]"
                        "\n", argv[0]);
                 exit(0);
             case 'c':
@@ -43,13 +45,26 @@ int main(int argc, char *argv[])
             case 'o':
                 output = optarg;
                 break;
+            case 'v':
+                proxyver = atoi(optarg);
+                break;
             default: /* '?' */
                 fprintf(stderr, "Usage: %s [-c certificate]"
                         " [-k private key] [-h] [-l lifetime] [-b bits]"
-                        " [-o output]"
+                        " [-o output] [-v proxy version]"
                        "\n", argv[0]);
                 exit(-1);
         }
+    }
+    switch (proxyver){
+        case 2:
+           cert_type = CANL_EEC;
+           break;
+        case 3:
+           cert_type = CANL_RFC;
+           break;
+        default:
+           cert_type = CANL_RFC;
     }
 
     ctx = canl_create_ctx();
@@ -83,7 +98,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "[PROXY-INIT] Failed set new cert lifetime"
                 ": %s\n", canl_get_error_message(ctx));
     
-    ret = canl_cred_set_cert_type(ctx, proxy, CANL_RFC);
+    ret = canl_cred_set_cert_type(ctx, proxy, cert_type);
     if (ret)
 	fprintf(stderr, "[PROXY-INIT] Failed set new cert type"
                 ": %s\n", canl_get_error_message(ctx));

@@ -375,13 +375,16 @@ canl_cred_set_cert_type(canl_ctx ctx, canl_cred cred,
 
 /*TODO use flags*/
 canl_err_code CANL_CALLCONV
-canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
+canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, 
+                        canl_cred proxy_cred)
 {
     glb_ctx *cc = (glb_ctx*) ctx;
     creds *signer_crd = (creds*) signer_cred;
     creds *proxy_crd = (creds*) proxy_cred;
     int err = 0;
     int key_size = 0;
+    enum canl_cert_type cert_type = 0;
+    int proxyver;
 
     if (!ctx)
         return EINVAL;
@@ -407,10 +410,21 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred, canl_cred proxy_cred)
                    "respect to cert. lifetime");
     }
 
+    switch (proxy_crd->c_type){
+        case CANL_EEC:
+             proxyver = 2;
+             break;
+        case CANL_RFC:
+             proxyver = 3;
+             break;
+        default:
+             proxyver = 2;
+             break;
+    }
     /*TODO flags - limited,version*/
     err = proxy_sign(signer_crd->c_cert, signer_crd->c_key, proxy_crd->c_req,
             &proxy_crd->c_cert, proxy_crd->c_lifetime, 
-            proxy_crd->c_cert_ext, 0, 2, NULL, NULL, 0, NULL, 0);
+            proxy_crd->c_cert_ext, 0, proxyver, NULL, NULL, 0, NULL, 0);
     if (err)
         return set_error(cc, CANL_ERR_unknown, CANL_ERROR, "");
         
