@@ -167,6 +167,10 @@ my %externs = (
 		prefix=>'/opt/activemq-cpp-library',
 		pkg => 'activemq-cpp'
 	},
+	crypto => {
+		prefix => '/usr',
+		pkg => 'libcrypto',
+	},
 );
 
 my %jar = (
@@ -658,7 +662,7 @@ BEGIN{
 	'lbjp-common.jp-interface' => [ qw/cppunit:B log4c:B libtool:B pkgconfig:B/ ],
 	'lbjp-common.gss' =>  [ qw/globus_essentials:R globus:B cares cppunit:B libtool:B pkgconfig:B/ ],
 	'lbjp-common.gsoap-plugin' =>  [ qw/cppunit:B globus_essentials:R globus:B cares:B gsoap gsoapxx libtool:B pkgconfig:B/ ],
-	'jobid.api-c' =>  [ qw/cppunit:B libtool:B openssl:B pkgconfig:B/ ],
+	'jobid.api-c' =>  [ qw/cppunit:B libtool:B crypto:B pkgconfig:B/ ],
 	'jobid.api-cpp' =>  [ qw// ],
 	'jobid.api-java' =>  [ qw/ant:B jdk:B/ ],
 	'jp.client' => [ qw/gsoap libtar globus_essentials:R globus:B pkgconfig:B/ ],
@@ -972,6 +976,7 @@ for my $ext (keys %deps_aux) {
 		},
 		etics_externs_devel => {
 			default => {
+				crypto => 'openssl',
 				gridsite=>'org.gridsite.devel',
 				voms=>'org.glite.security.voms-api',
 			},
@@ -1078,6 +1083,7 @@ for my $ext (keys %deps_aux) {
 				cares => 'c-ares-devel',
 				classads => 'classads-devel',
 				cppunit => 'cppunit-devel',
+				crypto => 'openssl-devel',
 				expat => 'expat-devel',
 				gsoap => 'gsoap-devel',
 				voms => 'emi.voms.voms-api-devel',
@@ -1441,7 +1447,7 @@ distcheck: ${package}-${version}.tar.gz
 	a=`(cd dist/${package}-${version}; find . -type f | sort)`; \
 	b=`(cd ${top_srcdir}; find . -path ./dist -prune -or -type f -print | sort)`; \
 	echo "$$a" >dist/files-dist; \
-	echo "$$b" | egrep -v "(^./Makefile.inc$$|^./${package}-${version}.tar.gz$$|^./debian|^./[^/]*.spec$$|\.cvsignore|^\./project/changelog$$|/CVS)" >dist/files-original
+	echo "$$b" | egrep -v "(^./Makefile.inc$$|^./${package}-${version}.tar.gz$$|^./debian|^./[^/]*.spec$$|\.cvsignore|^\./project/changelog$$|/CVS|^\./\.git|^\./config\.status$$)" >dist/files-original
 	diff -U0 dist/files-dist dist/files-original
 
 rpm: ${package}-${version}.tar.gz

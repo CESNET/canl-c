@@ -102,3 +102,6 @@
 2.1.1-1
 - Uninitialized context variable fixed
 
+2.1.2-1
+- Proxy type honoured in the signing function
+
