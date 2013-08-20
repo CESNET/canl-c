@@ -11,11 +11,11 @@ Source:         http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:  bison
-BuildRequires:  c-ares-devel%{?_isa}
+BuildRequires:  c-ares-devel
 BuildRequires:  flex
-BuildRequires:  krb5-devel%{?_isa}
+BuildRequires:  krb5-devel
 BuildRequires:  libtool
-BuildRequires:  openssl-devel%{?_isa}
+BuildRequires:  openssl-devel
 BuildRequires:  perl
 BuildRequires:  perl(Getopt::Long)
 BuildRequires:  perl(POSIX)
@@ -77,10 +77,6 @@ This package contains client and server examples of EMI caNl.
 %build
 perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=%{_prefix} --libdir=%{_lib} --project=emi --module canl.c
 CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make
-
-
-%check
-CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make check
 
 
 %install
