@@ -16,7 +16,8 @@ VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/:${top_srcdir}/examples:${top_s
 KPATH = TEXINPUTS=".:${top_srcdir}/doc/src//:"
 KPATHBIB = BIBINPUTS=".:$(VPATH)//:"
 LIBCARES_LIBS?=-lcares  
-LIBSSL_LIBS?=-lssl
+LIBSSL_LIBS?=-lssl -lcrypto
+LIBDL_LIBS?=-ldl
 
 CC=gcc
 YACC=bison -y
@@ -37,7 +38,7 @@ SOURCES=\
 SOURCES_EXEC=src/*.pl
 
 CFLAGS_LIB=-fPIC -I${top_srcdir}/src ${LIBCARES_CFLAGS} ${LIBSSL_CFLAGS} -I.
-LFLAGS_LIB=${LIBCARES_LIBS} ${LIBSSL_LIBS}
+LFLAGS_LIB=${LIBCARES_LIBS} ${LIBSSL_LIBS} ${LIBDL_LIBS}
 
 CFLAGS_CLI=-I${top_srcdir}/src -I.
 LFLAGS_CLI=-L. -lcanl_c
