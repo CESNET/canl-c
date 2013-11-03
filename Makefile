@@ -11,6 +11,7 @@ default: all
 -include ${top_srcdir}/project/version.properties
 
 version=${module.version}
+docdir?=${prefix}/share/doc/${package}-${version}
 
 VPATH=${top_srcdir}/src/:${top_srcdir}/src/proxy/:${top_srcdir}/examples:${top_srcdir}/doc/src
 KPATH = TEXINPUTS=".:${top_srcdir}/doc/src//:"
@@ -160,7 +161,7 @@ install: all
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/bin
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/${libdir}
 	mkdir -p ${DESTDIR}${PREFIX}${prefix}/include
-	mkdir -p ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
+	mkdir -p ${DESTDIR}${PREFIX}${docdir}
 	${INSTALL} -m 755 server ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-server
 	${INSTALL} -m 755 client ${DESTDIR}${PREFIX}${prefix}/bin/emi-canl-client
 	${INSTALL} -m 755 proxy \
@@ -172,8 +173,8 @@ install: all
 		${top_srcdir}/src/canl_ssl.h canl_err.h \
 		${top_srcdir}/src/canl_cred.h \
 		${DESTDIR}${PREFIX}${prefix}/include
-	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
-	${INSTALL} -m 644 README ${DESTDIR}${PREFIX}${prefix}/share/doc/canl-c-${version}
+	${INSTALL} -m 644 canl.pdf ${DESTDIR}${PREFIX}${docdir}
+	${INSTALL} -m 644 README ${DESTDIR}${PREFIX}${docdir}
 
 stage: all
 	$(MAKE) install PREFIX=${stagedir}
