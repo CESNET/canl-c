@@ -6,7 +6,7 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
         canl_err_origin err_orig);
 static void get_error_string(glb_ctx *cc, char *code_str);
 static canl_err_code update_error_msg(canl_ctx cc, const char *new_msg);
-static char *canl_strerror(const canl_err_code c_code);
+static const char *canl_strerror(const canl_err_code c_code);
 static int canl_err_ssl_to_canl(const unsigned long ossl_lib,
         const unsigned long ossl_reason);
 
@@ -160,7 +160,7 @@ update_error_msg(canl_ctx cc, const char *new_msg)
 
 static void get_error_string(glb_ctx *cc, char *code_str)
 {
-    char *new_str = NULL;
+    const char *new_str = NULL;
 
     switch (cc->err_orig) {
         case SSL_ERROR:
@@ -176,7 +176,7 @@ static void get_error_string(glb_ctx *cc, char *code_str)
             }
             break;
         case NETDB_ERROR:
-            new_str = (char *) hstrerror(cc->err_code);
+            new_str = hstrerror(cc->err_code);
             if (new_str) {
                 strncpy(code_str, new_str,
                         ERR_CODE_LEN);
@@ -199,10 +199,10 @@ static void get_error_string(glb_ctx *cc, char *code_str)
     }
 }
 
-static char *
+static const char *
 canl_strerror(const canl_err_code c_code)
 {
-    char *new_str = NULL;
+    const char *new_str = NULL;
     int k = 0;
     for (k = 0; k < canl_err_descs_num; k++) {
         if (canl_err_descs[k].code == c_code) {
