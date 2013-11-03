@@ -102,9 +102,12 @@ ${LIBCANL}:\
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
 %.lo: %.y
-	${YACC} -d ${YFLAGS} $<
-	mv y.tab.c $*.c
-	mv y.tab.h $*.h
+	-mkdir $*
+	(cd $*; \
+	 ${YACC} -d ${YFLAGS} ../$< && \
+	 mv y.tab.c ../$*.c && \
+	 mv y.tab.h ../$*.h)
+	rm -r $*
 	${COMPILE} -c ${CFLAGS_LIB} $*.c
 
 %.c: %.l
