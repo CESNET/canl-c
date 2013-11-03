@@ -81,7 +81,6 @@ CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make
 
 %install
 rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 # in -doc subpackage
 rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/canl.pdf
