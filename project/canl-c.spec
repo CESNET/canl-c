@@ -84,8 +84,8 @@ rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 # in -doc subpackage
 rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/canl.pdf
-find $RPM_BUILD_ROOT -name '*.la' -exec rm -rf {} \;
-find $RPM_BUILD_ROOT -name '*.a' -exec rm -rf {} \;
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
+rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
 
 
 %clean
