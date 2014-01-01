@@ -83,6 +83,7 @@ CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make %{?_smp_mflags}
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 # in -doc subpackage
+rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/README
 rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/canl.pdf
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
 rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
@@ -111,7 +112,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files doc
 %defattr(-,root,root)
-%doc canl.pdf
+%doc LICENSE canl.pdf
 
 %files examples
 %defattr(-,root,root)
