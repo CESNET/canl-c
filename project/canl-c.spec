@@ -20,12 +20,12 @@ BuildRequires:  perl
 BuildRequires:  perl(Getopt::Long)
 BuildRequires:  perl(POSIX)
 BuildRequires:  pkgconfig
-%if 0%{?fedora} >= 9 || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 6
 BuildRequires:  tex(latex)
 %else
 BuildRequires:  tetex-latex
 %endif
-%if 0%{?fedora} >= 18
+%if 0%{?fedora} || 0%{?rhel} >= 7
 BuildRequires:  tex(comment.sty)
 BuildRequires:  tex(lastpage.sty)
 BuildRequires:  tex(multirow.sty)
@@ -53,7 +53,7 @@ This package contains development libraries and header files for EMI caNl.
 %package        doc
 Summary:        API documentation for EMI caNl
 Group:          Documentation
-%if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
+%if 0%{?fedora} || 0%{?rhel} >= 6
 BuildArch:      noarch
 %endif
 
