@@ -26,7 +26,6 @@ BuildRequires:  tex(latex)
 BuildRequires:  tetex-latex
 %endif
 %if 0%{?fedora} || 0%{?rhel} >= 7
-BuildRequires:  tex(comment.sty)
 BuildRequires:  tex(lastpage.sty)
 BuildRequires:  tex(multirow.sty)
 BuildRequires:  tex(ptmr7t.tfm)
