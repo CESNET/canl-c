@@ -4214,6 +4214,7 @@ finalize:
 
 /******************************************************************************
 Function:   grid_verifyPathLenConstraints
+Oscar Koeroo's solution, thank you.
 Description:
             This function will check the certificate chain on CA based (RFC5280)
             and RFC3820 Proxy based Path Length Constraints.
