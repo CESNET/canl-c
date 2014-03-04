@@ -716,7 +716,7 @@ canl_verify_chain(canl_ctx ctx, X509 *ucert, STACK_OF(X509) *cert_chain,
     pvd = canl_pvd_setup_initializers(cadir, NULL, 0);
     ret = proxy_verify_cert_chain(ucert, cert_chain, pvd);
     canl_pvd_destroy_initializers(pvd);
-    if (ret)
+    if (!ret)
         /* This will be ommited when proxy_verify_cert sets errors itself or
            propagate them out. */
         return set_error(ctx, CANL_ERR_unknown, CANL_ERROR, "Certificate chain"

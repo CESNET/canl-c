@@ -2252,7 +2252,7 @@ Description:
 
 Parameters:
 
-Returns:
+Returns: 1 OK
 **********************************************************************/
 
 int PRIVATE
@@ -2270,7 +2270,9 @@ proxy_verify_cert_chain(
     int cscinitialized = 0;
 
     scert = ucert;
-    cert_store = X509_STORE_new();
+    if(!(cert_store = X509_STORE_new())){
+       goto err;
+    }
     X509_STORE_set_verify_cb_func(cert_store, proxy_verify_callback);
     if (cert_chain != NULL)
     {
@@ -2317,7 +2319,7 @@ proxy_verify_cert_chain(
 #ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
         X509_STORE_CTX_set_flags(&csc, X509_V_FLAG_ALLOW_PROXY_CERTS);
 #endif
-        if(!X509_verify_cert(&csc))
+        if(X509_verify_cert(&csc) != 1)
         {
             goto err;
         }
