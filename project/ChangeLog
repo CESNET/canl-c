@@ -113,3 +113,6 @@
 - Reactions to Fedora review
 - Support for EPEL 7 (Fedora 20)
 
+2.1.4-1
+- Fixing Certificate chain validation error (GH Issue #3)
+
