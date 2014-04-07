@@ -37,7 +37,7 @@ my $sysconfdir;
 my $localstatedir;
 my $os_type;
 my $staged;
-my $module='canl-c';
+my $module='canl.c';
 my $thrflavour = '';
 my $nothrflavour = '';
 my $mode = 'build';
@@ -57,6 +57,7 @@ my $url = $default_url;
 my $url_source;
 my $docdir;
 my $mysqlconfdir;
+my $sysdefaultdir;
 my $pkg_config_env = (defined $ENV{PKG_CONFIG_PATH}) ? "$ENV{PKG_CONFIG_PATH}:" : '';
 
 my @nodes = qw/client server logger logger-msg nagios utils client-java doc ws-test db jpprimary jpindex jpclient harvester lb px proxyrenewal canl/;
@@ -69,8 +70,6 @@ my %package = (
 	'maintainer' => 'CESNET Product Teams <emi-lb@metacentrum.cz>',
 	'uploaders' => 'František Dvořák <valtri@civ.zcu.cz>',
 	'url' => 'http://glite.cern.ch',
-	'debian_vcs' => 'Vcs-Cvs: :pserver:anonymous@jra1mw.cvs.cern.ch:/cvs/jra1mw
-Vcs-Browser: http://jra1mw.cvs.cern.ch/cgi-bin/jra1mw.cgi',
 );
 
 # key:      internal package name (arguments, ...)
@@ -263,6 +262,7 @@ my @opts = (
 	'url-source=s' => \$url_source,
 	'docdir=s' => \$docdir,
 	'mysqlconfdir=s' => \$mysqlconfdir,
+	'sysdefaultdir=s' => \$sysdefaultdir,
 );
 
 for (@nodes) {
@@ -1231,6 +1231,9 @@ top_srcdir = $top_srcdir
 	if ($mysqlconfdir) {
 		print MKINC "mysqlconfdir = $mysqlconfdir\n";
 	}
+	if ($sysdefaultdir) {
+		print MKINC "sysdefaultdir = $sysdefaultdir\n";
+	}
 
 	for (@{$need_externs{$short}}) {
 		next unless defined $externs{$_} and defined $externs{$_}{prefix};
@@ -1253,7 +1256,7 @@ version=${module.version}
 
 ${package}-${version}.tar.gz:
 	rm -rf dist
-	for dist in ${SOURCES} ${SOURCES_EXEC} configure project/ChangeLog project/debian.* project/*.spec project/package.* project/version.properties LICENSE; do \
+	for dist in ${SOURCES} ${SOURCES_EXEC} configure ChangeLog project/debian.* project/*.spec project/package.* project/version.properties LICENSE; do \
 		dir=${package}-${version}/`dirname $$dist`; \
 		mkdir -p dist/$$dir || :; \
 		install -m 0644 ${top_srcdir}/$$dist dist/$$dir; \
@@ -1327,7 +1330,6 @@ deb: ${package}-${version}.tar.gz
 				if (/\@AGE\@/) { s/\@AGE\@/$age/g; }
 				if (/\@MAINTAINER\@/) { s/\@MAINTAINER\@/$package{maintainer}/g; }
 				if (/\@UPLOADERS\@/) { s/\@UPLOADERS\@/$package{uploaders}/g; }
-				if (/\@DEBIAN_VCS\@/) { s/\@DEBIAN_VCS\@/$package{debian_vcs}/g; }
 				if (/\@DEBIAN_DATE\@/) { s/\@DEBIAN_DATE\@/$debdate/g; }
 				if (/\@SPEC_DATE\@/) { s/\@SPEC_DATE\@/$specdate/g; }
 				if (/^\s*.+\/configure\s/ and $force_version) {
@@ -1458,18 +1460,25 @@ sub getlibdir {
 }
 
 sub os_type {
-	my $ver;
+	#
+	# 1) check for systemd first (it can be used across distributions)
+	# 2) check for debian-like distribution (systemv scripts for Debian)
+	# 3) default is redhat-like (systemv scripts for Red Hat)
+	#
+	`pkg-config --exists systemd`;
+	return "systemd" if ($? == 0);
+	return "systemd" if (-e '/etc/fedora-release');
+
+	return "debian" if (-e '/etc/debian_version');
+
+	return "redhat" if (-r '/etc/redhat-release');
 
 	open FH, '<', '/etc/issue' or return "redhat";
 	$_=<FH>;
 	close FH;
 
 	if (/Debian|Ubuntu/i) { return "debian"; }
-	elsif (/Scientific|Redhat|Red Hat|Centos|Fedora/i) {
-		`pkg-config --exists systemd`;
-		if ($? == 0) { return "fedora"; }
-		else { return "redhat"; }
-	} else { return "redhat"; }
+	else { return "redhat"; }
 }
 
 sub usage {
@@ -1486,9 +1495,10 @@ General options (defaults in []):
   --sysroot=DIR			system root (custom relocation root -> sysroot) []
   --sysconfdir=DIR              system configuration directory [PREFIX/etc]
   --localstatedir=DIR           system local status directory [PREFIX/var]
-  --docdir			documentation directory []
-  --mysqlconfdir		MySQL/MariaDB configuration directory []
-  --os-type=DIST                system type (debian/redhat/fedora)
+  --docdir                      documentation directory []
+  --mysqlconfdir                MySQL/MariaDB configuration directory []
+  --sysdefaultdir               default configuration directory []
+  --os-type=DIST                boot system type (debian/redhat/systemd)
   --staged=module,module,...	what is already in PREFIX (specify without org.glite.)
   --thrflavour=flavour
   --nothrflavour=flavour	threaded and non-treaded flavours []
