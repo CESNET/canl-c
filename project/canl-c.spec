@@ -100,7 +100,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc LICENSE README project/ChangeLog
+%doc ChangeLog LICENSE README
 %{_libdir}/libcanl_c.so.2
 %{_libdir}/libcanl_c.so.2.*
 

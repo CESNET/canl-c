@@ -41,6 +41,3 @@ override_dh_installdocs:
 	dh_installdocs -p$(p_examples) --link-doc=$(p_lib)
 	dh_installdocs -p$(p_lib)-dbg --link-doc=$(p_lib)
 	dh_installdocs -p$(p_examples)-dbg --link-doc=$(p_lib)
-
-override_dh_installchangelogs:
-	dh_installchangelogs project/ChangeLog
