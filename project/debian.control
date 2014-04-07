@@ -6,7 +6,6 @@ Build-Depends: debhelper (>= 7.0.50~), bison, flex, libc-ares-dev, libkrb5-dev, 
 Standards-Version: 3.9.1
 Section: net
 Homepage: http://www.eu-emi.eu
-DM-Upload-Allowed: yes
 @DEBIAN_VCS@
 
 Package: libcanl-c2
