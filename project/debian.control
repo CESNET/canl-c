@@ -20,13 +20,17 @@ Section: libdevel
 Architecture: any
 Depends: libcanl-c2 (= ${binary:Version}), libkrb5-dev, ${misc:Depends}
 Description: Development files for EMI caNl
- This package contains development libraries and header files for EMI caNL.
+@DEBIAN_DESCRIPTION@
+ .
+ This package contains development libraries and header files for EMI caNl.
 
 Package: libcanl-c-examples
 Section: misc
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Example programs of EMI caNl
+@DEBIAN_DESCRIPTION@
+ .
  This package contains client and server examples of EMI caNl.
 
 Package: libcanl-c2-dbg
@@ -35,6 +39,8 @@ Architecture: any
 Priority: extra
 Depends: libcanl-c2 (= ${binary:Version}), ${misc:Depends}
 Description: Debugging symbols for EMI caNl library
+@DEBIAN_DESCRIPTION@
+ .
  This package contains debugging symbols for EMI caNl library.
 
 Package: libcanl-c-examples-dbg
@@ -43,4 +49,7 @@ Architecture: any
 Priority: extra
 Depends: libcanl-c-examples (= ${binary:Version}), ${misc:Depends}
 Description: Debugging symbols for EMI caNl examples
- This package contains debugging symbols for EMI caNl client and server examples.
+@DEBIAN_DESCRIPTION@
+ .
+ This package contains debugging symbols for EMI caNl client and server
+ examples.
