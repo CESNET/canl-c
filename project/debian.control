@@ -1,10 +1,10 @@
 Source: canl-c
-Priority: extra
+Priority: optional
 Maintainer: @MAINTAINER@
 Uploaders: @UPLOADERS@
 Build-Depends: debhelper (>= 7.0.50~), bison, flex, libc-ares-dev, libkrb5-dev, libssl-dev, libtool, pkg-config, texlive-fonts-recommended, texlive-latex-extra, texlive-latex-recommended
 Standards-Version: 3.9.1
-Section: libs
+Section: net
 Homepage: http://www.eu-emi.eu
 DM-Upload-Allowed: yes
 @DEBIAN_VCS@
