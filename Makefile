@@ -101,14 +101,13 @@ ${LIBCANL}:\
 	signing_policy_parse.lo signing_policy_lex.lo
 	${LINK} -rpath ${stagedir}${prefix}/${libdir} ${version_info} $+ ${LFLAGS_LIB} -o $@
 
-%.lo: %.y
+%.c: %.y
 	-mkdir $*
 	(cd $*; \
 	 ${YACC} -d ${YFLAGS} ../$< && \
 	 mv y.tab.c ../$*.c && \
 	 mv y.tab.h ../$*.h)
 	rm -r $*
-	${COMPILE} -c ${CFLAGS_LIB} $*.c
 
 %.c: %.l
 #	${LEX} -t $< > $@
