@@ -21,7 +21,7 @@ static canl_error map_proxy_error(int reason);
 static int setup_SSL_proxy_handler(glb_ctx *cc, SSL_CTX *ssl, char *cadir,
         int leave_pvd);
 extern canl_proxy_verify_desc *canl_pvd_setup_initializers(char *cadir, 
-        char *ocsp_url, int flags);
+        char *ocsp_url, unsigned int flags);
 extern void canl_pvd_destroy_initializers(void *data);
 
 #ifdef DEBUG
