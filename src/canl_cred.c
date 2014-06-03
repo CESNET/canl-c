@@ -382,7 +382,9 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred,
     creds *signer_crd = (creds*) signer_cred;
     creds *proxy_crd = (creds*) proxy_cred;
     int err = 0;
+#if 0
     int key_size = 0;
+#endif
     enum canl_cert_type cert_type = 0;
     int proxyver;
 
@@ -396,6 +398,10 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred,
         return set_error(cc, EINVAL, POSIX_ERROR, "Proxy cred. handler"
                 " not initialized" );
 
+#if 0
+#This part of the code was mentioned to check for the unpropriate key size with
+#respect to the certificate validity period. The LIFETIME_TRESHOLD should
+# not be hardwired in the code (or may not be there at all).   
     if (proxy_crd->c_req) {
         EVP_PKEY *tmp_key = X509_REQ_get_pubkey(proxy_crd->c_req);
         if (!tmp_key)
@@ -409,6 +415,7 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred,
                     "sign cert. request -the key is too short with "
                    "respect to cert. lifetime");
     }
+#endif
 
     switch (proxy_crd->c_type){
         case CANL_EEC:
