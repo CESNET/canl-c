@@ -385,7 +385,6 @@ canl_cred_sign_proxy(canl_ctx ctx, canl_cred signer_cred,
 #if 0
     int key_size = 0;
 #endif
-    enum canl_cert_type cert_type = 0;
     int proxyver;
 
     if (!ctx)
