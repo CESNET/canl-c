@@ -7,6 +7,7 @@ p_base=canl-c
 p_dev=libcanl-c-dev
 p_examples=libcanl-c-examples
 p_lib=libcanl-c2
+p_dummy=canl-c-dbg
 
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
@@ -41,3 +42,4 @@ override_dh_installdocs:
 	dh_installdocs -p$(p_examples) --link-doc=$(p_lib)
 	dh_installdocs -p$(p_lib)-dbg --link-doc=$(p_lib)
 	dh_installdocs -p$(p_examples)-dbg --link-doc=$(p_lib)
+	dh_installdocs -p$(p_dummy) --link-doc=$(p_lib)

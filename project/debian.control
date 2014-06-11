@@ -37,6 +37,8 @@ Section: debug
 Architecture: any
 Priority: extra
 Depends: libcanl-c2 (= ${binary:Version}), ${misc:Depends}
+Replaces: canl-c-dbg (<< 2.0.10)
+Breaks: canl-c-dbg (<< 2.0.10)
 Description: Debugging symbols for EMI caNl library
 @DEBIAN_DESCRIPTION@
  .
@@ -52,3 +54,11 @@ Description: Debugging symbols for EMI caNl examples
  .
  This package contains debugging symbols for EMI caNl client and server
  examples.
+
+Package: canl-c-dbg
+Section: oldlibs
+Architecture: all
+Priority: extra
+Depends: libcanl-c2-dbg, libcanl-c-examples-dbg, ${misc:Depends}
+Description: transitional dummy package
+ This is a transitional dummy package. It can safely be removed.
