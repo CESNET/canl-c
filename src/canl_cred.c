@@ -348,7 +348,10 @@ canl_cred_set_extension(canl_ctx ctx, canl_cred cred, X509_EXTENSION *cert_ext)
 
     if (!cred)
         return set_error(cc, EINVAL, POSIX_ERROR, "Cred. handler"
-                " not initialized" ); 
+                " not initialized" );
+
+    if (!cert_ext)
+        return 0; //TODO is it error? I guesss no. 
 
     if (!crd->c_cert_ext)
        crd->c_cert_ext = sk_X509_EXTENSION_new_null();
