@@ -116,3 +116,13 @@
 2.1.4-1
 - Fixing Certificate chain validation error (GH Issue #3)
 
+2.1.5-1
+- Memory handling issues
+- Fixin upgrade from older debug package
+- Polishing makefile rules usage for bison files
+- Fixing build issues (LDFLAGS)
+- Moving ChangeLogs from project subdirectory to module root directory
+- Removing Debian VCS fields
+- Simplified Debian packaging
+- Updating debian.control according to current Debian "downstream"
+

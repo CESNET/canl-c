@@ -538,6 +538,8 @@ sub mode_build {
 release-deb: clean dist distcheck deb
 
 .PHONY: all stage clean check install dist distcheck rpm deb release-rpm release-deb
+
+.NOTPARALLEL:
 /;
 
 		close MAK;
@@ -1296,7 +1298,7 @@ deb: ${package}-${version}.tar.gz
 	tar zxf $$dir/${package}_${version}.orig.tar.gz -C $$dir && \
 	cp -rf debian/ $$dir/${package}-${version} && \
 	(cd $$dir/${package}-${version} && dpkg-buildpackage -S -d -nc -us -uc) && \
-	cp -v $$dir/*.tar.gz $$dir/*.dsc dist/
+	cp -v $$dir/*.tar.* $$dir/*.dsc dist/
 ';
 
 	close MKINC;
