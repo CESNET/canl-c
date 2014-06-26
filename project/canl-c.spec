@@ -74,7 +74,7 @@ This package contains client and server examples of EMI caNl.
 
 
 %build
-perl ./configure --thrflavour= --nothrflavour= --root=/ --prefix=%{_prefix} --libdir=%{_lib} --project=emi --module canl.c
+perl ./configure --root=/ --prefix=%{_prefix} --libdir=%{_lib} --project=emi
 CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make %{?_smp_mflags}
 
 
