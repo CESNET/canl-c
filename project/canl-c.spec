@@ -79,17 +79,17 @@ CFLAGS="%{?optflags}" LDFLAGS="%{?__global_ldflags}" make %{?_smp_mflags}
 
 
 %install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
+rm -rf %{buildroot}
+make install DESTDIR=%{buildroot}
 # in -doc subpackage
-rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/README
-rm -f $RPM_BUILD_ROOT%{_defaultdocdir}/%{name}-%{version}/canl.pdf
-rm -f $RPM_BUILD_ROOT%{_libdir}/*.a
-rm -f $RPM_BUILD_ROOT%{_libdir}/*.la
+rm -f %{buildroot}%{_defaultdocdir}/%{name}-%{version}/README
+rm -f %{buildroot}%{_defaultdocdir}/%{name}-%{version}/canl.pdf
+rm -f %{buildroot}%{_libdir}/*.a
+rm -f %{buildroot}%{_libdir}/*.la
 
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 
 %post -p /sbin/ldconfig
