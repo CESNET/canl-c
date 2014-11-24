@@ -17,7 +17,7 @@ export DH_VERBOSE=1
 
 override_dh_auto_configure: config.status
 config.status:
-	perl ./configure --root=/ --prefix=/usr --libdir=lib --project=emi --module=canl.c
+	./configure --root=/ --prefix=/usr --libdir=lib --project=emi --module=canl.c
 
 override_dh_auto_clean: config.status
 	make clean
