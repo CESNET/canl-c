@@ -1108,6 +1108,11 @@ proxy_sign_ext(
       EVP_PKEY_free(new_public_key);
       new_public_key = NULL;
 
+	  /* According to ITU-T recommendation X.690 the first nine bites shall not
+	   * be 0 or 1, see also https://ggus.eu/index.php?mode=ticket_info&ticket_id=113418.
+	   * To obey the demand we put an additional byte at the very beginning. */
+	  len++;
+
       (*new_cert)->cert_info->serialNumber = ASN1_INTEGER_new();
       (*new_cert)->cert_info->serialNumber->length = len;
       (*new_cert)->cert_info->serialNumber->data   = malloc(len);
@@ -1116,7 +1121,8 @@ proxy_sign_ext(
         PRXYerr(PRXYERR_F_PROXY_SIGN_EXT, PRXYERR_R_PROCESS_PROXY);
         goto err;
       }
-      memcpy((*new_cert)->cert_info->serialNumber->data, md, SHA_DIGEST_LENGTH);
+	  (*new_cert)->cert_info->serialNumber->data[0] = 0x01;
+      memcpy((*new_cert)->cert_info->serialNumber->data + 1, md, SHA_DIGEST_LENGTH);
     } 
     else if (selfsigned) {
       ASN1_INTEGER *copy = ASN1_INTEGER_new();
