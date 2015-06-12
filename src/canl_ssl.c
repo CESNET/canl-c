@@ -2,10 +2,13 @@
 #include "canl_ssl.h"
 #include "canl_mech_ssl.h"
 #include <openssl/ocsp.h>
+#include <pthread.h>
 
 #define SSL_SERVER_METH SSLv23_server_method()
 #define SSL_CLIENT_METH SSLv3_client_method()
 #define DESTROY_TIMEOUT 10
+
+pthread_mutex_t canl_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int do_ssl_connect( glb_ctx *cc, io_handler *io, 
         SSL *ssl, struct timeval *timeout);
@@ -33,9 +36,19 @@ static void dbg_print_ssl_error(int errorcode);
   long skew, long maxage) {
  */ 
 
-    static canl_err_code
+static void
+openssl_init(void)
+{
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+}
+
+static canl_err_code
 ssl_initialize(glb_ctx *cc)
 {
+    static pthread_once_t openssl_once = PTHREAD_ONCE_INIT;
+
     mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **) &cc->mech_ctx;
     int err = 0;
     char *ca_cert_fn, *user_cert_fn, *user_key_fn, *user_proxy_fn;
@@ -46,9 +59,7 @@ ssl_initialize(glb_ctx *cc)
     if (!cc)
         return EINVAL;
 
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_all_algorithms();
+    pthread_once(&openssl_once, openssl_init);
     ERR_clear_error();
 
     ssl_ctx = SSL_CTX_new(SSLv23_method());
