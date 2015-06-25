@@ -604,12 +604,12 @@ sub mode_checkout() {
 BEGIN{
 %need_externs_aux = (
 	'lb.client' => [ qw/cppunit:B classads:B libtool:B globus:B pkgconfig:B/ ],
-	'lb.common' => [ qw/expat cares:B cppunit:B classads:B libtool:B globus:B pkgconfig:B/ ],
+	'lb.common' => [ qw/expat:B cares:B cppunit:B classads:B libtool:B globus:B pkgconfig:B/ ],
 	'lb.doc' => [ qw/tetex-latex:B texlive-latex-recommended:B texlive-fonts-recommended:B texlive-latex-extra:B/ ],
 	'lb.logger' => [ qw/cppunit:B libtool:B globus:B pkgconfig:B/ ],
 	'lb.logger-msg' => [ qw/cppunit:B activemq libtool:B globus:B pkgconfig:B/ ],
 	'lb.nagios' => [ qw/globus_proxy_utils:R/ ],
-	'lb.server' => [ qw/globus_essentials:R globus:B expat cares mysql-server:R cppunit:B gsoap:B classads:B voms:B gridsite:B bison:B libtool:B libxml2 flex:B pkgconfig:B/ ],
+	'lb.server' => [ qw/globus_essentials:R globus:B expat:B cares mysql-server:R cppunit:B gsoap:B classads:B voms:B gridsite:B bison:B libtool:B libxml2 flex:B pkgconfig:B/ ],
 	'lb.state-machine' => [ qw/classads:B libtool:B libxslt:B expat:B globus:B pkgconfig:B/ ],
 	'lb.utils' => [ qw/cppunit:B libtool:B globus:B pkgconfig:B/ ],
 	'lb.ws-interface' => [ qw/libxslt:B tidy:B/ ],
