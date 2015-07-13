@@ -99,8 +99,10 @@ rm -rf %{buildroot}
 
 
 %files
+%{!?_licensedir:%global license %doc}
 %defattr(-,root,root)
-%doc ChangeLog LICENSE README
+%doc ChangeLog README
+%license LICENSE
 %{_libdir}/libcanl_c.so.2
 %{_libdir}/libcanl_c.so.2.*
 
@@ -111,7 +113,8 @@ rm -rf %{buildroot}
 
 %files doc
 %defattr(-,root,root)
-%doc LICENSE canl.pdf
+%doc canl.pdf
+%license LICENSE
 
 %files examples
 %defattr(-,root,root)
