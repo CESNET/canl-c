@@ -355,7 +355,7 @@ send_request(OCSP_REQUEST *req, char *host, char *path,  int port, int ssl,
     if (ssl){
         BIO *sbio;
         /*TODO what method to use? default is SSLv3 for now*/
-        ctx_in = SSL_CTX_new(SSLv3_client_method());
+        ctx_in = SSL_CTX_new(SSLv23_client_method());
         if (ctx_in == NULL) {
             goto end;
         }
