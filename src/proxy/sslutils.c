@@ -1619,6 +1619,7 @@ int proxy_check_proxy_name(
     ASN1_STRING *                       data;
     int nidv3, nidv4 = 0;
     int indexv3 = -1, indexv4 = -1;
+    X509_EXTENSION *ext = NULL;
 
     nidv3 = my_txt2nid(PROXYCERTINFO_V3);
     nidv4 = my_txt2nid(PROXYCERTINFO_V4);
@@ -1631,7 +1632,7 @@ int proxy_check_proxy_name(
 
     if (indexv3 != -1 || indexv4 != -1) {
       /* Its a proxy! */
-      X509_EXTENSION *ext = X509_get_ext(cert, (indexv3 == -1 ? indexv4 : indexv3));
+      ext = X509_get_ext(cert, (indexv3 == -1 ? indexv4 : indexv3));
 
       if (ext) {
         myPROXYCERTINFO *certinfo = NULL;
@@ -1655,7 +1656,7 @@ int proxy_check_proxy_name(
         cert->ex_flags |= EXFLAG_PROXY;
 #endif
 #endif
-        return 1;
+        //return 1;
       }
     }
     subject = X509_get_subject_name(cert);
@@ -1709,6 +1710,25 @@ int proxy_check_proxy_name(
                  */
                 ret = -1;
             }
+            X509_NAME_free(name);
+        }
+        else if (ext != NULL) {
+            name = X509_NAME_dup(X509_get_issuer_name(cert));
+            ne = X509_NAME_ENTRY_create_by_NID(NULL, NID_commonName,
+                                               data->type, data->data, -1);
+            X509_NAME_add_entry(name,ne,X509_NAME_entry_count(name),0);
+            X509_NAME_ENTRY_free(ne);
+            ne = NULL;
+
+            if (X509_NAME_cmp_no_set(name,subject))
+            {
+                /*
+                 * Reject this certificate, only the user
+                 * may sign the proxy
+                 */
+                ret = -1;
+            } else
+                ret = 1;
             X509_NAME_free(name);
         }
     }
@@ -1970,7 +1990,7 @@ proxy_verify_callback(
 
         /*openssl failed, but we checked it ourselves and it was OK*/
         ctx->error = 0;
-        return(ok);
+        //return(ok);
     }
 
     /* Note: OpenSSL will try to verify the client's chain on the client side 
