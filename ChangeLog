@@ -132,3 +132,6 @@
 - Calling OpenSSL init routines exactly once (Fixes Issue #7)
 - Makes the first byte of SN always 0x01 (Fixes GGUS #113418)
 
+2.1.7-1
+- Quick fix to prevent RFC Proxy DN forgery (RT #11476)
+
