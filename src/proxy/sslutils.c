@@ -255,27 +255,30 @@ X509_NAME_cmp_no_set(
     X509_NAME_ENTRY *                   na;
     X509_NAME_ENTRY *                   nb;
 
-    if (sk_X509_NAME_ENTRY_num(a->entries) !=
-        sk_X509_NAME_ENTRY_num(b->entries))
+    if (X509_NAME_entry_count(a) != X509_NAME_entry_count(b))
     {
-        return(sk_X509_NAME_ENTRY_num(a->entries) -
-               sk_X509_NAME_ENTRY_num(b->entries));
+        return(X509_NAME_entry_count(a) - X509_NAME_entry_count(b));
     }
     
-    for (i=sk_X509_NAME_ENTRY_num(a->entries)-1; i>=0; i--)
+    for (i=X509_NAME_entry_count(a)-1; i>=0; i--)
     {
-        na = sk_X509_NAME_ENTRY_value(a->entries,i);
-        nb = sk_X509_NAME_ENTRY_value(b->entries,i);
-        j = na->value->length-nb->value->length;
+        ASN1_STRING *val_a, *val_b;
+
+        na = X509_NAME_get_entry(a,i);
+        nb = X509_NAME_get_entry(b,i);
+
+        val_a = X509_NAME_ENTRY_get_data(na);
+        val_b = X509_NAME_ENTRY_get_data(nb);
+        j = val_a->length - val_b->length;
 
         if (j)
         {
             return(j);
         }
         
-        j = memcmp(na->value->data,
-                   nb->value->data,
-                   na->value->length);
+        j = memcmp(val_a->data,
+                   val_b->data,
+                   val_a->length);
         if (j)
         {
             return(j);
@@ -285,11 +288,12 @@ X509_NAME_cmp_no_set(
     /* We will check the object types after checking the values
      * since the values will more often be different than the object
      * types. */
-    for (i=sk_X509_NAME_ENTRY_num(a->entries)-1; i>=0; i--)
+    for (i=X509_NAME_entry_count(a)-1; i>=0; i--)
     {
-        na = sk_X509_NAME_ENTRY_value(a->entries,i);
-        nb = sk_X509_NAME_ENTRY_value(b->entries,i);
-        j = OBJ_cmp(na->object,nb->object);
+        na = X509_NAME_get_entry(a,i);
+        nb = X509_NAME_get_entry(b,i);
+        j = OBJ_cmp(X509_NAME_ENTRY_get_object(na),
+                    X509_NAME_ENTRY_get_object(nb));
 
         if (j)
         {
@@ -695,7 +699,7 @@ proxy_genreq(
             goto err;
         }
         
-        if (upkey->type != EVP_PKEY_RSA)
+        if (EVP_PKEY_id(upkey) != EVP_PKEY_RSA)
         {
             PRXYerr(PRXYERR_F_PROXY_GENREQ,PRXYERR_R_PROCESS_PROXY_KEY);
             goto err;
@@ -1028,8 +1032,10 @@ proxy_sign_ext(
     unsigned char                       md[SHA_DIGEST_LENGTH];
     unsigned int                        len;
 
+/* for openssl 1.1
     if (!selfsigned)
       user_cert_info = user_cert->cert_info;
+*/
 
     *new_cert = NULL;
     
@@ -1193,7 +1199,7 @@ proxy_sign_ext(
         X509_gmtime_adj(X509_get_notAfter(*new_cert),(long) seconds - pastproxy);
       }
       else {
-        X509_set_notAfter(*new_cert, user_cert_info->validity->notAfter);
+        X509_set_notAfter(*new_cert, X509_get0_notAfter(user_cert));
       }
     }
 
