@@ -1097,14 +1097,14 @@ proxy_sign_ext(
       BIGNUM *bn = NULL;
       if (BN_hex2bn(&bn, newserial) != 0) {
         ASN1_INTEGER *a_int = BN_to_ASN1_INTEGER(bn, NULL);
-        ASN1_INTEGER_free((*new_cert)->cert_info->serialNumber);
 
-        /* Note:  The a_int == NULL case is handled below. */
-        (*new_cert)->cert_info->serialNumber = a_int;
+        X509_set_serialNumber(*new_cert, a_int);
         BN_free(bn);
       }
     }
     else if (proxyver > 2) {
+      ASN1_INTEGER *serial = NULL;
+
       ASN1_INTEGER_free(X509_get_serialNumber(*new_cert));
           
       new_public_key = X509_REQ_get_pubkey(req);
@@ -1121,6 +1121,20 @@ proxy_sign_ext(
 	   * To obey the demand we put an additional byte at the very beginning. */
 	  len++;
 
+      serial = ASN1_INTEGER_new();
+      serial->length = len;
+      serial->data   = malloc(len);
+      if (serial->data == NULL) {
+        PRXYerr(PRXYERR_F_PROXY_SIGN_EXT, PRXYERR_R_PROCESS_PROXY);
+        goto err;
+      }
+      serial->data[0] = 0x01;
+      memcpy(serial->data+1, md, SHA_DIGEST_LENGTH);
+
+      X509_set_serialNumber(*new_cert, serial);
+      ASN1_INTEGER_free(serial);
+
+/*
       (*new_cert)->cert_info->serialNumber = ASN1_INTEGER_new();
       (*new_cert)->cert_info->serialNumber->length = len;
       (*new_cert)->cert_info->serialNumber->data   = malloc(len);
@@ -1131,6 +1145,7 @@ proxy_sign_ext(
       }
 	  (*new_cert)->cert_info->serialNumber->data[0] = 0x01;
       memcpy((*new_cert)->cert_info->serialNumber->data + 1, md, SHA_DIGEST_LENGTH);
+*/
     } 
     else if (selfsigned) {
       ASN1_INTEGER *copy = ASN1_INTEGER_new();
