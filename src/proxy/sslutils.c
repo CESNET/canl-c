@@ -1039,6 +1039,7 @@ proxy_sign_ext(
 
     *new_cert = NULL;
     
+/*
     if ((req->req_info == NULL) ||
         (req->req_info->pubkey == NULL) ||
         (req->req_info->pubkey->public_key == NULL) ||
@@ -1047,6 +1048,7 @@ proxy_sign_ext(
         PRXYerr(PRXYERR_F_PROXY_SIGN,PRXYERR_R_MALFORM_REQ);
         goto err;
     }
+*/
     
     if ((new_public_key=X509_REQ_get_pubkey(req)) == NULL) {
       PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_MALFORM_REQ);
@@ -1215,16 +1217,7 @@ proxy_sign_ext(
      * such as to control the usage of the cert
      */
 
-    if (new_cert_info->version == NULL)
-    {
-        if ((new_cert_info->version = ASN1_INTEGER_new()) == NULL)
-        {
-            PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_PROCESS_PROXY);
-            goto err;
-        }
-    }
-
-    ASN1_INTEGER_set(new_cert_info->version,2); /* version 3 certificate */
+    X509_set_version(new_cert, 2); /* version 3 certificate */
 
     /* Free the current entries if any, there should not
      * be any I belive 
