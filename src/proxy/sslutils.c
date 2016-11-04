@@ -1868,7 +1868,7 @@ proxy_verify_callback(
     int                                 ok,
     X509_STORE_CTX *                    ctx)
 {
-    X509_OBJECT                         obj;
+    X509_OBJECT                         *obj = NULL;
     X509 *                              cert = NULL;
 #ifdef X509_V_ERR_CERT_REVOKED
     X509_CRL *                          crl;
@@ -1883,7 +1883,6 @@ proxy_verify_callback(
     time_t                              goodtill;
     char *                              cert_dir = NULL;
     EVP_PKEY *key = NULL;
-    int       objset = 0;
     canl_ocsprequest_t *ocsp_data = NULL;
     X509 *ctx_cert, *ctx_current_cert, *ctx_current_issuer;
     STACK_OF(X509) *ctx_chain;
@@ -2114,13 +2113,13 @@ proxy_verify_callback(
          * this allows the CA to revoke its own cert as well. 
          */
         
+        obj = X509_OBJECT_new();
         if (X509_STORE_get_by_subject(ctx,
                                       X509_LU_CRL, 
                                       X509_get_subject_name(ctx_current_issuer),
-                                      &obj))
+                                      obj))
         {
-            objset = 1;
-            crl =  obj.data.crl;
+            crl = X509_OBJECT_get0_X509_CRL(obj);
             /* verify the signature on this CRL */
 
             key = X509_get_pubkey(ctx_current_issuer);
@@ -2290,8 +2289,8 @@ proxy_verify_callback(
     }
 
     EVP_PKEY_free(key);
-    if (objset)
-        X509_OBJECT_free_contents(&obj);
+    if (obj)
+        X509_OBJECT_free(obj);
 
     if (ret != 0)
         if (ret != CANL_OCSPRESULT_ERROR_NOAIAOCSPURI)
@@ -2304,8 +2303,8 @@ fail_verify:
     if (key)
       EVP_PKEY_free(key);
 
-    if (objset)
-      X509_OBJECT_free_contents(&obj);
+    if (obj)
+      X509_OBJECT_free(obj);
 
     return(0);
 }
