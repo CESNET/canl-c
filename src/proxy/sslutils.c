@@ -1679,7 +1679,7 @@ int proxy_check_proxy_name(
         }
 #if OPENSSL_VERSION_NUMBER >= 0x00908010
 #ifdef EXFLAG_PROXY
-        cert->ex_flags |= EXFLAG_PROXY;
+        X509_set_proxy_flag(cert);
 #endif
 #endif
         //return 1;
