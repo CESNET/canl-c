@@ -1440,7 +1440,7 @@ proxy_marshal_bp(
     }
 
     if (!PEM_write_bio_RSAPrivateKey(bp,
-                                     npkey->pkey.rsa,
+                                     EVP_PKEY_get0_RSA(npkey),
                                      NULL,
                                      NULL,
                                      0,
