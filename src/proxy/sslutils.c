@@ -1887,6 +1887,7 @@ proxy_verify_callback(
     int       objset = 0;
     canl_ocsprequest_t *ocsp_data = NULL;
     X509 *ctx_cert, *ctx_current_cert;
+    STACK_OF(X509) *ctx_chain;
     int ctx_error;
 
     /*
@@ -1928,6 +1929,7 @@ proxy_verify_callback(
     ctx_cert = X509_STORE_CTX_get0_cert(ctx);
     ctx_current_cert = X509_STORE_CTX_get_current_cert(ctx);
     ctx_current_issuer = X509_STORE_CTX_get0_current_issuer(ctx);
+    ctx_chain = X509_STORE_CTX_get0_chain(ctx);
     ctx_error = X509_STORE_CTX_get_error(ctx);
 
     /*
@@ -1952,7 +1954,7 @@ proxy_verify_callback(
 	    /* Path length exceeded for the CA (should never happen in OpenSSL - famous last words) */
 		    /*Log( L_DEBUG, "Shallow Error X509_V_ERR_PATH_LENGTH_EXCEEDED: 
                       Running alternative RFC5280 and RFC3820 compliance tests.\n"); */
-	    if (grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx)) == X509_V_OK){
+	    if (grid_verifyPathLenConstraints(ctx_chain) == X509_V_OK){
                 ok = 1;
                 break;
             }
@@ -1962,7 +1964,7 @@ proxy_verify_callback(
 	    /* This is NOT about X509_V_ERR_PATH_LENGTH_EXCEEDED */
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L
 	    if (ctx_error == X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED)
-	        if (grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx)) == X509_V_OK){
+	        if (grid_verifyPathLenConstraints(ctx_chain) == X509_V_OK){
                     ok = 1;
                     break;
                  }
@@ -2183,9 +2185,9 @@ proxy_verify_callback(
                 struct policy **namespaces = NULL;
                 int result = SUCCESS_UNDECIDED;
 
-                read_pathrestriction(ctx->chain, cert_dir, &namespaces, &signings);
+                read_pathrestriction(ctx_chain, cert_dir, &namespaces, &signings);
 
-                result = restriction_evaluate(ctx->chain, namespaces, signings);
+                result = restriction_evaluate(ctx_chain, namespaces, signings);
                 
                 voms_free_policies(namespaces);
                 voms_free_policies(signings);
@@ -2255,7 +2257,7 @@ proxy_verify_callback(
     if(ctx_current_cert == ctx_cert) {
        int err;
 
-       err = grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx));
+       err = grid_verifyPathLenConstraints(ctx_chain);
        X509_STORE_CTX_set_error(ctx, err);
        if (err != X509_V_OK)
           goto fail_verify;
@@ -2278,8 +2280,8 @@ proxy_verify_callback(
 
             ocsp_data->skew = MAX_VALIDITY_PERIOD;
             ocsp_data->maxage = -1;
-            if (ctx->chain)
-                ocsp_data->cert_chain = ctx->chain;
+            if (ctx_chain)
+                ocsp_data->cert_chain = ctx_chain;
             /*Timeout should be set here 
               ocsp_data->timeout = -1; */
             ret = do_ocsp_verify (ocsp_data);
