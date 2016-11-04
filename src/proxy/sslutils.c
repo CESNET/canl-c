@@ -1225,9 +1225,11 @@ proxy_sign_ext(
     /* transfer the public key from req to new cert */
     /* DEE? should this be a dup? */
 
-    X509_PUBKEY_free(new_cert_info->key);
-    new_cert_info->key = req->req_info->pubkey;
-    req->req_info->pubkey = NULL;
+//    X509_PUBKEY_free(new_cert_info->key);
+    new_public_key = X509_REQ_get_pubkey(req);
+    X509_set_pubkey(*new_cert, new_public_key);
+    EVP_PKEY_free(new_public_key);
+//    req->req_info->pubkey = NULL;
 
     /*
      * We can now add additional extentions here
