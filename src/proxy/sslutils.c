@@ -1852,8 +1852,9 @@ Description:
 Parameters:
         ok  1 then we are given one last chance to check
                 this certificate.
-                0 then this certificate has failed, and ctx->error has the
-                reason. We may want to override the failure. 
+                0 then this certificate has failed, and ctx has the
+                reason (see X509_STORE_CTX_get_error()). We may want
+                to override the failure. 
         ctx the X509_STORE_CTX which has as a user arg, our 
                 proxy verify desc. 
    
@@ -1886,6 +1887,7 @@ proxy_verify_callback(
     int       objset = 0;
     canl_ocsprequest_t *ocsp_data = NULL;
     X509 *ctx_cert, *ctx_current_cert;
+    int ctx_error;
 
     /*
      * If we are being called recursivly to check delegate
@@ -1925,6 +1927,7 @@ proxy_verify_callback(
 
     ctx_cert = X509_STORE_CTX_get0_cert(ctx);
     ctx_current_cert = X509_STORE_CTX_get_current_cert(ctx);
+    ctx_error = X509_STORE_CTX_get_error(ctx);
 
     /*
      * We now check for some error conditions which
@@ -1933,7 +1936,7 @@ proxy_verify_callback(
         
     if (!ok)
     {
-        switch (ctx->error)
+        switch (ctx_error)
         {
 #if SSLEAY_VERSION_NUMBER >=  0x0090581fL
         case X509_V_ERR_PATH_LENGTH_EXCEEDED:
@@ -1957,7 +1960,7 @@ proxy_verify_callback(
 	    /* Path length exceeded for the Proxy! -> Override and continue */
 	    /* This is NOT about X509_V_ERR_PATH_LENGTH_EXCEEDED */
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L
-	    if (ctx->error == X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED)
+	    if (ctx_error == X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED)
 	        if (grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx)) == X509_V_OK){
                     ok = 1;
                     break;
@@ -2019,7 +2022,7 @@ proxy_verify_callback(
             goto fail_verify;
 
         /*openssl failed, but we checked it ourselves and it was OK*/
-        ctx->error = 0;
+        X509_STORE_CTX_set_error(ctx, 0);
         //return(ok);
     }
 
@@ -2047,7 +2050,7 @@ proxy_verify_callback(
     if (ret < 0)
     {
         PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_BAD_PROXY_ISSUER);
-        ctx->error = X509_V_ERR_CERT_SIGNATURE_FAILURE;
+        X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_SIGNATURE_FAILURE);
         goto fail_verify;
     }
     if (ret > 0)
@@ -2077,7 +2080,7 @@ proxy_verify_callback(
             /* i.e. there is still another cert on the chain */
             /* indicating we are trying to sign it! */
             PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_LPROXY_MISSED_USED);
-            ctx->error = X509_V_ERR_CERT_SIGNATURE_FAILURE;
+            X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_SIGNATURE_FAILURE);
             goto fail_verify;
           }
         }
@@ -2123,7 +2126,7 @@ proxy_verify_callback(
             if (X509_CRL_verify(crl, key) <= 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_SIGNATURE_FAILURE);
-                ctx->error = X509_V_ERR_CRL_SIGNATURE_FAILURE;
+                X509_STORE_CTX_set_error(ctx, X509_V_ERR_CRL_SIGNATURE_FAILURE);
                 goto fail_verify;
             }
 
@@ -2133,7 +2136,7 @@ proxy_verify_callback(
             if (i == 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_NEXT_UPDATE_FIELD);
-                ctx->error = X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD;
+                X509_STORE_CTX_set_error(ctx, X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD);
                 goto fail_verify;
             }
            
@@ -2141,7 +2144,7 @@ proxy_verify_callback(
             if (i < 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_HAS_EXPIRED);
-                ctx->error = X509_V_ERR_CRL_HAS_EXPIRED;
+                X509_STORE_CTX_set_error(ctx, X509_V_ERR_CRL_HAS_EXPIRED);
                 goto fail_verify;
             }
 
@@ -2158,7 +2161,7 @@ proxy_verify_callback(
                                      X509_get_serialNumber(ctx_current_cert)))
                 {
                     PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CERT_REVOKED);
-                    ctx->error = X509_V_ERR_CERT_REVOKED;
+                    X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REVOKED);
                     goto fail_verify;
                 }
             }
@@ -2235,7 +2238,7 @@ proxy_verify_callback(
 
     if (!check_critical_extensions(ctx_current_cert, itsaproxy)) {
       PRXYerr(PRXYERR_F_VERIFY_CB, PRXYERR_R_UNKNOWN_CRIT_EXT);
-      ctx->error = X509_V_ERR_CERT_REJECTED;
+      X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REJECTED);
       goto fail_verify;
     }
 
@@ -2248,9 +2251,14 @@ proxy_verify_callback(
      * See x509_vfy.c check_chain_purpose
      * all we do is substract off the proxy_dpeth 
      */
-    if(ctx_current_cert == ctx_cert)
-       if ((ctx->error = grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx))) != X509_V_OK)
+    if(ctx_current_cert == ctx_cert) {
+       int err;
+
+       err = grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx));
+       X509_STORE_CTX_set_error(ctx, err);
+       if (err != X509_V_OK)
           goto fail_verify;
+    }
 
     /*
        OCSP check
