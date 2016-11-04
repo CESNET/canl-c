@@ -488,6 +488,7 @@ ERR_load_prxyerr_strings(
             RAND_load_file(randfile,1024L*1024L);
         }
 
+#if 0
 #if SSLEAY_VERSION_NUMBER >=  0x0090581fL
         /*
          * Try to use the Entropy Garthering Deamon
@@ -499,6 +500,7 @@ ERR_load_prxyerr_strings(
             egd_path = "/etc/entropy";
         }
         RAND_egd(egd_path);
+#endif
 #endif
                 
         /* if still not enough entropy*/
