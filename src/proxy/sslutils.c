@@ -3318,6 +3318,8 @@ proxy_load_user_key(
      */
     if (ucert)
     {
+        int match;
+#if 0
         X509_PUBKEY *key = X509_get_X509_PUBKEY(ucert);
         ucertpkey =  X509_PUBKEY_get(key);
         int mismatch = 0;
@@ -3372,8 +3374,9 @@ proxy_load_user_key(
         }
         
         EVP_PKEY_free(ucertpkey);
-
-        if (mismatch)
+#endif
+        match = X509_check_private_key(ucert, *private_key);
+        if (match != 1)
         {
             PRXYerr(PRXYERR_F_INIT_CRED,PRXYERR_R_KEY_CERT_MISMATCH);
             status = PRXYERR_R_KEY_CERT_MISMATCH;
