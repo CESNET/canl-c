@@ -1236,7 +1236,7 @@ proxy_sign_ext(
      * such as to control the usage of the cert
      */
 
-    X509_set_version(new_cert, 2); /* version 3 certificate */
+    X509_set_version(*new_cert, 2); /* version 3 certificate */
 
     /* Free the current entries if any, there should not
      * be any I belive 
