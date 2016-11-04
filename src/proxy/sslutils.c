@@ -2075,7 +2075,7 @@ proxy_verify_callback(
 
           pvd->limited_proxy = 1; /* its a limited proxy */
 
-          if (ctx->error_depth && !pvd->multiple_limited_proxy_ok) {
+          if (X509_STORE_CTX_get_error_depth(ctx) && !pvd->multiple_limited_proxy_ok) {
             /* tried to sign a cert with a limited proxy */
             /* i.e. there is still another cert on the chain */
             /* indicating we are trying to sign it! */
