@@ -2158,7 +2158,7 @@ proxy_verify_callback(
                 revoked = (X509_REVOKED *)sk_X509_REVOKED_value(
                     X509_CRL_get_REVOKED(crl),i);
 
-                if(!ASN1_INTEGER_cmp(revoked->serialNumber,
+                if(!ASN1_INTEGER_cmp(X509_REVOKED_get0_serialNumber(revoked),
                                      X509_get_serialNumber(ctx_current_cert)))
                 {
                     PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CERT_REVOKED);
