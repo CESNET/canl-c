@@ -1233,6 +1233,7 @@ proxy_sign_ext(
 
     X509_set_version(*new_cert, 2); /* version 3 certificate */
 
+#if 0
     /* Free the current entries if any, there should not
      * be any I belive 
      */
@@ -1242,22 +1243,26 @@ proxy_sign_ext(
         sk_X509_EXTENSION_pop_free(new_cert_info->extensions,
                                    X509_EXTENSION_free);
     }
+#endif
         
     /* Add extensions provided by the client */
 
     if (extensions)
     {
+#if 0
         if ((new_cert_info->extensions =
              sk_X509_EXTENSION_new_null()) == NULL)
         {
             PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_DELEGATE_COPY);
         }
+#endif
 
         /* Lets 'copy' the client extensions to the new proxy */
         /* we should look at the type, and only copy some */
 
         for (i=0; i<sk_X509_EXTENSION_num(extensions); i++)
         {
+#if 0
             extension = X509_EXTENSION_dup(
                 sk_X509_EXTENSION_value(extensions,i));
 
@@ -1269,6 +1274,14 @@ proxy_sign_ext(
             
             if (!sk_X509_EXTENSION_push(new_cert_info->extensions,
                                         extension))
+            {
+                PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_DELEGATE_COPY);
+                goto err;
+            }
+#endif
+            extension = sk_X509_EXTENSION_value(extensions, i);
+            i = X509_add_ext(new_cert, extension, -1);
+            if (i == 0)
             {
                 PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_DELEGATE_COPY);
                 goto err;
