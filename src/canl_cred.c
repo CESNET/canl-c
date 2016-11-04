@@ -145,7 +145,7 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
 
 void pkey_dup(EVP_PKEY **to, EVP_PKEY *from)
 {
-    CRYPTO_add(&from->references,1,CRYPTO_LOCK_EVP_PKEY);
+    EVP_PKEY_up_ref(from);
     *to = from;
 }
 
