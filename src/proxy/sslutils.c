@@ -1764,9 +1764,9 @@ int proxy_check_proxy_name(
     if (ret > 0) {
       X509_set_proxy_flag(cert);
       if (ret == 1)
-        cert->ex_pcpathlen = -1; /* unlimited */
+        X509_set_proxy_pathlen(cert, -1); /* unlimited */
       else if (ret == 2)
-        cert->ex_pcpathlen = 0; /* Only at top level if limited */
+        X509_set_proxy_pathlen(cert, 0); /* Only at top level if limited */
     }
 #endif
 #endif
