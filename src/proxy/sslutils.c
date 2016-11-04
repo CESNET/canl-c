@@ -1927,6 +1927,7 @@ proxy_verify_callback(
 
     ctx_cert = X509_STORE_CTX_get0_cert(ctx);
     ctx_current_cert = X509_STORE_CTX_get_current_cert(ctx);
+    ctx_current_issuer = X509_STORE_CTX_get0_current_issuer(ctx);
     ctx_error = X509_STORE_CTX_get_error(ctx);
 
     /*
@@ -2114,7 +2115,7 @@ proxy_verify_callback(
         
         if (X509_STORE_get_by_subject(ctx,
                                       X509_LU_CRL, 
-                                      X509_get_subject_name(ctx->current_issuer),
+                                      X509_get_subject_name(ctx_current_issuer),
                                       &obj))
         {
             objset = 1;
@@ -2122,7 +2123,7 @@ proxy_verify_callback(
             crl_info = crl->crl;
             /* verify the signature on this CRL */
 
-            key = X509_get_pubkey(ctx->current_issuer);
+            key = X509_get_pubkey(ctx_current_issuer);
             if (X509_CRL_verify(crl, key) <= 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_SIGNATURE_FAILURE);
