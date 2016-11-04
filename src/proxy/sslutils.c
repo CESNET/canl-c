@@ -2328,10 +2328,9 @@ proxy_verify_cert_chain(
     int                                 retval = 0;
     X509_STORE *                        cert_store = NULL;
     X509_LOOKUP *                       lookup = NULL;
-    X509_STORE_CTX                      csc;
+    X509_STORE_CTX                      *csc = NULL;
     X509 *                              xcert = NULL;
     X509 *                              scert = NULL;
-    int cscinitialized = 0;
 
     scert = ucert;
     if(!(cert_store = X509_STORE_new())){
@@ -2372,18 +2371,18 @@ proxy_verify_cert_chain(
                                         X509_LOOKUP_hash_dir())))
     {
         X509_LOOKUP_add_dir(lookup,pvd->pvxd->certdir,X509_FILETYPE_PEM);
-        X509_STORE_CTX_init(&csc,cert_store,scert,NULL);
-        cscinitialized = 1;
+        csc = X509_STORE_CTX_new();
+        X509_STORE_CTX_init(csc,cert_store,scert,NULL);
 #if SSLEAY_VERSION_NUMBER >=  0x0090600fL
         /* override the check_issued with our version */
         csc.check_issued = proxy_check_issued;
 #endif
-        X509_STORE_CTX_set_ex_data(&csc,
+        X509_STORE_CTX_set_ex_data(csc,
                                    PVD_STORE_EX_DATA_IDX, (void *)pvd);
 #ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
-        X509_STORE_CTX_set_flags(&csc, X509_V_FLAG_ALLOW_PROXY_CERTS);
+        X509_STORE_CTX_set_flags(csc, X509_V_FLAG_ALLOW_PROXY_CERTS);
 #endif
-        if(X509_verify_cert(&csc) != 1)
+        if(X509_verify_cert(csc) != 1)
         {
             goto err;
         }
@@ -2391,8 +2390,8 @@ proxy_verify_cert_chain(
     retval = 1;
 
 err:
-    if (cscinitialized) 
-      X509_STORE_CTX_cleanup(&csc);
+    if (csc) 
+      X509_STORE_CTX_free(csc);
     if (cert_store)
       X509_STORE_free(cert_store);
     return retval;
