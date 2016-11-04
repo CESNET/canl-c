@@ -1661,6 +1661,7 @@ int proxy_check_proxy_name(
       ext = X509_get_ext(cert, (indexv3 == -1 ? indexv4 : indexv3));
 
       if (ext) {
+#if 0
         myPROXYCERTINFO *certinfo = NULL;
 
         certinfo = (myPROXYCERTINFO *)X509V3_EXT_d2i(ext);
@@ -1677,6 +1678,7 @@ int proxy_check_proxy_name(
           }
           myPROXYCERTINFO_free(certinfo);
         }
+#endif
 #if OPENSSL_VERSION_NUMBER >= 0x00908010
 #ifdef EXFLAG_PROXY
         X509_set_proxy_flag(cert);
