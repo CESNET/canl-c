@@ -4307,6 +4307,7 @@ static int grid_verifyPathLenConstraints (STACK_OF(X509) * chain)
 
     int ca_path_len_countdown    = -1;
     int proxy_path_len_countdown = -1;
+    int ex_pcpathlen, ex_pathlen;
 
     /* No chain, no game */
     if (!chain) {
@@ -4326,6 +4327,9 @@ static int grid_verifyPathLenConstraints (STACK_OF(X509) * chain)
                 retval = 1;
                 goto failure;
             }
+
+            ex_pcpathlen = X509_get_proxy_pathlen(cert);
+            ex_pathlen = X509_get_pathlen(cert);
 
             /* Log (L_DEBUG, "\tCert here is: %s\n", cert_subjectdn); */
             curr_cert_type = lcmaps_type_of_proxy(cert);
@@ -4401,12 +4405,12 @@ continue_after_warning:
                 }
 
                 /* Store pathlen, override when small, otherwise keep the smallest */
-                if (cert->ex_pathlen != -1) {
+                if (ex_pathlen != -1) {
                     /* Update when ca_path_len_countdown is the initial value
                      * or when the PathLenConstraint is smaller then the
                      * remembered ca_path_len_countdown */
-                    if ((ca_path_len_countdown == -1) || (cert->ex_pathlen < ca_path_len_countdown)) {
-                        ca_path_len_countdown = cert->ex_pathlen;
+                    if ((ca_path_len_countdown == -1) || (ex_pathlen < ca_path_len_countdown)) {
+                        ca_path_len_countdown = ex_pathlen;
                     } else {
                         /* If a path length was already issuesd, lower ca_path_len_countdown */
                         if (ca_path_len_countdown != -1)
@@ -4454,13 +4458,13 @@ continue_after_warning:
                 }
 
                 /* Store pathlen, override when small, otherwise keep the smallest */
-                if (cert->ex_pcpathlen != -1) {
+                if (ex_pcpathlen != -1) {
                     /* Update when proxy_path_len_countdown is the initial value
                      * or when the PathLenConstraint is smaller then the
                      * remembered proxy_path_len_countdown */
 
-                    if ((proxy_path_len_countdown == -1) || (cert->ex_pcpathlen < proxy_path_len_countdown)) {
-                        proxy_path_len_countdown = cert->ex_pcpathlen;
+                    if ((proxy_path_len_countdown == -1) || (ex_pcpathlen < proxy_path_len_countdown)) {
+                        proxy_path_len_countdown = ex_pcpathlen;
                        /*  Log (L_DEBUG, "Cert here is: %s -> Setting proxy path len constraint to: %d\n", cert_subjectdn, cert->ex_pcpathlen);*/
                     } else {
                         /* If a path length was already issuesd, lower ca_path_len_countdown */
@@ -4489,13 +4493,13 @@ continue_after_warning:
                 }
 
                 /* Store pathlen, override when small, otherwise keep the smallest */
-                if (cert->ex_pcpathlen != -1) {
+                if (ex_pcpathlen != -1) {
                     /* Update when proxy_path_len_countdown is the initial value
                      * or when the PathLenConstraint is smaller then the
                      * remembered proxy_path_len_countdown */
 
-                    if ((proxy_path_len_countdown == -1) || (cert->ex_pcpathlen < proxy_path_len_countdown)) {
-                        proxy_path_len_countdown = cert->ex_pcpathlen;
+                    if ((proxy_path_len_countdown == -1) || (ex_pcpathlen < proxy_path_len_countdown)) {
+                        proxy_path_len_countdown = ex_pcpathlen;
                        /*  Log (L_DEBUG, "Cert here is: %s -> Setting proxy path len constraint to: %d\n", cert_subjectdn, cert->ex_pcpathlen);*/
                     } else {
                         /* If a path length was already issuesd, lower ca_path_len_countdown */
