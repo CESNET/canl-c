@@ -350,7 +350,7 @@ send_request(OCSP_REQUEST *req, char *host, char *path,  int port, int ssl,
 
     if (!(conn = BIO_new_connect(host)))
         goto end;
-    BIO_set_conn_int_port(conn, &port);
+    BIO_set_conn_port(conn, &port);
 
     if (ssl){
         BIO *sbio;
