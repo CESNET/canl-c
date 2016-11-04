@@ -1280,7 +1280,7 @@ proxy_sign_ext(
             }
 #endif
             extension = sk_X509_EXTENSION_value(extensions, i);
-            i = X509_add_ext(new_cert, extension, -1);
+            i = X509_add_ext(*new_cert, extension, -1);
             if (i == 0)
             {
                 PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_DELEGATE_COPY);
