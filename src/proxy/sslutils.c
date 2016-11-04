@@ -1885,6 +1885,7 @@ proxy_verify_callback(
     EVP_PKEY *key = NULL;
     int       objset = 0;
     canl_ocsprequest_t *ocsp_data = NULL;
+    X509 *ctx_cert, *ctx_current_cert;
 
     /*
      * If we are being called recursivly to check delegate
@@ -1921,6 +1922,9 @@ proxy_verify_callback(
           return(0);
       }
     }
+
+    ctx_cert = X509_STORE_CTX_get0_cert(ctx);
+    ctx_current_cert = X509_STORE_CTX_get_current_cert(ctx);
 
     /*
      * We now check for some error conditions which
@@ -1966,8 +1970,8 @@ proxy_verify_callback(
            * OpenSSL 1.0 causes the cert to be added twice to 
            * the store.
            */
-          if (proxy_check_proxy_name(ctx->cert) && 
-              !X509_cmp(ctx->cert, ctx->current_cert))
+          if (proxy_check_proxy_name(ctx_cert) && 
+              !X509_cmp(ctx_cert, ctx_current_cert))
             ok = 1;
           break;
 #endif
@@ -1977,16 +1981,16 @@ proxy_verify_callback(
           /*
            * This may happen since proxy issuers are not CAs
            */
-          if (proxy_check_proxy_name(ctx->cert) >= 1) {
-            if (proxy_check_issued(ctx, ctx->cert, ctx->current_cert)) {
+          if (proxy_check_proxy_name(ctx_cert) >= 1) {
+            if (proxy_check_issued(ctx, ctx_cert, ctx_current_cert)) {
               ok = 1;
             }
           }
           break;
 
         case X509_V_ERR_UNHANDLED_CRITICAL_EXTENSION:
-          if (proxy_check_proxy_name(ctx->cert) >= 1) {
-            if (check_critical_extensions(ctx->cert, 1))
+          if (proxy_check_proxy_name(ctx_cert) >= 1) {
+            if (check_critical_extensions(ctx_cert, 1))
               /* Allows proxy specific extensions on proxies. */
               ok = 1;
           }
@@ -1994,7 +1998,7 @@ proxy_verify_callback(
 
         case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
         case X509_V_ERR_CERT_UNTRUSTED:
-          if (proxy_check_proxy_name(ctx->current_cert) > 0) {
+          if (proxy_check_proxy_name(ctx_current_cert) > 0) {
             /* Server side, needed to fully recognize a proxy. */
             ok = 1;
           }
@@ -2039,7 +2043,7 @@ proxy_verify_callback(
      * name matches the subject without the final proxy. 
      */
         
-    ret = proxy_check_proxy_name(ctx->current_cert);
+    ret = proxy_check_proxy_name(ctx_current_cert);
     if (ret < 0)
     {
         PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_BAD_PROXY_ISSUER);
@@ -2151,7 +2155,7 @@ proxy_verify_callback(
                     crl_info->revoked,i);
 
                 if(!ASN1_INTEGER_cmp(revoked->serialNumber,
-                                     X509_get_serialNumber(ctx->current_cert)))
+                                     X509_get_serialNumber(ctx_current_cert)))
                 {
                     PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CERT_REVOKED);
                     ctx->error = X509_V_ERR_CERT_REVOKED;
@@ -2165,8 +2169,8 @@ proxy_verify_callback(
             getenv(X509_CERT_DIR);
         /* Do not need to check self signed certs against ca_policy_file */
 
-        if (X509_NAME_cmp(X509_get_subject_name(ctx->current_cert),
-                          X509_get_issuer_name(ctx->current_cert)))
+        if (X509_NAME_cmp(X509_get_subject_name(ctx_current_cert),
+                          X509_get_issuer_name(ctx_current_cert)))
         {
 
             {
@@ -2216,7 +2220,7 @@ proxy_verify_callback(
      * Will be used for lifetime calculations
      */
 
-    goodtill = ASN1_UTCTIME_mktime(X509_get_notAfter(ctx->current_cert));
+    goodtill = ASN1_UTCTIME_mktime(X509_get_notAfter(ctx_current_cert));
     if (pvd->pvxd->goodtill == 0 || goodtill < pvd->pvxd->goodtill)
     {
         pvd->pvxd->goodtill = goodtill;
@@ -2229,7 +2233,7 @@ proxy_verify_callback(
 
     pvd->cert_depth++;
 
-    if (!check_critical_extensions(ctx->current_cert, itsaproxy)) {
+    if (!check_critical_extensions(ctx_current_cert, itsaproxy)) {
       PRXYerr(PRXYERR_F_VERIFY_CB, PRXYERR_R_UNKNOWN_CRIT_EXT);
       ctx->error = X509_V_ERR_CERT_REJECTED;
       goto fail_verify;
@@ -2244,7 +2248,7 @@ proxy_verify_callback(
      * See x509_vfy.c check_chain_purpose
      * all we do is substract off the proxy_dpeth 
      */
-    if(ctx->current_cert == ctx->cert)
+    if(ctx_current_cert == ctx_cert)
        if ((ctx->error = grid_verifyPathLenConstraints(X509_STORE_CTX_get_chain(ctx))) != X509_V_OK)
           goto fail_verify;
 
@@ -2256,10 +2260,10 @@ proxy_verify_callback(
         if (!ocsp_data)
             ocsprequest_init(&ocsp_data);
         if (ocsp_data) {
-            if (ctx->current_cert)
-                ocsp_data->cert = ctx->current_cert;
-            if (ctx->current_issuer)
-                ocsp_data->issuer = ctx->current_issuer;
+            if (ctx_current_cert)
+                ocsp_data->cert = ctx_current_cert;
+            if (ctx_current_issuer)
+                ocsp_data->issuer = ctx_current_issuer;
             if (cert_dir)
                 ocsp_data->store.ca_dir = cert_dir;
 
