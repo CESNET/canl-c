@@ -1872,7 +1872,6 @@ proxy_verify_callback(
     X509 *                              cert = NULL;
 #ifdef X509_V_ERR_CERT_REVOKED
     X509_CRL *                          crl;
-    X509_CRL_INFO *                     crl_info;
     X509_REVOKED *                      revoked;
 #endif
     SSL *                               ssl = NULL;
@@ -2122,7 +2121,6 @@ proxy_verify_callback(
         {
             objset = 1;
             crl =  obj.data.crl;
-            crl_info = crl->crl;
             /* verify the signature on this CRL */
 
             key = X509_get_pubkey(ctx_current_issuer);
@@ -2135,7 +2133,7 @@ proxy_verify_callback(
 
             /* Check date see if expired */
 
-            i = X509_cmp_current_time(crl_info->nextUpdate);
+            i = X509_cmp_current_time(X509_CRL_get0_nextUpdate(crl));
             if (i == 0)
             {
                 PRXYerr(PRXYERR_F_VERIFY_CB,PRXYERR_R_CRL_NEXT_UPDATE_FIELD);
@@ -2154,11 +2152,11 @@ proxy_verify_callback(
             /* check if this cert is revoked */
 
 
-            n = sk_X509_REVOKED_num(crl_info->revoked);
+            n = sk_X509_REVOKED_num(X509_CRL_get_REVOKED(crl));
             for (i=0; i<n; i++)
             {
                 revoked = (X509_REVOKED *)sk_X509_REVOKED_value(
-                    crl_info->revoked,i);
+                    X509_CRL_get_REVOKED(crl),i);
 
                 if(!ASN1_INTEGER_cmp(revoked->serialNumber,
                                      X509_get_serialNumber(ctx_current_cert)))
