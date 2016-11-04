@@ -28,7 +28,6 @@
 #include <stdio.h>
 
 #include <openssl/err.h>
-#include <openssl/asn1_mac.h>
 #include <openssl/objects.h>
 
 #include "myproxycertinfo.h"
