@@ -3946,10 +3946,10 @@ static int check_critical_extensions(X509 *cert, int itsaproxy)
   int nid_pci3 = my_txt2nid(PROXYCERTINFO_V3);
   int nid_pci4 = my_txt2nid(PROXYCERTINFO_V4);
 
-  STACK_OF(X509_EXTENSION) *extensions = cert->cert_info->extensions;
 
-  for (i=0; i < sk_X509_EXTENSION_num(extensions); i++) {
-    ex = (X509_EXTENSION *) sk_X509_EXTENSION_value(extensions,i);
+  for (i=0; i < X509_get_ext_count(cert); i++) {
+    ex = X509_get_ext(cert,i);
+
 
     if(X509_EXTENSION_get_critical(ex)) {
       extension_obj = X509_EXTENSION_get_object(ex);
