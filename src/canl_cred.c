@@ -846,6 +846,7 @@ canl_err_code CANL_CALLCONV
 canl_cred_load_priv_key_pkcs11(canl_ctx ctx, canl_cred cred, const char *label,
 			       canl_password_callback pass_clb, void *arg)
 {
+#ifdef USE_PKCS11
     int ret;
     creds *crd = (creds*) cred;
     unsigned long hSession;
@@ -860,11 +861,15 @@ canl_cred_load_priv_key_pkcs11(canl_ctx ctx, canl_cred cred, const char *label,
 			 label);
 
     return 0;
+#else
+    return ENOSYS;
+#endif /* USE_PKCS11 */
 }
 
 canl_err_code CANL_CALLCONV
 canl_cred_load_cert_pkcs11(canl_ctx ctx, canl_cred cred, const char *label)
 {
+#ifdef USE_PKCS11
     int ret;
     creds *crd = (creds*) cred;
     unsigned long hSession;
@@ -879,4 +884,7 @@ canl_cred_load_cert_pkcs11(canl_ctx ctx, canl_cred cred, const char *label)
 			 label);
 
     return 0;
+#else
+    return ENOSYS;
+#endif /* USE_PKCS11 */
 }

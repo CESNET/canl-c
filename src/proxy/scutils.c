@@ -13,9 +13,6 @@ Description:
 **********************************************************************/
 //#include "config.h"
 
-#define USE_PKCS11
-#define USE_PKCS11_DL
-
 #ifdef USE_PKCS11
 
 #include "scutils.h"
