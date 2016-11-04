@@ -1688,7 +1688,7 @@ int proxy_check_proxy_name(
     subject = X509_get_subject_name(cert);
     ne = X509_NAME_get_entry(subject, X509_NAME_entry_count(subject)-1);
     
-    if (!OBJ_cmp(ne->object,OBJ_nid2obj(NID_commonName)))
+    if (!OBJ_cmp(X509_NAME_ENTRY_get_object(ne),OBJ_nid2obj(NID_commonName)))
     {
         data = X509_NAME_ENTRY_get_data(ne);
         if ((data->length == 5 && 
