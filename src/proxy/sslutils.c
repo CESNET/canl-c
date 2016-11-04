@@ -2372,11 +2372,9 @@ proxy_verify_cert_chain(
     {
         X509_LOOKUP_add_dir(lookup,pvd->pvxd->certdir,X509_FILETYPE_PEM);
         csc = X509_STORE_CTX_new();
+        X509_STORE_set_check_issued(cert_store, proxy_check_issued);
+
         X509_STORE_CTX_init(csc,cert_store,scert,NULL);
-#if SSLEAY_VERSION_NUMBER >=  0x0090600fL
-        /* override the check_issued with our version */
-        csc.check_issued = proxy_check_issued;
-#endif
         X509_STORE_CTX_set_ex_data(csc,
                                    PVD_STORE_EX_DATA_IDX, (void *)pvd);
 #ifdef X509_V_FLAG_ALLOW_PROXY_CERTS
