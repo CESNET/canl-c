@@ -1023,7 +1023,6 @@ proxy_sign_ext(
 {
     EVP_PKEY *                          new_public_key = NULL;
     EVP_PKEY *                          tmp_public_key = NULL;
-    X509_CINF *                         new_cert_info;
     X509_CINF *                         user_cert_info;
     X509_EXTENSION *                    extension = NULL;
     time_t                              time_diff, time_now, time_after;
@@ -1078,8 +1077,6 @@ proxy_sign_ext(
         PRXYerr(PRXYERR_F_PROXY_SIGN_EXT,PRXYERR_R_PROCESS_PROXY);
         goto err;
     }
-
-    new_cert_info = (*new_cert)->cert_info;
 
     /* set the subject name */
 
