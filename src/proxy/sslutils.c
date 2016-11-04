@@ -1886,7 +1886,7 @@ proxy_verify_callback(
     EVP_PKEY *key = NULL;
     int       objset = 0;
     canl_ocsprequest_t *ocsp_data = NULL;
-    X509 *ctx_cert, *ctx_current_cert;
+    X509 *ctx_cert, *ctx_current_cert, *ctx_current_issuer;
     STACK_OF(X509) *ctx_chain;
     int ctx_error;
 
