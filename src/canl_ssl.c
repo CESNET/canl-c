@@ -48,6 +48,7 @@ static canl_err_code
 ssl_initialize(glb_ctx *cc)
 {
     static pthread_once_t openssl_once = PTHREAD_ONCE_INIT;
+    X509_STORE *store;
 
     mech_glb_ctx **m_glb_ctx = (mech_glb_ctx **) &cc->mech_ctx;
     int err = 0;
@@ -106,7 +107,8 @@ ssl_initialize(glb_ctx *cc)
         goto end;
     }
     /* XXX: should be only defined on the SSL level: */
-    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, 0);
+    store = SSL_CTX_get_cert_store(ssl_ctx);
+    X509_STORE_set_check_issued(store, proxy_check_issued);
 
     (*m_glb_ctx)->mech_ctx = ssl_ctx;
     ssl_ctx = NULL;
@@ -1257,6 +1259,7 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode,
 {
     glb_ctx *glb_cc = (glb_ctx*) cc;
     int (*vc)(int, X509_STORE_CTX *) = NULL;
+    X509_STORE *store;
 
     vc = (verify_callback) ? verify_callback : proxy_verify_callback;
 
@@ -1268,7 +1271,8 @@ canl_ssl_ctx_set_clb(canl_ctx cc, SSL_CTX *ssl_ctx, int ver_mode,
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)glb_cc->mech_ctx;
     
     setup_SSL_proxy_handler(glb_cc, ssl_ctx, m_ctx->ca_dir, 1);
-    SSL_CTX_set_cert_verify_callback(ssl_ctx, proxy_app_verify_callback, NULL);
+    store = SSL_CTX_get_cert_store(ssl_ctx);
+    X509_STORE_set_check_issued(store, proxy_check_issued);
 
     SSL_CTX_set_verify(ssl_ctx, ver_mode, vc);
 

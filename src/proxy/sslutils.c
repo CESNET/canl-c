@@ -1598,6 +1598,7 @@ Returns:
         Same as X509_verify_cert 
 **********************************************************************/
 
+#if 0
 int
 proxy_app_verify_callback(X509_STORE_CTX *ctx, UNUSED(void *empty))
 {
@@ -1609,6 +1610,7 @@ proxy_app_verify_callback(X509_STORE_CTX *ctx, UNUSED(void *empty))
     ctx->check_issued = proxy_check_issued;
     return X509_verify_cert(ctx);
 }
+#endif
 #endif
 
 /* Ifdef out all extra code not needed for k5cert
