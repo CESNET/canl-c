@@ -261,6 +261,7 @@ ssl_client_init(glb_ctx *cc, void **ctx)
     mech_glb_ctx *m_ctx = (mech_glb_ctx *)cc->mech_ctx;
     SSL_CTX *ssl_ctx = NULL;
     SSL *ssl = NULL;
+    X509_STORE *cert_store;
     int err = 0, i = 0;
     char *user_cert_fn, *user_key_fn, *user_proxy_fn;
     user_cert_fn = user_key_fn = user_proxy_fn = NULL;
@@ -272,6 +273,7 @@ ssl_client_init(glb_ctx *cc, void **ctx)
 	return set_error(cc, EINVAL, POSIX_ERROR, "SSL context not"
                 " initialized");
     ssl_ctx = (SSL_CTX *) m_ctx->mech_ctx;
+    cert_store = SSL_CTX_get_cert_store(ssl_ctx);
 
     err = proxy_get_filenames(0, NULL, NULL, &user_proxy_fn,
             &user_cert_fn, &user_key_fn);
@@ -322,11 +324,11 @@ ssl_client_init(glb_ctx *cc, void **ctx)
          * Certificate was a proxy with a cert. chain.
          * Add the certificates one by one to the chain.
          */
-        X509_STORE_add_cert(ssl_ctx->cert_store, m_ctx->cert_key->cert);
+        X509_STORE_add_cert(cert_store, m_ctx->cert_key->cert);
         for (i = 0; i < sk_X509_num(m_ctx->cert_key->chain); ++i) {
             X509 *cert = (sk_X509_value(m_ctx->cert_key->chain, i));
 
-            if (!X509_STORE_add_cert(ssl_ctx->cert_store, cert)) {
+            if (!X509_STORE_add_cert(cert_store, cert)) {
                 if (ERR_GET_REASON(ERR_peek_error()) == 
                         X509_R_CERT_ALREADY_IN_HASH_TABLE) {
                     ERR_clear_error();
@@ -339,7 +341,7 @@ ssl_client_init(glb_ctx *cc, void **ctx)
             }
         }
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
-        X509_STORE_set_verify_cb(ssl_ctx->cert_store, proxy_verify_callback);
+        X509_STORE_set_verify_cb(cert_store, proxy_verify_callback);
 #endif
     }
 
