@@ -83,7 +83,8 @@ LIBCANL=libcanl_c.la
 #
 # where offset is a sum of maximal released minor's of all previous major's
 #
-offset=0
+# counted minors: 1.0, 2.1
+offset=1
 version_info:=-version-info ${shell \
 	perl -e '$$,=":"; @F=split "\\.","${version}"; print $$F[0]+$$F[1]+${offset},$$F[2],$$F[1]' }
 major:=${shell \
