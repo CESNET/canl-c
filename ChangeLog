@@ -135,3 +135,5 @@
 2.1.7-1
 - Quick fix to prevent RFC Proxy DN forgery (RT #11476)
 
+3.0.0-1
+- Migrate to openssl 1.1.0
