@@ -2291,50 +2291,26 @@ proxy_verify_cert_chain(
     X509_STORE *                        cert_store = NULL;
     X509_LOOKUP *                       lookup = NULL;
     X509_STORE_CTX                      csc;
-    X509 *                              xcert = NULL;
-    X509 *                              scert = NULL;
     int cscinitialized = 0;
 
-    scert = ucert;
+    if (cert_chain == NULL)
+        goto err;
+
+    if (ucert == NULL)
+        ucert = sk_X509_value(cert_chain, 0);
+
     if(!(cert_store = X509_STORE_new())){
        goto err;
     }
     X509_STORE_set_verify_cb_func(cert_store, proxy_verify_callback);
-    if (cert_chain != NULL)
-    {
-        int i =0;
-        for (i=0;i<sk_X509_num(cert_chain);i++)
-        {
-            xcert = sk_X509_value(cert_chain,i);
-            if (!scert)
-            {
-                scert = xcert;
-            }
-            else
-            {
-                int j = X509_STORE_add_cert(cert_store, xcert);
-                if (!j)
-                {
-                    if ((ERR_GET_REASON(ERR_peek_error()) ==
-                         X509_R_CERT_ALREADY_IN_HASH_TABLE))
-                    {
-                        ERR_clear_error();
-                        break;
-                    }
-                    else
-                    {
-                        /*DEE need errprhere */
-                        goto err;
-                    }
-                }
-            }
-        }
-    }
-    if ((lookup = X509_STORE_add_lookup(cert_store,
-                                        X509_LOOKUP_hash_dir())))
+
+    lookup = X509_STORE_add_lookup(cert_store, X509_LOOKUP_hash_dir());
+    if (lookup == NULL)
+        goto err;
+
     {
         X509_LOOKUP_add_dir(lookup,pvd->pvxd->certdir,X509_FILETYPE_PEM);
-        X509_STORE_CTX_init(&csc,cert_store,scert,NULL);
+        X509_STORE_CTX_init(&csc, cert_store, ucert, cert_chain);
         cscinitialized = 1;
 #if SSLEAY_VERSION_NUMBER >=  0x0090600fL
         /* override the check_issued with our version */
