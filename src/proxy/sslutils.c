@@ -1934,20 +1934,7 @@ proxy_verify_callback(
                  }
 #endif
 
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L
-        case X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE:
-          /*
-           * OpenSSL 1.0 causes the cert to be added twice to 
-           * the store.
-           */
-          if (proxy_check_proxy_name(ctx->cert) && 
-              !X509_cmp(ctx->cert, ctx->current_cert))
-            ok = 1;
-          break;
-#endif
-
         case X509_V_ERR_INVALID_CA:
-        case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
           /*
            * This may happen since proxy issuers are not CAs
            */
@@ -1963,14 +1950,6 @@ proxy_verify_callback(
             if (check_critical_extensions(ctx->cert, 1))
               /* Allows proxy specific extensions on proxies. */
               ok = 1;
-          }
-          break;
-
-        case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
-        case X509_V_ERR_CERT_UNTRUSTED:
-          if (proxy_check_proxy_name(ctx->current_cert) > 0) {
-            /* Server side, needed to fully recognize a proxy. */
-            ok = 1;
           }
           break;
 
