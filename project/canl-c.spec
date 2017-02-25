@@ -7,7 +7,7 @@ Group:          System Environment/Libraries
 License:        ASL 2.0
 Vendor:         EMI
 URL:            http://www.eu-emi.eu
-Source:         http://eticssoft.web.cern.ch/eticssoft/repository/emi/emi.canl.c/%{version}/src/%{name}-%{version}.tar.gz
+Source:         http://scientific.zcu.cz/emi/emi.canl.c/%{name}-%{version}.tar.gz
 BuildRoot:      %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
 BuildRequires:  bison
@@ -15,7 +15,7 @@ BuildRequires:  c-ares-devel
 BuildRequires:  flex
 BuildRequires:  krb5-devel
 BuildRequires:  libtool
-BuildRequires:  openssl-devel
+BuildRequires:  openssl-devel >= 1.1
 BuildRequires:  perl
 BuildRequires:  perl(Getopt::Long)
 BuildRequires:  perl(POSIX)
@@ -103,8 +103,8 @@ rm -rf %{buildroot}
 %defattr(-,root,root)
 %doc ChangeLog README
 %license LICENSE
-%{_libdir}/libcanl_c.so.2
-%{_libdir}/libcanl_c.so.2.*
+%{_libdir}/libcanl_c.so.4
+%{_libdir}/libcanl_c.so.4.*
 
 %files devel
 %defattr(-,root,root)
@@ -113,8 +113,8 @@ rm -rf %{buildroot}
 
 %files doc
 %defattr(-,root,root)
-%doc canl.pdf
 %license LICENSE
+%doc canl.pdf
 
 %files examples
 %defattr(-,root,root)
