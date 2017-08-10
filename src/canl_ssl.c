@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 #define SSL_SERVER_METH SSLv23_server_method()
-#define SSL_CLIENT_METH SSLv3_client_method()
+#define SSL_CLIENT_METH SSLv23_client_method()
 #define DESTROY_TIMEOUT 10
 
 pthread_mutex_t canl_lock = PTHREAD_MUTEX_INITIALIZER;
