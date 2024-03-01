@@ -128,7 +128,7 @@ canl_ctx_set_cred(canl_ctx ctx, canl_cred cred)
         m_ctx->cert_key = (cert_key_store *) calloc(1, 
                 sizeof(*(m_ctx->cert_key)));
         if (!m_ctx->cert_key) {
-            return set_error(cc, ENOMEM, POSIX_ERROR, "not enought memory"
+            return set_error(cc, ENOMEM, POSIX_ERROR, "not enough memory"
                     " for the certificate storage");
         }
     }

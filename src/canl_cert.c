@@ -66,7 +66,7 @@ int do_set_ctx_own_cert_file(glb_ctx *cc, mech_glb_ctx *m_ctx,
         m_ctx->cert_key = (cert_key_store *) calloc(1, 
                 sizeof(*(m_ctx->cert_key)));
         if (!m_ctx->cert_key) {
-            return set_error(cc, ENOMEM, POSIX_ERROR, "not enought memory"
+            return set_error(cc, ENOMEM, POSIX_ERROR, "not enough memory"
                     " for the certificate storage"); 
         }
     }
