@@ -114,6 +114,11 @@ ${LIBCANL}:\
 #	${LEX} -t $< > $@
 	cp `echo $< | sed -e 's/\.l$$/.c.in/'` $@
 
+namespaces_lex.c: namespaces_parse.h
+signing_policy_lex.c: signing_policy_parse.h
+namespaces_parse.h: namespaces_parse.c
+signing_policy_parse.h: signing_policy_parse.c
+
 %.lo: %.c ${HEAD_CANL} 
 	${COMPILE} -c $< ${CFLAGS_LIB} -o $@
 
