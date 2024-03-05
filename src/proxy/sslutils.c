@@ -2888,18 +2888,24 @@ proxy_get_filenames(
                         free(default_user_cert);
                         default_user_cert = snprintf_wrap("%s%s%s",
                                 home, FILE_SEPERATOR, X509_DEFAULT_USER_CERT_P12_GT);
+
+                        if (!default_user_cert) {
+                          PRXYerr(PRXYERR_F_INIT_CRED, PRXYERR_R_OUT_OF_MEMORY);
+                          goto err;
+                        }
                       }
+                    }
+                    else
+                    {
+                      default_user_cert = strdup(certname);
 
                       if (!default_user_cert) {
                         PRXYerr(PRXYERR_F_INIT_CRED, PRXYERR_R_OUT_OF_MEMORY);
                         goto err;
-                      } 
-
+                      }
                     }
-                    else
-                      strcpy(default_user_cert, certname);
 
-                    default_user_key = strndup(default_user_cert, strlen(default_user_cert));
+                    default_user_key = strdup(default_user_cert);
 
                     if (!default_user_key) {
                       PRXYerr(PRXYERR_F_INIT_CRED, PRXYERR_R_OUT_OF_MEMORY);
