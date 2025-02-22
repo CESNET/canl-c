@@ -678,7 +678,7 @@ proxy_genreq(
     EVP_PKEY **                         pkeyp,
     int                                 bits,
     const char *                        newdn,
-    int                                 (*callback)())
+    void                                (*callback)(int, int, void *))
 
 {
     RSA *                               rsa = NULL;
@@ -728,8 +728,8 @@ proxy_genreq(
      */
     if ((rsa = RSA_generate_key(rbits,
                                 RSA_F4,
-                                (void (*)(int,int,void *))callback
-                                ,NULL)) == NULL)
+                                callback,
+                                NULL)) == NULL)
     {
         PRXYerr(PRXYERR_F_PROXY_GENREQ,PRXYERR_R_PROCESS_PROXY_KEY);
         goto err;
@@ -2968,7 +2968,7 @@ Parameters:
 Returns:
 **********************************************************************/
 
-static int cert_load_pkcs12(BIO *bio, int (*pw_cb)(), X509 **cert, EVP_PKEY **key, STACK_OF(X509) **chain) 
+static int cert_load_pkcs12(BIO *bio, pem_password_cb *pw_cb, X509 **cert, EVP_PKEY **key, STACK_OF(X509) **chain)
 {
   PKCS12 *p12 = NULL;
   char *password = NULL;
@@ -2984,7 +2984,7 @@ static int cert_load_pkcs12(BIO *bio, int (*pw_cb)(), X509 **cert, EVP_PKEY **ke
     int sz = 0;
 
     if (pw_cb)
-      sz = pw_cb(buffer, 1024, 0);
+      sz = pw_cb(buffer, 1024, 0, NULL);
     else 
       if (EVP_read_pw_string(buffer, 1024, EVP_get_pw_prompt(), 0) != -1)
         sz = strlen(buffer);
@@ -3012,7 +3012,7 @@ int PRIVATE proxy_load_user_cert_and_key_pkcs12(const char *user_cert,
                                                 X509 **cert,
                                                 STACK_OF(X509) **stack,
                                                 EVP_PKEY **pkey,
-                                                int (*pw_cb) ())
+                                                pem_password_cb *pw_cb)
 {
   BIO *bio = BIO_new_file(user_cert, "rb");
   int res = cert_load_pkcs12(bio, pw_cb, cert, pkey, stack);
@@ -3038,9 +3038,9 @@ int PRIVATE proxy_load_user_cert_and_key_pkcs12(const char *user_cert,
 int PRIVATE
 proxy_load_user_cert(
     const char *                        user_cert,
-    X509 **                              certificate,
-    UNUSED(int                                 (*pw_cb)()),
-    UNUSED(unsigned long *                     hSession))
+    X509 **                             certificate,
+    UNUSED(pem_password_cb *            pw_cb),
+    UNUSED(unsigned long *              hSession))
 {
     int                                 status = -1;
     FILE *                              fp;
@@ -3171,13 +3171,13 @@ proxy_load_user_key(
     EVP_PKEY **                         private_key,
     X509 *                              ucert,
     const char *                        user_key,
-    int                                 (*pw_cb)(),
-    UNUSED(unsigned long *                     hSession))
+    pem_password_cb *                   pw_cb,
+    UNUSED(unsigned long *              hSession))
 {
     int                                 status = -1;
     FILE *                              fp;
     EVP_PKEY *                          ucertpkey;
-    int                                 (*xpw_cb)();
+    pem_password_cb *                   xpw_cb;
 
     if (!private_key)
       return 0;
@@ -3649,7 +3649,7 @@ err:
 
 int load_credentials(const char *certname, const char *keyname,
                      X509 **cert, STACK_OF(X509) **stack, EVP_PKEY **key,
-                     int (*callback)())
+                     pem_password_cb *callback)
 {
   STACK_OF(X509) *chain = NULL;
 
