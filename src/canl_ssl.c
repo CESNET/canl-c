@@ -461,12 +461,20 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
 			       SSL *ssl, const char *host)
 {
     X509 * serv_cert = NULL;
+#if OPENSSL_VERSION_NUMBER >= 0x40000000L
+    const X509_EXTENSION *ext = NULL;
+#else
     X509_EXTENSION *ext = NULL;
+#endif
     int i = 0;
     GENERAL_NAMES *ialt = NULL;
     char *pBuffer = NULL;
     int correspond = 0;
+#if OPENSSL_VERSION_NUMBER >= 0x40000000L
+    const X509_NAME *sn = NULL;
+#else
     X509_NAME *sn = NULL;
+#endif
 
     /*if extensions are present, hostname has to correspond
      *  to subj. alt. name*/
@@ -506,7 +514,7 @@ static int check_hostname_cert(glb_ctx *cc, io_handler *io,
         i = X509_NAME_get_index_by_NID(sn, NID_commonName, -1);
         if (i != -1) {
             while (1) {
-                X509_NAME_ENTRY *cn = X509_NAME_get_entry(sn, i);
+                const X509_NAME_ENTRY *cn = X509_NAME_get_entry(sn, i);
                 ASN1_STRING_to_UTF8((unsigned char**)&pBuffer,
                         X509_NAME_ENTRY_get_data(cn));
                 if (!strcmp(pBuffer, host)) { //TODO substr maybe
@@ -1299,7 +1307,7 @@ ssl_get_peer(glb_ctx *cc, io_handler *io, void *auth_ctx, canl_principal *peer)
     struct _principal_int *princ;
     SSL *ssl = (SSL *) auth_ctx;
     X509 *cert = NULL;
-    X509_NAME *subject = NULL;
+    const X509_NAME *subject = NULL;
     int ret;
     BIO *name_out = BIO_new(BIO_s_mem());
     long name_len = 0;

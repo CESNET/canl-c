@@ -247,13 +247,13 @@ Returns :
 ********************************************************************/
 static int
 X509_NAME_cmp_no_set(
-    X509_NAME *                         a,
-    X509_NAME *                         b)
+    const X509_NAME *                   a,
+    const X509_NAME *                   b)
 {
     int                                 i;
     int                                 j;
-    X509_NAME_ENTRY *                   na;
-    X509_NAME_ENTRY *                   nb;
+    const X509_NAME_ENTRY *             na;
+    const X509_NAME_ENTRY *             nb;
 
     if (X509_NAME_entry_count(a) != X509_NAME_entry_count(b))
     {
@@ -262,23 +262,23 @@ X509_NAME_cmp_no_set(
     
     for (i=X509_NAME_entry_count(a)-1; i>=0; i--)
     {
-        ASN1_STRING *val_a, *val_b;
+        const ASN1_STRING *val_a, *val_b;
 
         na = X509_NAME_get_entry(a,i);
         nb = X509_NAME_get_entry(b,i);
 
         val_a = X509_NAME_ENTRY_get_data(na);
         val_b = X509_NAME_ENTRY_get_data(nb);
-        j = val_a->length - val_b->length;
+        j = ASN1_STRING_length(val_a) - ASN1_STRING_length(val_b);
 
         if (j)
         {
             return(j);
         }
         
-        j = memcmp(val_a->data,
-                   val_b->data,
-                   val_a->length);
+        j = memcmp(ASN1_STRING_get0_data(val_a),
+                   ASN1_STRING_get0_data(val_b),
+                   ASN1_STRING_length(val_a));
         if (j)
         {
             return(j);
@@ -309,7 +309,7 @@ Function: getuid, getpid
 
 Descriptions:
         For Windows95, WIN32, we don't have these, so we will default
-    to using uid 0 and pid 0 Need to look at this better for NT. 
+        to using uid 0 and pid 0 Need to look at this better for NT.
 ******************************************************************/
 static unsigned long
 getuid()
@@ -400,10 +400,12 @@ Returns:
 void PRIVATE
 ERR_set_continue_needed(void)
 {
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
     ERR_STATE *es;
     es = ERR_get_state();
     es->err_data_flags[es->top] = 
         es->err_data_flags[es->top] | ERR_DISPLAY_CONTINUE_NEEDED;
+#endif
 }
 
 /**********************************************************************
@@ -413,7 +415,7 @@ Description:
     Sets up the error tables used by SSL and adds ours
     using the ERR_LIB_USER
     Only the first call does anything.
-        Will also add any builtin objects for SSLeay. 
+    Will also add any builtin objects for SSLeay.
 
 Parameters:
     i should be zero the first time one of the ERR_load functions
@@ -434,8 +436,10 @@ ERR_load_prxyerr_strings(
 #else
     char *                              randfile;
 #endif
+#if 0
 #if SSLEAY_VERSION_NUMBER >=  0x0090581fL
     char *                              egd_path;
+#endif
 #endif
     char                                buffer[200];
         
@@ -664,7 +668,7 @@ Description:
         generate certificate request for a proxy certificate. 
         This is based on using the current user certificate.
         If the current user cert is NULL, we are asking fke the server
-    to fill this in, and give us a new cert. Used with k5cert.
+        to fill this in, and give us a new cert. Used with k5cert.
 
 Parameters:
 
@@ -1025,7 +1029,6 @@ proxy_sign_ext(
 {
     EVP_PKEY *                          new_public_key = NULL;
     EVP_PKEY *                          tmp_public_key = NULL;
-    X509_CINF *                         user_cert_info;
     X509_EXTENSION *                    extension = NULL;
     time_t                              time_diff, time_now, time_after;
     ASN1_UTCTIME *                      asn1_time = NULL;
@@ -1033,18 +1036,13 @@ proxy_sign_ext(
     unsigned char                       md[SHA_DIGEST_LENGTH];
     unsigned int                        len;
 
-/* for openssl 1.1
-    if (!selfsigned)
-      user_cert_info = user_cert->cert_info;
-*/
-
     *new_cert = NULL;
     
 /*
     if ((req->req_info == NULL) ||
         (req->req_info->pubkey == NULL) ||
         (req->req_info->pubkey->public_key == NULL) ||
-        (req->req_info->pubkey->public_key->data == NULL))
+        (ASN1_STRING_get0_data(req->req_info->pubkey->public_key) == NULL))
     {
         PRXYerr(PRXYERR_F_PROXY_SIGN,PRXYERR_R_MALFORM_REQ);
         goto err;
@@ -1115,20 +1113,33 @@ proxy_sign_ext(
       EVP_PKEY_free(new_public_key);
       new_public_key = NULL;
 
-	  /* According to ITU-T recommendation X.690 the first nine bites shall not
-	   * be 0 or 1, see also https://ggus.eu/index.php?mode=ticket_info&ticket_id=113418.
-	   * To obey the demand we put an additional byte at the very beginning. */
-	  len++;
+      /* According to ITU-T recommendation X.690 the first nine bites shall not
+       * be 0 or 1, see also https://ggus.eu/index.php?mode=ticket_info&ticket_id=113418.
+       * To obey the demand we put an additional byte at the very beginning. */
+      len++;
 
       serial = ASN1_INTEGER_new();
-      serial->length = len;
-      serial->data   = malloc(len);
-      if (serial->data == NULL) {
+      if (serial == NULL) {
         PRXYerr(PRXYERR_F_PROXY_SIGN_EXT, PRXYERR_R_PROCESS_PROXY);
         goto err;
       }
-      serial->data[0] = 0x01;
-      memcpy(serial->data+1, md, SHA_DIGEST_LENGTH);
+
+      unsigned char *data = malloc(len);
+      if (data == NULL) {
+        PRXYerr(PRXYERR_F_PROXY_SIGN_EXT, PRXYERR_R_PROCESS_PROXY);
+        ASN1_INTEGER_free(serial);
+        goto err;
+      }
+
+      data[0] = 0x01;
+      memcpy(data + 1, md, SHA_DIGEST_LENGTH);
+      if (ASN1_STRING_set(serial, data, len) == 0) {
+        PRXYerr(PRXYERR_F_PROXY_SIGN_EXT, PRXYERR_R_PROCESS_PROXY);
+        ASN1_INTEGER_free(serial);
+        free(data);
+        goto err;
+      }
+      free(data);
 
       i = X509_set_serialNumber(*new_cert, serial);
       ASN1_INTEGER_free(serial);
@@ -1142,7 +1153,7 @@ proxy_sign_ext(
         PRXYerr(PRXYERR_F_PROXY_SIGN_EXT, PRXYERR_R_PROCESS_PROXY);
         goto err;
       }
-	  (*new_cert)->cert_info->serialNumber->data[0] = 0x01;
+      (*new_cert)->cert_info->serialNumber->data[0] = 0x01;
       memcpy((*new_cert)->cert_info->serialNumber->data + 1, md, SHA_DIGEST_LENGTH);
 */
     } 
@@ -1376,7 +1387,7 @@ proxy_construct_name(
     if(newcn)
     {
         if ((name_entry = X509_NAME_ENTRY_create_by_NID(NULL,
-							NID_commonName,
+                                                        NID_commonName,
                                                         V_ASN1_APP_CHOOSE,
                                                         (unsigned char *)newcn,
                                                         len)) == NULL)
@@ -1622,9 +1633,9 @@ proxy_app_verify_callback(X509_STORE_CTX *ctx, UNUSED(void *empty))
 Function: proxy_check_proxy_name()
 
 Description:
-    Check if the subject name is a proxy, and the issuer name
+        Check if the subject name is a proxy, and the issuer name
         is the same as the subject name, but without the proxy
-    entry. 
+        entry.
         i.e. inforce the proxy signing requirement of 
         only a user or a user's proxy can sign a proxy. 
         Also pass back Rif this is a limited proxy. 
@@ -1643,13 +1654,14 @@ int proxy_check_proxy_name(
     X509 *                              cert)
 {
     int                                 ret = 0;
-    X509_NAME *                         subject;
+    const X509_NAME *                   subject;
     X509_NAME *                         name = NULL;
     X509_NAME_ENTRY *                   ne = NULL;
-    ASN1_STRING *                       data;
+    const X509_NAME_ENTRY *             ne_c = NULL;
+    const ASN1_STRING *                 data;
     int nidv3, nidv4 = 0;
     int indexv3 = -1, indexv4 = -1;
-    X509_EXTENSION *ext = NULL;
+    const X509_EXTENSION *              ext = NULL;
 
     nidv3 = my_txt2nid(PROXYCERTINFO_V3);
     nidv4 = my_txt2nid(PROXYCERTINFO_V4);
@@ -1692,18 +1704,18 @@ int proxy_check_proxy_name(
       }
     }
     subject = X509_get_subject_name(cert);
-    ne = X509_NAME_get_entry(subject, X509_NAME_entry_count(subject)-1);
+    ne_c = X509_NAME_get_entry(subject, X509_NAME_entry_count(subject)-1);
     
-    if (!OBJ_cmp(X509_NAME_ENTRY_get_object(ne),OBJ_nid2obj(NID_commonName)))
+    if (!OBJ_cmp(X509_NAME_ENTRY_get_object(ne_c),OBJ_nid2obj(NID_commonName)))
     {
-        data = X509_NAME_ENTRY_get_data(ne);
-        if ((data->length == 5 && 
-             !memcmp(data->data,"proxy",5)) || 
-            (data->length == 13 && 
-             !memcmp(data->data,"limited proxy",13)))
+        data = X509_NAME_ENTRY_get_data(ne_c);
+        if ((ASN1_STRING_length(data) == 5 &&
+             !memcmp(ASN1_STRING_get0_data(data), "proxy", 5)) ||
+            (ASN1_STRING_length(data) == 13 &&
+             !memcmp(ASN1_STRING_get0_data(data), "limited proxy", 13)))
         {
-        
-            if (data->length == 13)
+
+            if (ASN1_STRING_length(data) == 13)
             {
                 ret = 2; /* its a limited proxy */
             }
@@ -1747,7 +1759,9 @@ int proxy_check_proxy_name(
         else if (ext != NULL) {
             name = X509_NAME_dup(X509_get_issuer_name(cert));
             ne = X509_NAME_ENTRY_create_by_NID(NULL, NID_commonName,
-                                               data->type, data->data, -1);
+                                               ASN1_STRING_type(data),
+                                               ASN1_STRING_get0_data(data),
+                                               -1);
             X509_NAME_add_entry(name,ne,X509_NAME_entry_count(name),0);
             X509_NAME_ENTRY_free(ne);
             ne = NULL;
@@ -1797,11 +1811,19 @@ Returns:
 
 **********************************************************************/
 
+#if OPENSSL_VERSION_NUMBER >= 0x40000000L
 int PRIVATE
 proxy_check_issued(
-    UNUSED(X509_STORE_CTX *                    ctx),
+    UNUSED(X509_STORE_CTX *             ctx),
+    const X509 *                        x,
+    const X509 *                        issuer)
+#else
+int PRIVATE
+proxy_check_issued(
+    UNUSED(X509_STORE_CTX *             ctx),
     X509 *                              x,
     X509 *                              issuer)
+#endif
 {
     int                                 ret;
     int                                 ret_code = 1;
@@ -1875,14 +1897,13 @@ proxy_verify_callback(
     X509_STORE_CTX *                    ctx)
 {
     X509_OBJECT                         *obj = NULL;
-    X509 *                              cert = NULL;
 #ifdef X509_V_ERR_CERT_REVOKED
     X509_CRL *                          crl;
     X509_REVOKED *                      revoked;
 #endif
     SSL *                               ssl = NULL;
     SSL_CTX *                           ssl_ctx = NULL;
-    canl_proxy_verify_desc *                 pvd;
+    canl_proxy_verify_desc *            pvd;
     int                                 itsaproxy = 0;
     int                                 i;
     int                                 ret;
@@ -1955,20 +1976,20 @@ proxy_verify_callback(
              * certificate in the chain we will check the chain.
              */
 
-	    /* Path length exceeded for the CA (should never happen in OpenSSL - famous last words) */
-		    /*Log( L_DEBUG, "Shallow Error X509_V_ERR_PATH_LENGTH_EXCEEDED: 
+            /* Path length exceeded for the CA (should never happen in OpenSSL - famous last words) */
+            /*Log( L_DEBUG, "Shallow Error X509_V_ERR_PATH_LENGTH_EXCEEDED:
                       Running alternative RFC5280 and RFC3820 compliance tests.\n"); */
-	    if (grid_verifyPathLenConstraints(ctx_chain) == X509_V_OK){
+            if (grid_verifyPathLenConstraints(ctx_chain) == X509_V_OK){
                 ok = 1;
                 break;
             }
 #endif
 
-	    /* Path length exceeded for the Proxy! -> Override and continue */
-	    /* This is NOT about X509_V_ERR_PATH_LENGTH_EXCEEDED */
+            /* Path length exceeded for the Proxy! -> Override and continue */
+            /* This is NOT about X509_V_ERR_PATH_LENGTH_EXCEEDED */
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L
-	    if (ctx_error == X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED)
-	        if (grid_verifyPathLenConstraints(ctx_chain) == X509_V_OK){
+            if (ctx_error == X509_V_ERR_PROXY_PATH_LENGTH_EXCEEDED)
+                if (grid_verifyPathLenConstraints(ctx_chain) == X509_V_OK){
                     ok = 1;
                     break;
                  }
@@ -3176,7 +3197,9 @@ proxy_load_user_key(
 {
     int                                 status = -1;
     FILE *                              fp;
+#if 0
     EVP_PKEY *                          ucertpkey;
+#endif
     pem_password_cb *                   xpw_cb;
 
     if (!private_key)
@@ -3345,10 +3368,10 @@ proxy_load_user_key(
         ucertpkey =  X509_PUBKEY_get(key);
         int mismatch = 0;
 
-        if (ucertpkey!= NULL  && ucertpkey->type == 
-            (*private_key)->type)
+        if (ucertpkey!= NULL &&
+            ASN1_STRING_type(ucertpkey) == ASN1_STRING_type(*private_key))
         {
-            if (ucertpkey->type == EVP_PKEY_RSA)
+            if (ASN1_STRING_type(ucertpkey) == EVP_PKEY_RSA)
             {
                 /* add in key as random data too */
                 if (ucertpkey->pkey.rsa != NULL)
@@ -3441,7 +3464,7 @@ time_t PRIVATE
 ASN1_UTCTIME_mktime(
     ASN1_UTCTIME *                      ctm)
 {
-  char     *str;
+  const char *str;
   time_t    offset;
   time_t    newtime;
   char      buff1[32];
@@ -3450,7 +3473,7 @@ ASN1_UTCTIME_mktime(
   struct tm tm;
   int       size = 0;
 
-  switch (ctm->type) {
+  switch (ASN1_STRING_type(ctm)) {
   case V_ASN1_UTCTIME:
     size=10;
     break;
@@ -3459,8 +3482,8 @@ ASN1_UTCTIME_mktime(
     break;
   }
   p = buff1;
-  i = ctm->length;
-  str = (char *)ctm->data;
+  i = ASN1_STRING_length(ctm);
+  str = (const char *) ASN1_STRING_get0_data(ctm);
   if ((i < 11) || (i > 17)) {
     return 0;
   }
@@ -3493,7 +3516,7 @@ ASN1_UTCTIME_mktime(
 
   tm.tm_isdst = 0;
   int index = 0;
-  if (ctm->type == V_ASN1_UTCTIME) {
+  if (ASN1_STRING_type(ctm) == V_ASN1_UTCTIME) {
     tm.tm_year  = (buff1[index++]-'0')*10;
     tm.tm_year += (buff1[index++]-'0');
   }
@@ -3584,8 +3607,12 @@ proxy_extension_class_add_create(
         goto err;
     }
 
-    class_add_oct->data = buffer;
-    class_add_oct->length = length;
+    if (!(ASN1_OCTET_STRING_set(class_add_oct, buffer, length)))
+    {
+        PRXYerr(PRXYERR_F_PROXY_SIGN,PRXYERR_R_CLASS_ADD_EXT);
+        goto err;
+    }
+    free(buffer);
 
     if (!(ex = X509_EXTENSION_create_by_OBJ(NULL, class_add_obj, 
                                             crit, class_add_oct)))
@@ -3947,9 +3974,13 @@ static X509_NAME *make_DN(const char *dnstring)
 static int check_critical_extensions(X509 *cert, int itsaproxy)
 {
   int i = 0;
-  ASN1_OBJECT *extension_obj;
+  const ASN1_OBJECT *extension_obj;
   int nid;
+#if OPENSSL_VERSION_NUMBER >= 0x40000000L
+  const X509_EXTENSION *ex;
+#else
   X509_EXTENSION *ex;
+#endif
 
   int nid_pci3 = my_txt2nid(PROXYCERTINFO_V3);
   int nid_pci4 = my_txt2nid(PROXYCERTINFO_V4);
@@ -4017,7 +4048,7 @@ int grid_x509IsCA(X509 *cert)
 Function:   verify_PROXYCERTINFO_get_policy
 Description:
             Get a policy from the PROXYCERTINFO structure
-            ******************************************************************************/
+******************************************************************************/
 PROXYPOLICY *
 verify_PROXYCERTINFO_get_policy(PROXYCERTINFO *cert_info) {
         if(cert_info) {
@@ -4030,7 +4061,7 @@ verify_PROXYCERTINFO_get_policy(PROXYCERTINFO *cert_info) {
 Function:   verify_PROXYPOLICY_get_policy_language
 Description:
             Get the proxy language from the proxy policy
-            ******************************************************************************/
+******************************************************************************/
 ASN1_OBJECT *
 verify_PROXYPOLICY_get_policy_language(PROXYPOLICY *policy) {
             return policy->policy_language;
@@ -4062,7 +4093,11 @@ lcmaps_proxy_type_t lcmaps_type_of_proxy(X509 * cert) {
     int len_subject_dn = 0;
     int len_issuer_dn = 0;
 
+#if OPENSSL_VERSION_NUMBER >= 0x40000000L
+    const X509_EXTENSION *              pci_ext = NULL;
+#else
     X509_EXTENSION *                    pci_ext = NULL;
+#endif
     PROXYCERTINFO *                     pci = NULL;
     PROXYPOLICY *                       policy = NULL;
     ASN1_OBJECT *                       policy_lang = NULL;
@@ -4079,7 +4114,11 @@ lcmaps_proxy_type_t lcmaps_type_of_proxy(X509 * cert) {
 
     int  i;
     char s[80];
+#if OPENSSL_VERSION_NUMBER >= 0x40000000L
+    const X509_EXTENSION *ex;
+#else
     X509_EXTENSION *ex;
+#endif
 
     /* Check by OID */
     for (i = 0; i < X509_get_ext_count(cert); ++i) {
