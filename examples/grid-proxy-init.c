@@ -164,5 +164,5 @@ end:
     if (ctx)
 	canl_free_ctx(ctx);
 
-    return ret;
+    return ret ? 1 : 0;
 }

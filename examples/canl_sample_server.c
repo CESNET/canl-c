@@ -225,5 +225,5 @@ end:
 
     canl_free_ctx(my_ctx);
 
-    return err;
+    return err ? 1 : 0;
 }
