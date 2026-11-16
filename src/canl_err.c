@@ -276,8 +276,9 @@ static canl_err_code resolve_error_code(glb_ctx *cc, unsigned long err_code,
                             ERR_GET_REASON(err_code))) != -1){
                 cc->err_code = ret;
                 cc->err_orig = CANL_ERROR;
+            } else {
+                cc->err_code = err_code;
             }
-            cc->err_code = err_code;
             break;
         case CANL_ERROR:
             cc->err_code = err_code;
