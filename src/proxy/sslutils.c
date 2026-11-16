@@ -738,13 +738,17 @@ proxy_genreq(
         PRXYerr(PRXYERR_F_PROXY_GENREQ,PRXYERR_R_PROCESS_PROXY_KEY);
         goto err;
     }
-    
-    if (!EVP_PKEY_assign_RSA(pkey,rsa))
+
+    if (EVP_PKEY_assign_RSA(pkey,rsa))
+    {
+      rsa = NULL;
+    }
+    else
     {
         PRXYerr(PRXYERR_F_PROXY_GENREQ,PRXYERR_R_PROCESS_PROXY_KEY);
         goto err;
     }
-    
+
     if ((req = X509_REQ_new()) == NULL)
     {
         PRXYerr(PRXYERR_F_PROXY_GENREQ,PRXYERR_R_PROCESS_REQ);
